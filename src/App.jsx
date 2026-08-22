@@ -18,6 +18,7 @@ import TrainingsplanTab from "./components/TrainingsplanTab.jsx";
 import GespeichertTab from "./components/GespeichertTab.jsx";
 import FavoritenTab from "./components/FavoritenTab.jsx";
 import ProScreen from "./components/ProScreen.jsx";
+import SplashScreen from "./components/SplashScreen.jsx";
 import LiveSession from "./components/LiveSession.jsx";
 
 const TABS = [
@@ -33,6 +34,7 @@ export default function App() {
   const { t, lang, setLang } = useI18n();
   const [tab, setTab] = useState("generator");
   const [showPro, setShowPro] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
   const [liveSession, setLiveSession] = useState(null);
   const [greetingQuote, setGreetingQuote] = useState(() => getDynamicGymGreeting(userName, lang));
 
@@ -184,7 +186,10 @@ export default function App() {
     activeCategories,
   };
 
-  if (!ready) return <div className="app" />;
+  // Der Splash bleibt, bis die Sitzung geladen ist UND die Animation durch ist.
+  if (!splashDone) {
+    return <SplashScreen ready={ready} onDone={() => setSplashDone(true)} />;
+  }
 
   if (liveSession) {
     return (
