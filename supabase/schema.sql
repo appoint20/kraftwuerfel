@@ -190,8 +190,14 @@ create policy "premium writes favorites" on public.favorites
   for insert with check (auth.uid() = user_id and public.is_premium(auth.uid()));
 
 -- ---------------------------------------------------------------------------
--- Konto freischalten (im SQL-Editor ausführen, ersetze die E-Mail):
---
---   update public.profiles set is_premium = true where email = 'name@example.com';
---   update public.profiles set is_admin   = true where email = 'name@example.com';
+-- Bestehende registrierte Konten direkt in profiles übernehmen und freischalten:
 -- ---------------------------------------------------------------------------
+insert into public.profiles (id, email, name, is_premium, is_admin)
+select 
+  id, 
+  email, 
+  coalesce(raw_user_meta_data->>'name', split_part(email, '@', 1)), 
+  true,
+  true
+from auth.users
+on conflict (id) do update set is_premium = true, is_admin = true;
