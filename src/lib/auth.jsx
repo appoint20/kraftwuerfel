@@ -59,6 +59,28 @@ export function AuthProvider({ children }) {
     return () => sub.subscription.unsubscribe();
   }, [loadProfile]);
 
+  const upgradeToPro = useCallback(async () => {
+    if (!user || !supabase) return false;
+    try {
+      const { error: rpcError } = await supabase.rpc("upgrade_to_pro");
+      if (!rpcError) {
+        await loadProfile(user);
+        return true;
+      }
+    } catch {
+      // Fallback below
+    }
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ is_premium: true })
+      .eq("id", user.id);
+    if (!updateError) {
+      await loadProfile(user);
+      return true;
+    }
+    return false;
+  }, [user, loadProfile]);
+
   const value = {
     user,
     ready,
@@ -67,6 +89,8 @@ export function AuthProvider({ children }) {
     isAdmin: profile.isAdmin,
     canSignIn: isSupabaseConfigured,
     signOut: () => supabase?.auth.signOut(),
+    upgradeToPro,
+    refreshProfile: () => loadProfile(user),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

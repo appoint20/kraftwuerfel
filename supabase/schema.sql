@@ -55,6 +55,22 @@ as $$
   select coalesce((select is_premium or is_admin from public.profiles where id = uid), false);
 $$;
 
+-- Nach erfolgreicher Zahlung / Upgrade (z. B. Apple Pay)
+create or replace function public.upgrade_to_pro()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.profiles
+  set is_premium = true
+  where id = auth.uid();
+end;
+$$;
+
+grant execute on function public.upgrade_to_pro() to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- Daten
 -- ---------------------------------------------------------------------------
