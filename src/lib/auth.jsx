@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "./supabase.js";
+import { ENV } from "./env.js";
 
 /*
   Freemium in zwei Stufen:
@@ -16,7 +17,7 @@ const FREE = { isPremium: false, isAdmin: false };
 // Ohne Supabase-Zugangsdaten gibt es keine Konten. Für die lokale Entwicklung
 // lässt sich die Rolle über VITE_LOCAL_ROLE=free|pro durchspielen. Der KI-Coach
 // bleibt lokal unerreichbar — er braucht die Edge Function.
-const LOCAL_ROLE = (import.meta.env.VITE_LOCAL_ROLE || "free").toLowerCase();
+const LOCAL_ROLE = ENV.localRole;
 const LOCAL_PROFILE = {
   free: FREE,
   pro: { isPremium: true, isAdmin: false },

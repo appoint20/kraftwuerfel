@@ -1,0 +1,22 @@
+# Wird im Image neu installiert bzw. gebaut
+node_modules
+dist
+
+# Gehört nie ins Image
+.env
+.env.*
+!.env.example
+
+.git
+.gitignore
+.claude
+.DS_Store
+*.log
+
+# Für den Frontend-Build nicht nötig
+README.md
+supabase
+scripts
+render.yaml
+Dockerfile
+.dockerignore
