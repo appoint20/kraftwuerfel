@@ -99,13 +99,12 @@ export default function GeneratorTab({
             return (
               <div key={i} className={`plan-card ${isRolling ? "rolling" : ""}`}>
                 <div className="plan-card-top">
+                  {/* Das Muskelbild sagt schon, welche Gruppe drankommt — die
+                      Kategorie daneben nochmal auszuschreiben war doppelt. */}
                   <div className="plan-left" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <ExerciseVisual category={slot.exercise.category} size={44} compact />
-                    <div>
-                      <div className="plan-badge">{category(slot.exercise.category)}</div>
-                      <div className={`plan-name ${isRolling ? "rolling" : ""}`}>
-                        {isRolling ? scramble[i] || exerciseName(slot.exercise) : exerciseName(slot.exercise)}
-                      </div>
+                    <div className={`plan-name ${isRolling ? "rolling" : ""}`}>
+                      {isRolling ? scramble[i] || exerciseName(slot.exercise) : exerciseName(slot.exercise)}
                     </div>
                   </div>
                   <button className="reroll-btn" onClick={() => onReroll(i)} title={t("gen.rerollOne")}>

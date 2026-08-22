@@ -1,5 +1,6 @@
 import { Heart, Play } from "lucide-react";
 import { useI18n } from "../lib/i18n.jsx";
+import { planNameFor } from "../lib/planNames.js";
 import CycleBlock from "./CycleBlock.jsx";
 
 export default function DayBlock({
@@ -12,14 +13,18 @@ export default function DayBlock({
   justSaved,
   canFavorite,
   onStartLiveTraining,
+  planSalt = "",
 }) {
   const { t, weekday } = useI18n();
+  // Gewürfelte Pläne haben kein Modell, das sie benennt — Name kommt lokal.
+  const planName = planNameFor(`${planSalt}:${day}`);
 
   return (
     <div className="tp-day-block">
       <div className="tp-day-toggle-row">
         <button className="tp-day-toggle" onClick={onToggle}>
           <span className="tp-day-toggle-label">{weekday(day)}</span>
+          <span className="plan-name-badge">{planName}</span>
           <span className="tp-day-toggle-count">
             {t(cyclePlans.length === 1 ? "tp.planCount" : "tp.plansCount", { n: cyclePlans.length })}
           </span>
@@ -33,7 +38,7 @@ export default function DayBlock({
                 const targetCycle = currentCycleIdx != null && cyclePlans[currentCycleIdx]
                   ? cyclePlans[currentCycleIdx]
                   : cyclePlans[0];
-                onStartLiveTraining(targetCycle, `${weekday(day)} · ${t("tp.cycleLabel", { n: (currentCycleIdx || 0) + 1 })}`);
+                onStartLiveTraining(targetCycle, `${planName} · ${weekday(day)}`);
               }}
               title={t("live.startTraining")}
               style={{ color: "var(--accent)" }}
@@ -82,7 +87,7 @@ export default function DayBlock({
                   const targetCycle = currentCycleIdx != null && cyclePlans[currentCycleIdx]
                     ? cyclePlans[currentCycleIdx]
                     : cyclePlans[0];
-                  onStartLiveTraining(targetCycle, `${weekday(day)} · ${t("tp.cycleLabel", { n: (currentCycleIdx || 0) + 1 })}`);
+                  onStartLiveTraining(targetCycle, `${planName} · ${weekday(day)}`);
                 }}
               >
                 <Play size={14} fill="currentColor" />

@@ -25,9 +25,40 @@ drop policy if exists "read own profile" on public.profiles;
 create policy "read own profile" on public.profiles
   for select using (auth.uid() = id);
 
+-- Nutzer dürfen ihren Namen ändern — sonst nichts. RLS regelt nur, WELCHE Zeile
+-- jemand anfassen darf, nicht welche Spalten; dafür sind Spalten-Grants da.
+-- Ohne diese Einschränkung setzt sich jeder mit zwei Zeilen in der Konsole
+-- selbst auf is_premium/is_admin.
 drop policy if exists "update own profile" on public.profiles;
-create policy "update own profile" on public.profiles
+create policy "update own name" on public.profiles
   for update using (auth.uid() = id) with check (auth.uid() = id);
+
+revoke update on public.profiles from authenticated, anon;
+grant update (name) on public.profiles to authenticated;
+
+-- Zweite Sicherung, falls jemand später versehentlich wieder "grant all" schreibt:
+-- Rollenspalten dürfen nur von der Service-Role (Edge Function) geändert werden.
+create or replace function public.guard_profile_roles()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if current_setting('request.jwt.claims', true)::jsonb->>'role' is distinct from 'service_role' then
+    if new.is_premium is distinct from old.is_premium
+       or new.is_admin is distinct from old.is_admin then
+      raise exception 'is_premium/is_admin kann nur serverseitig gesetzt werden';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists guard_profile_roles on public.profiles;
+create trigger guard_profile_roles
+  before update on public.profiles
+  for each row execute function public.guard_profile_roles();
 
 -- Profil automatisch bei der Registrierung anlegen (inkl. Name)
 create or replace function public.handle_new_user()
@@ -65,21 +96,15 @@ as $$
   select coalesce((select is_premium or is_admin from public.profiles where id = uid), false);
 $$;
 
--- Nach erfolgreicher Zahlung / Upgrade (z. B. Apple Pay)
-create or replace function public.upgrade_to_pro()
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  update public.profiles
-  set is_premium = true
-  where id = auth.uid();
-end;
-$$;
-
-grant execute on function public.upgrade_to_pro() to authenticated;
+-- Es gibt bewusst KEINE Funktion, mit der ein Konto sich selbst freischaltet.
+-- Wer Pro vergibt, ist entweder die Edge Function sync-entitlement (Testliste)
+-- oder du im SQL-Editor:
+--
+--   update public.profiles set is_premium = true where email = 'name@example.com';
+--
+-- Eine frühere Version hatte hier upgrade_to_pro() — die konnte jeder
+-- angemeldete Nutzer direkt aufrufen und war damit kein Bezahlschritt.
+drop function if exists public.upgrade_to_pro();
 
 -- ---------------------------------------------------------------------------
 -- Daten
@@ -190,14 +215,27 @@ create policy "premium writes favorites" on public.favorites
   for insert with check (auth.uid() = user_id and public.is_premium(auth.uid()));
 
 -- ---------------------------------------------------------------------------
--- Bestehende registrierte Konten direkt in profiles übernehmen und freischalten:
+-- Bestehende Konten nachtragen, die sich vor dem profiles-Trigger registriert
+-- haben. Rollen bleiben dabei unangetastet — wer schon Pro hat, behält es,
+-- alle anderen bleiben frei.
+--
+-- Eine frühere Version dieser Datei setzte hier is_premium und is_admin für
+-- ALLE Konten auf true, bei jedem Lauf. Das hat die Bezahlschranke jedes Mal
+-- aufgehoben, wenn jemand das Schema erneut ausgeführt hat.
 -- ---------------------------------------------------------------------------
-insert into public.profiles (id, email, name, is_premium, is_admin)
-select 
-  id, 
-  email, 
-  coalesce(raw_user_meta_data->>'name', split_part(email, '@', 1)), 
-  true,
-  true
+insert into public.profiles (id, email, name)
+select
+  id,
+  email,
+  coalesce(raw_user_meta_data->>'name', split_part(email, '@', 1))
 from auth.users
-on conflict (id) do update set is_premium = true, is_admin = true;
+on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Ein Konto freischalten (im SQL-Editor, E-Mail ersetzen):
+--
+--   update public.profiles set is_premium = true where email = 'name@example.com';
+--
+-- Testkonten laufen bequemer über die Edge Function sync-entitlement:
+--   supabase secrets set PRO_TEST_EMAILS="du@example.com,tester@example.com"
+-- ---------------------------------------------------------------------------

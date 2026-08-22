@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Sparkles, RotateCcw, Dumbbell, Heart, ArrowRight, ArrowLeft, Check, AlertCircle, Play, User } from "lucide-react";
+import { Sparkles, RotateCcw, Dumbbell, Heart, ArrowRight, ArrowLeft, Check, AlertCircle, Play, User, ChevronUp, ChevronDown } from "lucide-react";
 import { CATEGORIES, EQUIPMENT } from "../data/exercises.js";
 import { WEEKDAYS, sortWeekdays, normalizeDate } from "../lib/dateUtils.js";
 import { serializeSlots } from "../lib/planLogic.js";
-import { generateAiPlan, aiDayToSlots } from "../lib/aiClient.js";
+import { generateAiPlan, aiDayToSlots, normalizePlan } from "../lib/aiClient.js";
 import { useI18n } from "../lib/i18n.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import PremiumGate from "./PremiumGate.jsx";
@@ -125,7 +125,7 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
         weeks,
         language: lang,
       });
-      setPlan(result);
+      setPlan(normalizePlan(result));
     } catch (e) {
       setError(t("ai.error", { message: e.message || "Fehler bei der Plangenerierung" }));
     } finally {
@@ -133,15 +133,33 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
     }
   };
 
+  /*
+    Die Wochentage bleiben in ihrer natürlichen Reihenfolge stehen — getauscht
+    wird das Training, das an dem Tag stattfindet. "Nach oben" heißt also:
+    dieses Workout früher in der Woche.
+  */
+  const moveDay = (idx, dir) => {
+    const target = idx + dir;
+    if (target < 0 || target >= plan.days.length) return;
+    setPlan((prev) => {
+      const days = [...prev.days];
+      const a = days[idx];
+      const b = days[target];
+      days[idx] = { ...b, weekday: a.weekday };
+      days[target] = { ...a, weekday: b.weekday };
+      return { ...prev, days };
+    });
+  };
+
   const startAsPlan = async () => {
     const dayPlans = {};
     plan.days.forEach((d) => {
-      dayPlans[d.day || d.weekday] = [serializeSlots(aiDayToSlots(d))];
+      dayPlans[d.weekday] = [serializeSlots(aiDayToSlots(d))];
     });
     const ok = await active.start({
       startDate: normalizeDate(new Date()).toISOString(),
       duration: weeks,
-      days: sortWeekdays(plan.days.map((d) => d.day || d.weekday)),
+      days: sortWeekdays(plan.days.map((d) => d.weekday)),
       split: "KI",
       method: "standard",
       count: plan.days[0]?.exercises.length || 5,
@@ -168,25 +186,45 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
       <>
         <div className="ai-plan-head">
           <div className="ai-plan-title">{plan.title}</div>
-          {plan.overview && <div className="ai-plan-summary">{plan.overview}</div>}
+          {plan.summary && <div className="ai-plan-summary">{plan.summary}</div>}
+          {plan.source === "local" && (
+            <div className="ai-plan-origin">{t("ai.localFallback")}</div>
+          )}
         </div>
 
         <div className="tp-day-list">
           {plan.days.map((dayObj, idx) => {
-            const dayName = dayObj.day || dayObj.weekday;
+            const dayName = dayObj.weekday;
             const slots = aiDayToSlots(dayObj);
             return (
               <div className="tp-day-block" key={`${dayName}-${idx}`}>
                 <div className="tp-day-toggle-row">
                   <div className="tp-day-toggle as-header">
                     <span className="tp-day-toggle-label">{weekday(dayName)}</span>
+                    <span className="plan-name-badge">{dayObj.name}</span>
                     <span className="tp-day-toggle-count">{dayObj.focus}</span>
                   </div>
                   <div style={{ display: "flex", gap: "6px" }}>
+                    <button
+                      className="tp-fav-btn reorder"
+                      onClick={() => moveDay(idx, -1)}
+                      disabled={idx === 0}
+                      title={t("tp.moveUp")}
+                    >
+                      <ChevronUp size={15} />
+                    </button>
+                    <button
+                      className="tp-fav-btn reorder"
+                      onClick={() => moveDay(idx, 1)}
+                      disabled={idx === plan.days.length - 1}
+                      title={t("tp.moveDown")}
+                    >
+                      <ChevronDown size={15} />
+                    </button>
                     {onStartLiveTraining && (
                       <button
                         className="tp-fav-btn"
-                        onClick={() => onStartLiveTraining(slots, `${weekday(dayName)} · ${dayObj.focus}`)}
+                        onClick={() => onStartLiveTraining(slots, `${dayObj.name} · ${weekday(dayName)}`)}
                         title={t("live.startTraining")}
                         style={{ color: "var(--accent)" }}
                       >
@@ -210,10 +248,12 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
           })}
         </div>
 
-        {plan.periodization && (
-          <div className="ai-notes" style={{ marginTop: "12px" }}>
-            💡 {plan.periodization}
-          </div>
+        {plan.notes.length > 0 && (
+          <ul className="ai-notes" style={{ marginTop: "12px" }}>
+            {plan.notes.map((note, i) => (
+              <li key={i}>{note}</li>
+            ))}
+          </ul>
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "16px" }}>
@@ -223,11 +263,11 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
               onClick={() =>
                 onStartLiveTraining(
                   aiDayToSlots(plan.days[0]),
-                  `${weekday(plan.days[0].day || plan.days[0].weekday)} · ${plan.days[0].focus}`
+                  `${plan.days[0].name} · ${weekday(plan.days[0].weekday)}`
                 )
               }
             >
-              <Play size={18} fill="currentColor" /> {t("live.startTraining")} ({weekday(plan.days[0].day || plan.days[0].weekday)})
+              <Play size={18} fill="currentColor" /> {t("live.startTraining")} ({weekday(plan.days[0].weekday)})
             </button>
           )}
 

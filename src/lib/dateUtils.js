@@ -38,3 +38,18 @@ export function nextWeekdayOnOrAfter(refDate, weekdayLabel) {
 
 export const sortWeekdays = (daysSet) =>
   WEEKDAYS.filter((d) => (daysSet && daysSet.has ? daysSet.has(d) : (daysSet || []).includes(d)));
+
+/* Welcher Wochentag ist heute, in unserer Mo-zuerst-Notation? */
+export function todayWeekday(now = new Date()) {
+  return WEEKDAYS[(normalizeDate(now).getDay() + 6) % 7];
+}
+
+/*
+  Reihenfolge für die Favoritenliste: heute zuerst, danach der Rest der Woche
+  in normaler Reihenfolge. Ist heute Sonntag, steht Sonntag oben; gibt es für
+  heute keinen Plan, fängt die Liste einfach beim nächsten Wochentag an.
+*/
+export function rotateWeekdaysFromToday(now = new Date()) {
+  const start = WEEKDAYS.indexOf(todayWeekday(now));
+  return [...WEEKDAYS.slice(start), ...WEEKDAYS.slice(0, start)];
+}

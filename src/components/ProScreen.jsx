@@ -14,7 +14,7 @@ const BENEFITS = [
 
 export default function ProScreen({ onClose }) {
   const { t } = useI18n();
-  const { user, userName, isAuthenticated, isPremium, upgradeToPro, toggleTestPro, updateUserName } = useAuth();
+  const { user, userName, isAuthenticated, isPremium, syncEntitlement, updateUserName } = useAuth();
 
   const [mode, setMode] = useState("signup");
   const [name, setName] = useState(userName || "");
@@ -69,60 +69,29 @@ export default function ProScreen({ onClose }) {
     }
   };
 
-  // Payment / Upgrade to Pro flow (Apple Pay & One-Tap Checkout)
-  const handlePayment = async (method = "apple_pay") => {
-    setBusy(true);
-    setError("");
-
-    try {
-      // If Web PaymentRequest API is available on device/Safari for Apple Pay
-      if (
-        method === "apple_pay" &&
-        typeof window !== "undefined" &&
-        window.PaymentRequest &&
-        window.ApplePaySession &&
-        ApplePaySession.canMakePayments()
-      ) {
-        const paymentDetails = {
-          total: {
-            label: selectedPlan === "monthly" ? "Kraftwürfel Pro (Monatlich)" : "Kraftwürfel Pro (Jährlich)",
-            amount: { currency: "EUR", value: selectedPlan === "monthly" ? "4.99" : "39.99" },
-          },
-        };
-        const supportedMethods = [{ supportedMethods: "https://apple.com/apple-pay" }];
-        try {
-          const req = new PaymentRequest(supportedMethods, paymentDetails);
-          const res = await req.show();
-          await res.complete("success");
-        } catch {
-          // Fallback to seamless instant upgrade
-        }
-      }
-
-      // Perform database upgrade in Supabase
-      const ok = await upgradeToPro();
-      setBusy(false);
-
-      if (ok) {
-        setUpgraded(true);
-        setTimeout(() => {
-          onClose();
-        }, 1500);
-      } else {
-        setError("Upgrade konnte nicht abgeschlossen werden. Bitte erneut versuchen.");
-      }
-    } catch (err) {
-      setBusy(false);
-      setError(err.message || "Zahlungsfehler");
-    }
+  /*
+    Es gibt hier absichtlich keinen Knopf, der Pro freischaltet. Freischalten
+    kann nur das Backend: die Testliste in der Edge Function sync-entitlement
+    oder später ein Webhook des Zahlungsanbieters. Ein früherer Stand hat Pro
+    direkt aus dem Browser gesetzt — auch dann, wenn die Zahlung abgebrochen
+    wurde, und ohne dass je Geld geflossen ist.
+  */
+  const handleCheckout = () => {
+    setNotice(t("proScreen.checkoutPending"));
   };
 
-  // Test User Toggle (One-tap test unlock / lock)
-  const handleTestToggle = async () => {
+  // Falls das Konto auf der Testliste steht, holt das die Freischaltung ab.
+  const handleRefresh = async () => {
     setBusy(true);
-    const next = await toggleTestPro();
+    setNotice("");
+    const ok = await syncEntitlement();
     setBusy(false);
-    setNotice(next ? "PRO aktiviert (Testmodus)" : "PRO deaktiviert / gesperrt (Testmodus)");
+    if (ok) {
+      setUpgraded(true);
+      setTimeout(onClose, 1500);
+    } else {
+      setNotice(t("proScreen.noEntitlement"));
+    }
   };
 
   return (
@@ -197,48 +166,22 @@ export default function ProScreen({ onClose }) {
               </div>
             )}
 
-            {/* Apple Pay Button */}
-            {!isPremium && (
-              <button
-                className="apple-pay-btn"
-                disabled={busy}
-                onClick={() => handlePayment("apple_pay")}
-              >
-                <svg width="20" height="24" viewBox="0 0 170 170" fill="currentColor">
-                  <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.81-11.96-14.34-6.42-9.79-11.38-20.73-14.88-32.82-3.5-12.09-5.25-23.27-5.25-33.54 0-14.14 3.73-25.96 11.19-35.46 7.46-9.5 16.63-14.34 27.52-14.53 4.58 0 9.84 1.17 15.79 3.51 5.95 2.34 9.53 3.56 10.74 3.65 1.57-.22 5.34-1.57 11.31-4.06 5.98-2.49 11.06-3.63 15.25-3.41 12.87.65 23.01 5.38 30.41 14.19-11.2 6.74-16.69 16.09-16.48 28.05.22 9.57 3.97 17.65 11.26 24.24 7.29 6.59 15.86 10.22 25.7 10.89-2.17 6.53-4.94 13.06-8.3 19.59zM119.22 33.39c0-7.39 2.66-14.36 7.98-20.91 5.33-6.55 12.05-10.82 20.16-12.81.98 7.07-.98 14.17-5.88 21.3-4.9 7.13-11.49 11.53-19.77 13.2-1.63-.22-2.49-.44-2.49-.78z" />
-                </svg>
-                <span>{busy ? "Wird verarbeitet…" : t("proScreen.applePay")}</span>
-              </button>
-            )}
-
-            {/* Standard Payment Button */}
-            {!isPremium && (
-              <button
-                className="auth-submit"
-                disabled={busy}
-                onClick={() => handlePayment("standard")}
-              >
-                {busy ? "…" : t("proScreen.payNow")}
-              </button>
-            )}
-
-            {/* Test User Switch: Toggle Pro on / off instantly */}
-            <div className="test-pro-toggle-box">
-              <div className="test-pro-label">
-                <span>🧪 Test-Modus: PRO Status</span>
-                <span className={`test-pro-status ${isPremium ? "active" : ""}`}>
-                  {isPremium ? "PRO Aktiv" : "Gesperrt (Free)"}
-                </span>
+            {isPremium ? (
+              <div className="pro-active-box">
+                <ShieldCheck size={16} />
+                <span>{t("proScreen.alreadyPro")}</span>
               </div>
-              <button
-                className="test-pro-btn"
-                type="button"
-                onClick={handleTestToggle}
-                disabled={busy}
-              >
-                {isPremium ? "PRO sperren (Free testen)" : "PRO sofort freischalten"}
-              </button>
-            </div>
+            ) : (
+              <>
+                <button className="auth-submit" type="button" onClick={handleCheckout}>
+                  {t("proScreen.payNow")}
+                </button>
+
+                <button className="auth-switch" type="button" onClick={handleRefresh} disabled={busy}>
+                  {busy ? "…" : t("proScreen.checkAccess")}
+                </button>
+              </>
+            )}
 
             {error && <div className="auth-error">{error}</div>}
             {notice && <div className="save-status">{notice}</div>}

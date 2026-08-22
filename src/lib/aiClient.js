@@ -1,5 +1,7 @@
 import { supabase, isSupabaseConfigured } from "./supabase.js";
-import { EXERCISES, SPLITS } from "../data/exercises.js";
+import { EXERCISES } from "../data/exercises.js";
+import { WEEKDAYS } from "./dateUtils.js";
+import { planNamesForDays } from "./planNames.js";
 
 /*
   Ruft die Edge Function auf.
@@ -17,15 +19,17 @@ export async function generateAiPlan(answers) {
       });
 
       if (!error && data?.plan) {
-        return data.plan;
+        return { ...data.plan, source: "ai" };
       }
     } catch {
       // Fallback below
     }
   }
 
-  // 2. Intelligente lokale KI-Trainingsplangenerierung (Sportwissenschaftlich fundiert)
-  return generateLocalAiPlan(answers);
+  // 2. Lokale Vorlagen-Engine, wenn das Backend nicht erreichbar ist.
+  //    Wird als solche gekennzeichnet — ein Plan aus der Vorlage darf sich
+  //    nicht als Modellantwort ausgeben.
+  return { ...generateLocalAiPlan(answers), source: "local" };
 }
 
 /*
@@ -410,6 +414,48 @@ function generateLocalAiPlan(answers) {
       ? `Progressive Overload with weekly volume progression across ${weeks} weeks.`
       : `Progressive Überlastung mit wöchentlicher Steigerung der Gewichte über ${weeks} Wochen.`,
     days: dayPlans,
+  };
+}
+
+/*
+  Edge Function und lokaler Generator liefern leicht unterschiedliche Formen:
+  die eine nennt den Tag "weekday", "summary", "notes", die andere "day",
+  "overview", "periodization". Vorher hat die Oberfläche nur die zweite Variante
+  gelesen — beim echten KI-Plan fielen Zusammenfassung und Hinweise deshalb
+  stillschweigend weg.
+
+  Hier wird beides auf eine Form gebracht, die Tage in Wochentagsreihenfolge
+  sortiert (das Modell liefert sie sonst in beliebiger Folge, und dann stand
+  Sonntag vor Mittwoch) und jeder Tag bekommt seinen Ein-Wort-Namen.
+*/
+export function normalizePlan(plan) {
+  if (!plan) return null;
+
+  const rawDays = Array.isArray(plan.days) ? plan.days : [];
+  const days = rawDays
+    .map((d) => ({ ...d, weekday: d.weekday || d.day }))
+    .filter((d) => d.exercises?.length)
+    .sort((a, b) => WEEKDAYS.indexOf(a.weekday) - WEEKDAYS.indexOf(b.weekday));
+
+  const fallbackNames = planNamesForDays(
+    days.map((d) => d.weekday),
+    plan.title || ""
+  );
+
+  return {
+    source: plan.source || "ai",
+    title: plan.title || "",
+    summary: plan.summary || plan.overview || "",
+    notes: Array.isArray(plan.notes) && plan.notes.length
+      ? plan.notes
+      : plan.periodization
+        ? [plan.periodization]
+        : [],
+    days: days.map((d) => ({
+      ...d,
+      // Das Modell darf benennen; sonst greift die lokale Wortliste.
+      name: (d.name || "").trim().split(/\s+/)[0] || fallbackNames[d.weekday],
+    })),
   };
 }
 

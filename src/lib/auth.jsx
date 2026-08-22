@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { supabase, isSupabaseConfigured } from "./supabase.js";
 import { ENV } from "./env.js";
 
@@ -65,36 +65,32 @@ export function AuthProvider({ children }) {
     return () => sub.subscription.unsubscribe();
   }, [loadProfile]);
 
-  const upgradeToPro = useCallback(async () => {
+  /*
+    Der Client kann Pro nicht vergeben — die Rollenspalten sind für ihn gesperrt.
+    Hier wird nur nachgefragt, ob die Testliste im Backend dieses Konto kennt.
+    Ein früherer Stand schrieb is_premium direkt aus dem Browser; damit war die
+    Bezahlschranke eine Anzeigeeinstellung.
+  */
+  const syncEntitlement = useCallback(async () => {
     if (!user || !supabase) return false;
     try {
-      const { error: rpcError } = await supabase.rpc("upgrade_to_pro");
-      if (!rpcError) {
-        await loadProfile(user);
-        return true;
-      }
+      const { data, error } = await supabase.functions.invoke("sync-entitlement", { body: {} });
+      if (error || !data) return false;
+      if (data.isPremium) await loadProfile(user);
+      return !!data.isPremium;
     } catch {
-      // Fallback
+      return false;
     }
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ is_premium: true })
-      .eq("id", user.id);
-    if (!updateError) {
-      await loadProfile(user);
-      return true;
-    }
-    return false;
   }, [user, loadProfile]);
 
-  // Test-Helfer: Pro Version für Testuser umschalten (freischalten / sperren)
-  const toggleTestPro = useCallback(async () => {
-    if (!user || !supabase) return false;
-    const nextState = !profile.isPremium;
-    await supabase.from("profiles").update({ is_premium: nextState }).eq("id", user.id);
-    await loadProfile(user);
-    return nextState;
-  }, [user, profile.isPremium, loadProfile]);
+  // Einmal pro Anmeldung nachfragen, nicht bei jedem Token-Refresh.
+  const syncedFor = useRef(null);
+  useEffect(() => {
+    if (!user || !isSupabaseConfigured) return;
+    if (syncedFor.current === user.id) return;
+    syncedFor.current = user.id;
+    syncEntitlement();
+  }, [user, syncEntitlement]);
 
   const updateUserName = useCallback(
     async (newName) => {
@@ -115,8 +111,7 @@ export function AuthProvider({ children }) {
     isAdmin: profile.isAdmin,
     canSignIn: isSupabaseConfigured,
     signOut: () => supabase?.auth.signOut(),
-    upgradeToPro,
-    toggleTestPro,
+    syncEntitlement,
     updateUserName,
     refreshProfile: () => loadProfile(user),
   };

@@ -42,12 +42,28 @@ Supabase: `VITE_LOCAL_ROLE=free` oder `pro` in `.env`.
 
 ### Jemanden auf Pro setzen
 
-Es gibt bewusst keinen Weg, sich selbst freizuschalten — die `profiles`-Policy erlaubt nur Lesen.
-Freischalten passiert im SQL-Editor:
+Der Browser kann Pro nicht vergeben. Nutzer dürfen in `profiles` ausschließlich ihren `name`
+ändern (Spalten-Grant plus Trigger); `is_premium` und `is_admin` nimmt nur die Service-Role an.
+
+Einzelnes Konto freischalten:
 
 ```sql
 update public.profiles set is_premium = true where email = 'name@example.com';
 ```
+
+**Testkonten** laufen bequemer über eine Liste im Backend — einmal setzen, danach schaltet sich
+jedes Konto aus der Liste beim Anmelden selbst frei:
+
+```bash
+supabase secrets set PRO_TEST_EMAILS="du@example.com,tester@example.com"
+supabase functions deploy sync-entitlement
+```
+
+Damit lässt sich die komplette Pro-Version testen, ohne zu bezahlen und ohne eine Lücke offen zu
+lassen: Wer nicht auf der Liste steht, bekommt auch nichts.
+
+> Zahlungen sind noch nicht angebunden. Der Pro-Screen zeigt die Preise, nimmt aber kein Geld an.
+> Wenn ein Anbieter dazukommt, setzt dessen Webhook `is_premium` — nie der Client.
 
 ## KI-Coach einrichten
 
@@ -71,6 +87,8 @@ Nichts davon steht im Code — die Deployment-Pipeline setzt alle Werte als Secr
 | `OPENROUTER_MAX_TOKENS` | `4000` | Obergrenze pro Plan |
 | `AI_DAILY_LIMIT` | `20` | Generierungen pro Konto und Tag |
 | `ALLOWED_ORIGIN` | `*` | CORS und `HTTP-Referer` auf die eigene Domain |
+| `PRO_TEST_EMAILS` | leer | Kommaliste von Testkonten (Funktion `sync-entitlement`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | von Supabase gesetzt | wird für die Testfreischaltung gebraucht |
 
 Modell wechseln, ohne neu zu deployen:
 
@@ -161,6 +179,25 @@ npm run build   # -> dist/
 Auf Vercel, Netlify oder Cloudflare Pages ablegen, die beiden `VITE_`-Variablen dort als
 Build-Environment setzen und die Deploy-URL in den Supabase-Auth-Einstellungen als *Site URL*
 eintragen. `ALLOWED_ORIGIN` in den Function-Secrets auf dieselbe Domain setzen.
+
+## Musik & Sperrbildschirm
+
+Die Gym-Playlist liegt als Datei im Browser (IndexedDB), nicht als Stream — deshalb läuft sie im
+Keller ohne Empfang. Musik kommt über "Musik hinzufügen" aus den eigenen Dateien hinein.
+
+Herunterladen von YouTube ist bewusst **nicht** eingebaut: das bräuchte einen eigenen Server und
+verstößt gegen die Nutzungsbedingungen von YouTube. Spotify und YouTube gibt es weiterhin als
+Streaming-Tab, aber erst nach einem Klick — vorher geht kein Request und kein Cookie an die beiden
+raus.
+
+Sobald wirklich Audio läuft, zeigt iOS die Sperrbildschirm-Karte, und die Apple Watch spiegelt sie
+unter "Now Playing". Während einer Live-Session steht dort die aktuelle Übung als Titel, darunter
+Satz, Gewicht und der laufende Song. Das ist der einzige Weg, auf dem eine Web-App auf den
+Sperrbildschirm und die Uhr kommt.
+
+**Was eine Web-App nicht kann:** den iOS-Fokus einschalten und eine echte Watch-App anzeigen.
+Beides braucht eine native App. Der Vollbild-Fokusmodus der Live-Session mit Wake-Lock ist das,
+was im Browser dafür geht.
 
 ## Offen
 

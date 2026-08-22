@@ -12,7 +12,7 @@ export default function TrainingsplanTab({ settings, tp, active, favorites, onGe
   const { isPremium } = useAuth();
   const { t, split: splitLabel, weekday } = useI18n();
   const { split, method, count, restTime, activeCategories } = settings;
-  const { tpDays, toggleTpDay, tpDuration, setTpDuration, dayPlans, createDayPlans, expandedDay, setExpandedDay } = tp;
+  const { tpDays, toggleTpDay, tpDuration, setTpDuration, resetTpPlans, dayPlans, createDayPlans, expandedDay, setExpandedDay } = tp;
   const { activePlan, loading, status, start, end } = active;
 
   const progress = getProgress(activePlan);
@@ -41,6 +41,7 @@ export default function TrainingsplanTab({ settings, tp, active, favorites, onGe
       justSaved={favorites.justSaved.has(day)}
       canFavorite={isPremium}
       onStartLiveTraining={onStartLiveTraining}
+      planSalt={`${split}:${method}`}
     />
   );
 
@@ -150,6 +151,11 @@ export default function TrainingsplanTab({ settings, tp, active, favorites, onGe
             {t("tp.weeksShort", { n: w })}
           </button>
         ))}
+        {dayPlans && (
+          <button className="chip reset-chip-btn" onClick={resetTpPlans} title={t("tp.resetPlans")}>
+            <RotateCcw size={13} /> {t("tp.resetPlans")}
+          </button>
+        )}
       </div>
 
       <div className="section-label">{t("tp.settingsFromGenerator")}</div>

@@ -1,189 +1,181 @@
-import { useState } from "react";
-import { Music, ExternalLink, X, Play } from "lucide-react";
+import { useRef, useState } from "react";
+import { X, Play, Pause, SkipBack, SkipForward, Plus, Trash2, WifiOff, Radio, Music } from "lucide-react";
+import { useMusic } from "../lib/music.jsx";
 import { useI18n } from "../lib/i18n.jsx";
+import { formatBytes } from "../lib/musicLibrary.js";
+
+/*
+  Zwei getrennte Welten, bewusst nicht vermischt:
+
+  "Offline" ist die eigentliche Gym-Playlist — Dateien aus IndexedDB, die ohne
+  Empfang laufen. Das ist der Standard-Tab.
+
+  "Streaming" lädt Spotify/YouTube erst nach einem Klick. Vorher geht kein
+  Request und kein Cookie an die beiden raus; ein eingebetteter Player setzt
+  sonst schon beim Öffnen Tracker, was ohne Einwilligung nicht sauber ist.
+*/
 
 const SPOTIFY_PLAYLISTS = [
-  { id: "37i9dQZF1DX76Wlfdnj7AP", name: "Beast Mode", genre: "Heavy Lifts & Rap", icon: "🔥" },
-  { id: "37i9dQZF1DXdLEN7aqioXM", name: "Gym Motivation", genre: "High Energy & Pump", icon: "⚡" },
-  { id: "37i9dQZF1DX8tZsk68tuED", name: "Cardio EDM", genre: "House & Dance Workout", icon: "🎧" },
-  { id: "37i9dQZF1DWWY64vggyipV", name: "Phonk & Hardstyle", genre: "Dark Synth & Heavy Bass", icon: "🦾" },
-  { id: "37i9dQZF1DX35oM5Joy0JJ", name: "Cool Down", genre: "Recovery & Stretching", icon: "🧘" },
+  { id: "37i9dQZF1DX76Wlfdnj7AP", label: "Beast Mode" },
+  { id: "37i9dQZF1DXcF6B6QPhFDv", label: "Rock Workout" },
+  { id: "37i9dQZF1DX70RN3TfWWJh", label: "Power Hour" },
 ];
-
-const YOUTUBE_WORKOUT_MIXES = [
-  {
-    id: "jfKfPfyJRdk",
-    title: "1h Hip-Hop Gym Focus Beats",
-    genre: "Focus & Rhythm",
-    icon: "🎧",
-  },
-  {
-    id: "fBNq4K2d6zI",
-    title: "Aggressive Gym Phonk & Hardstyle Mix",
-    genre: "Maximum Adrenaline",
-    icon: "🦾",
-  },
-  {
-    id: "5qap5aO4i9A",
-    title: "Dark Techno Heavy Workout Mix",
-    genre: "High Energy Club",
-    icon: "⚡",
-  },
-  {
-    id: "4xDzrJKXOOY",
-    title: "Epic Cinematic Gym Pump",
-    genre: "Heroic Motivation",
-    icon: "🔥",
-  },
-];
-
-function extractYouTubeId(urlOrId) {
-  if (!urlOrId) return "";
-  const match = urlOrId.match(
-    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/
-  );
-  return match ? match[1] : urlOrId.trim();
-}
 
 export default function GymMusicPlayer({ onClose }) {
   const { t } = useI18n();
-  const [activeTab, setActiveTab] = useState("spotify"); // "spotify" | "youtube"
+  const music = useMusic();
+  const fileRef = useRef(null);
+  const [tab, setTab] = useState("offline");
+  const [streamConsent, setStreamConsent] = useState(false);
+  const [activeStream, setActiveStream] = useState(null);
+  const [importing, setImporting] = useState(false);
 
-  // Spotify State
-  const [selectedSpotify, setSelectedSpotify] = useState(SPOTIFY_PLAYLISTS[0]);
-
-  // YouTube State
-  const [activeYoutubeId, setActiveYoutubeId] = useState(YOUTUBE_WORKOUT_MIXES[0].id);
-  const [customYoutubeInput, setCustomYoutubeInput] = useState("");
-
-  const handleApplyCustomYoutube = (e) => {
-    e.preventDefault();
-    const id = extractYouTubeId(customYoutubeInput);
-    if (id && id.length >= 10) {
-      setActiveYoutubeId(id);
-    }
+  const onPick = async (e) => {
+    setImporting(true);
+    await music.addFiles(e.target.files);
+    setImporting(false);
+    e.target.value = "";
   };
 
+  const totalBytes = music.tracks.reduce((sum, tr) => sum + (tr.size || 0), 0);
+
   return (
-    <div className="gym-music-overlay" onClick={onClose}>
-      <div className="gym-music-card" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="gym-music-header">
-          <div className="gym-music-title">
-            <Music size={18} className="text-accent" />
-            <span>GYM SOUNDTRACK</span>
-          </div>
-          <button className="live-close-btn" onClick={onClose}>
-            <X size={16} />
-          </button>
+    <div className="music-sheet">
+      <div className="music-head">
+        <div className="music-title">
+          <Music size={16} />
+          <span>{t("music.title")}</span>
         </div>
+        <button className="music-close" onClick={onClose} title={t("music.close")}>
+          <X size={18} />
+        </button>
+      </div>
 
-        {/* 2 Tabs: Spotify & YouTube */}
-        <div className="live-mode-switch" style={{ marginBottom: "8px" }}>
-          <button
-            className={`live-mode-btn ${activeTab === "spotify" ? "active" : ""}`}
-            onClick={() => setActiveTab("spotify")}
-          >
-            🟢 Spotify Playlists
-          </button>
-          <button
-            className={`live-mode-btn ${activeTab === "youtube" ? "active" : ""}`}
-            onClick={() => setActiveTab("youtube")}
-          >
-            ▶️ YouTube Workout
-          </button>
-        </div>
+      <div className="music-tabs">
+        <button className={tab === "offline" ? "active" : ""} onClick={() => setTab("offline")}>
+          <WifiOff size={13} /> {t("music.offline")}
+        </button>
+        <button className={tab === "stream" ? "active" : ""} onClick={() => setTab("stream")}>
+          <Radio size={13} /> {t("music.streaming")}
+        </button>
+      </div>
 
-        {/* SPOTIFY TAB */}
-        {activeTab === "spotify" && (
-          <div className="spotify-tab-content">
-            <div className="playlist-chip-row">
+      {tab === "offline" ? (
+        <>
+          {music.current && (
+            <div className="music-now">
+              <div className="music-now-title">{music.current.title}</div>
+              <div className="music-controls">
+                <button onClick={music.prev} title={t("music.prev")}>
+                  <SkipBack size={18} />
+                </button>
+                <button className="primary" onClick={music.toggle} title={t("music.playPause")}>
+                  {music.isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
+                </button>
+                <button onClick={music.next} title={t("music.next")}>
+                  <SkipForward size={18} />
+                </button>
+              </div>
+              <div className="music-now-hint">{t("music.lockScreenHint")}</div>
+            </div>
+          )}
+
+          {music.tracks.length === 0 ? (
+            <div className="music-empty">
+              <WifiOff size={22} />
+              <div className="music-empty-title">{t("music.emptyTitle")}</div>
+              <div className="music-empty-text">{t("music.emptyText")}</div>
+            </div>
+          ) : (
+            <div className="music-list">
+              {music.tracks.map((track) => {
+                const active = music.current?.id === track.id;
+                return (
+                  <div className={`music-row ${active ? "active" : ""}`} key={track.id}>
+                    <button className="music-row-play" onClick={() => music.playTrack(track.id)}>
+                      {active && music.isPlaying ? (
+                        <Pause size={14} fill="currentColor" />
+                      ) : (
+                        <Play size={14} fill="currentColor" />
+                      )}
+                    </button>
+                    <div className="music-row-main">
+                      <div className="music-row-title">{track.title}</div>
+                      <div className="music-row-meta">{formatBytes(track.size)}</div>
+                    </div>
+                    <button
+                      className="music-row-del"
+                      onClick={() => music.removeTrack(track.id)}
+                      title={t("music.remove")}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="audio/*"
+            multiple
+            onChange={onPick}
+            style={{ display: "none" }}
+          />
+          <button className="music-add" onClick={() => fileRef.current?.click()} disabled={importing}>
+            <Plus size={16} /> {importing ? t("music.importing") : t("music.add")}
+          </button>
+
+          {music.tracks.length > 0 && (
+            <div className="music-usage">{t("music.usage", { size: formatBytes(totalBytes), n: music.tracks.length })}</div>
+          )}
+          {!music.available && <div className="auth-error">{t("music.noStorage")}</div>}
+        </>
+      ) : (
+        <>
+          {!streamConsent ? (
+            <div className="music-consent">
+              <Radio size={20} />
+              <div className="music-empty-title">{t("music.consentTitle")}</div>
+              <div className="music-empty-text">{t("music.consentText")}</div>
+              <button className="music-add" onClick={() => setStreamConsent(true)}>
+                {t("music.consentAccept")}
+              </button>
+            </div>
+          ) : activeStream ? (
+            <>
+              <iframe
+                className="music-frame"
+                src={activeStream}
+                title={t("music.streaming")}
+                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                loading="lazy"
+              />
+              <button className="music-add" onClick={() => setActiveStream(null)}>
+                <X size={15} /> {t("music.closeStream")}
+              </button>
+            </>
+          ) : (
+            <div className="music-list">
               {SPOTIFY_PLAYLISTS.map((pl) => (
                 <button
+                  className="music-row as-button"
                   key={pl.id}
-                  className={`playlist-chip ${selectedSpotify.id === pl.id ? "active" : ""}`}
-                  onClick={() => setSelectedSpotify(pl)}
+                  onClick={() => setActiveStream(`https://open.spotify.com/embed/playlist/${pl.id}?theme=0`)}
                 >
-                  <span>{pl.icon}</span>
-                  <div>
-                    <div className="pl-name">{pl.name}</div>
-                    <div className="pl-genre">{pl.genre}</div>
+                  <Radio size={14} />
+                  <div className="music-row-main">
+                    <div className="music-row-title">{pl.label}</div>
+                    <div className="music-row-meta">Spotify · {t("music.needsInternet")}</div>
                   </div>
                 </button>
               ))}
             </div>
-
-            <div className="spotify-embed-wrapper">
-              <iframe
-                title="Spotify Gym Playlist"
-                src={`https://open.spotify.com/embed/playlist/${selectedSpotify.id}?utm_source=generator&theme=0`}
-                width="100%"
-                height="152"
-                frameBorder="0"
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                loading="lazy"
-                style={{ borderRadius: "14px", border: "none" }}
-              />
-            </div>
-
-            <a
-              href={`spotify:playlist:${selectedSpotify.id}`}
-              className="spotify-app-link"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <ExternalLink size={14} /> In Spotify App öffnen
-            </a>
-          </div>
-        )}
-
-        {/* YOUTUBE TAB */}
-        {activeTab === "youtube" && (
-          <div className="spotify-tab-content">
-            <div className="playlist-chip-row">
-              {YOUTUBE_WORKOUT_MIXES.map((mix) => (
-                <button
-                  key={mix.id}
-                  className={`playlist-chip ${activeYoutubeId === mix.id ? "active" : ""}`}
-                  onClick={() => setActiveYoutubeId(mix.id)}
-                >
-                  <span>{mix.icon}</span>
-                  <div>
-                    <div className="pl-name">{mix.title}</div>
-                    <div className="pl-genre">{mix.genre}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <div className="youtube-embed-wrapper">
-              <iframe
-                title="YouTube Workout Mix"
-                width="100%"
-                height="190"
-                src={`https://www.youtube.com/embed/${activeYoutubeId}?autoplay=1&enablejsapi=1`}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                style={{ borderRadius: "14px", border: "none" }}
-              />
-            </div>
-
-            <form onSubmit={handleApplyCustomYoutube} className="custom-youtube-form">
-              <input
-                type="text"
-                className="custom-youtube-input"
-                placeholder="YouTube Link einfügen …"
-                value={customYoutubeInput}
-                onChange={(e) => setCustomYoutubeInput(e.target.value)}
-              />
-              <button type="submit" className="custom-youtube-btn">
-                Abspielen
-              </button>
-            </form>
-          </div>
-        )}
-      </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

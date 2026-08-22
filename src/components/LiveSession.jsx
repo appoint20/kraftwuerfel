@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { useI18n } from "../lib/i18n.jsx";
 import ExerciseVisual from "./ExerciseVisual.jsx";
+import { useMusic } from "../lib/music.jsx";
+import HealthPanel from "./HealthPanel.jsx";
 import GymMusicPlayer from "./GymMusicPlayer.jsx";
 
 function formatTime(seconds) {
@@ -35,6 +37,7 @@ function formatTime(seconds) {
 
 export default function LiveSession({ plan, title, onClose }) {
   const { t, category, equipment, exerciseName } = useI18n();
+  const { setWorkoutContext } = useMusic();
 
   const [mode, setMode] = useState("fokus"); // "fokus" | "protokoll"
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
@@ -82,26 +85,49 @@ export default function LiveSession({ plan, title, onClose }) {
   // Screen WakeLock API: Keeps screen awake during workout
   useEffect(() => {
     let wakeLock = null;
+    let cancelled = false;
+
     const requestWakeLock = async () => {
       try {
-        if ("wakeLock" in navigator) {
+        if ("wakeLock" in navigator && !cancelled) {
           wakeLock = await navigator.wakeLock.request("screen");
         }
       } catch {
         // Unsupported or inactive
       }
     };
+
+    /*
+      Der Browser gibt die Sperre ab, sobald die Seite in den Hintergrund geht.
+      Ohne dieses Nachfassen schläft der Bildschirm für den Rest des Trainings —
+      also genau ab dem Moment, in dem man einmal kurz auf eine Nachricht schaut.
+    */
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") requestWakeLock();
+    };
+
     requestWakeLock();
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisibility);
       if (wakeLock) wakeLock.release().catch(() => {});
     };
   }, []);
 
-  // Sound/Vibration effect helper
+  /*
+    Ein einziger AudioContext für die ganze Session. Vorher wurde bei jedem
+    Piep ein neuer gebaut und nie geschlossen — Browser erlauben nur eine
+    Handvoll, danach blieb der Ton einfach weg.
+  */
+  const audioCtxRef = useRef(null);
   const playBeep = () => {
     try {
-      if (typeof window !== "undefined" && window.AudioContext) {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const Ctor = typeof window !== "undefined" && (window.AudioContext || window.webkitAudioContext);
+      if (Ctor) {
+        if (!audioCtxRef.current) audioCtxRef.current = new Ctor();
+        const ctx = audioCtxRef.current;
+        if (ctx.state === "suspended") ctx.resume().catch(() => {});
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = "sine";
@@ -121,46 +147,57 @@ export default function LiveSession({ plan, title, onClose }) {
     }
   };
 
-  // Stopwatch interval & dynamic calorie/heart rate model
+  useEffect(() => () => {
+    audioCtxRef.current?.close?.().catch(() => {});
+  }, []);
+
+  /*
+    Ein Tick pro Sekunde, und der Intervall bleibt stehen.
+
+    Vorher hingen heartRate und restRemaining in den Dependencies — beide ändern
+    sich jede Sekunde, also wurde der Intervall im Sekundentakt abgeräumt und neu
+    gesetzt. Jedes Neusetzen startet die 1000 ms von vorn, dadurch lief die Uhr
+    zunehmend hinter der echten Zeit her. Alles, was sich laufend ändert, liegt
+    jetzt in Refs statt in den Dependencies.
+  */
+  const liveRef = useRef({ isResting: false, heartRate: 128, connectedDevice: null });
+  liveRef.current = { isResting, heartRate, connectedDevice };
+
   useEffect(() => {
     if (!isTimerRunning || isFinished) return;
     const timer = setInterval(() => {
-      setElapsed((prev) => {
-        const nextTime = prev + 1;
+      const { isResting: resting, heartRate: hr, connectedDevice: device } = liveRef.current;
 
-        // Dynamic Heart Rate Simulation if no real Bluetooth sensor connected
-        if (!connectedDevice) {
-          setHeartRate((currHr) => {
-            let target = isResting ? 105 : 138;
-            let variation = Math.floor(Math.sin(nextTime / 5) * 4);
-            let nextHr = Math.round(currHr + (target - currHr) * 0.08 + variation);
-            setPeakHeartRate((p) => Math.max(p, nextHr));
-            setHeartRateHistory((h) => (h.length > 500 ? [...h.slice(1), nextHr] : [...h, nextHr]));
-            return nextHr;
-          });
-        }
+      // Updater müssen frei von Nebenwirkungen sein — deshalb hier nacheinander,
+      // nicht mehr ineinander verschachtelt.
+      setElapsed((prev) => prev + 1);
 
-        // Real-time calorie calculation
-        setCaloriesBurned((currCal) => {
-          const burnPerSec = isResting ? 0.06 : 0.13;
-          const hrMultiplier = heartRate > 120 ? heartRate / 115 : 1.0;
-          return parseFloat((currCal + burnPerSec * hrMultiplier).toFixed(1));
+      if (!device) {
+        setHeartRate((curr) => {
+          const target = resting ? 105 : 138;
+          const variation = Math.floor(Math.sin(Date.now() / 5000) * 4);
+          return Math.round(curr + (target - curr) * 0.08 + variation);
         });
+      }
 
-        return nextTime;
+      setCaloriesBurned((curr) => {
+        const burnPerSec = resting ? 0.06 : 0.13;
+        const hrMultiplier = hr > 120 ? hr / 115 : 1.0;
+        return parseFloat((curr + burnPerSec * hrMultiplier).toFixed(1));
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [isTimerRunning, isFinished, isResting, heartRate, connectedDevice]);
+  }, [isTimerRunning, isFinished]);
 
-  // Rest countdown interval
+  // Spitzenpuls und Verlauf folgen dem Puls, statt im Timer mitgeschrieben zu werden.
+  useEffect(() => {
+    setPeakHeartRate((p) => Math.max(p, heartRate));
+    setHeartRateHistory((h) => (h.length > 300 ? [...h.slice(1), heartRate] : [...h, heartRate]));
+  }, [heartRate]);
+
+  // Pausen-Countdown: ebenfalls ein stehender Intervall.
   useEffect(() => {
     if (!isResting || isFinished) return;
-    if (restRemaining <= 0) {
-      setIsResting(false);
-      playBeep();
-      return;
-    }
     const timer = setInterval(() => {
       setRestRemaining((prev) => {
         if (prev <= 1) {
@@ -172,26 +209,45 @@ export default function LiveSession({ plan, title, onClose }) {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [isResting, restRemaining, isFinished]);
+  }, [isResting, isFinished]);
 
   const currentSlot = plan[exerciseIdx] || plan[0];
   const totalExercises = plan.length;
   const totalSetsForCurrent = currentSlot.sets || 3;
 
-  // MediaSession API: Lock Screen & Apple Watch Now Playing Widget
+  /*
+    Sperrbildschirm und Apple Watch.
+
+    Die Karte gehört dem Musik-Player, weil iOS sie nur zeigt, solange echtes
+    Audio läuft — ohne abspielenden Track gibt es keinen Platz auf dem
+    Sperrbildschirm, egal welche Metadaten man setzt. Hier wird also nur der
+    Trainingskontext hineingereicht; der Player baut daraus die Karte, und die
+    Uhr spiegelt sie automatisch unter "Now Playing".
+  */
   useEffect(() => {
-    if ("mediaSession" in navigator && currentSlot?.exercise) {
-      try {
-        navigator.mediaSession.metadata = new window.MediaMetadata({
-          title: `${exerciseName(currentSlot.exercise)} (${currentWeight}kg × ${currentReps})`,
-          artist: `Satz ${setIdx + 1}/${totalSetsForCurrent} · ${Math.round(caloriesBurned)} kcal · ${heartRate} BPM`,
-          album: isResting ? `Pause: ${formatTime(restRemaining)}` : `Kraftwürfel Live Training`,
-        });
-      } catch {
-        // Ignore
-      }
-    }
-  }, [currentSlot, setIdx, totalSetsForCurrent, currentWeight, currentReps, isResting, restRemaining, caloriesBurned, heartRate, exerciseName]);
+    if (!currentSlot?.exercise) return;
+    setWorkoutContext({
+      exercise: exerciseName(currentSlot.exercise),
+      detail: isResting
+        ? `${t("live.rest")} ${formatTime(restRemaining)}`
+        : `${t("live.set")} ${setIdx + 1}/${totalSetsForCurrent} · ${currentWeight} kg`,
+      title: title || "Kraftwürfel",
+    });
+  }, [
+    currentSlot,
+    setIdx,
+    totalSetsForCurrent,
+    currentWeight,
+    isResting,
+    restRemaining,
+    exerciseName,
+    setWorkoutContext,
+    title,
+    t,
+  ]);
+
+  // Beim Verlassen der Session verschwindet der Trainingsteil wieder aus der Karte.
+  useEffect(() => () => setWorkoutContext(null), [setWorkoutContext]);
 
   // Sync weight & reps with current set
   useEffect(() => {
@@ -496,38 +552,18 @@ export default function LiveSession({ plan, title, onClose }) {
             </div>
           </div>
 
-          {/* LIVE HEALTH & METRICS STRIP (Apple Health / Watch / Ring) */}
-          <div className="live-health-strip">
-            <div className="health-metric-chip" onClick={() => setShowHealthModal(true)}>
-              <Flame size={14} className="health-icon flame" />
-              <span className="health-val">{Math.round(caloriesBurned)}</span>
-              <span className="health-unit">{t("live.calories")}</span>
-            </div>
-
-            <div className="health-metric-chip" onClick={() => setShowHealthModal(true)}>
-              <Heart size={14} className="health-icon heart-pulse" />
-              <span className="health-val">{heartRate}</span>
-              <span className="health-unit">BPM</span>
-              <span className="health-zone-tag" style={{ color: currentZone.color }}>
-                {currentZone.name}
-              </span>
-            </div>
-
-            <div className="health-metric-chip" onClick={() => setShowHealthModal(true)}>
-              <Dumbbell size={14} className="health-icon" />
-              <span className="health-val">{totalVolumeKg}</span>
-              <span className="health-unit">kg</span>
-            </div>
-
-            <button
-              className={`health-device-btn ${connectedDevice ? "active" : ""}`}
-              onClick={() => setShowHealthModal(true)}
-              title={t("live.connectWatch")}
-            >
-              <Watch size={13} />
-              <span>{connectedDevice ? connectedDevice.name.slice(0, 10) : t("live.notConnected")}</span>
-            </button>
-          </div>
+          <HealthPanel
+            heartRate={heartRate}
+            peakHeartRate={peakHeartRate}
+            heartRateHistory={heartRateHistory}
+            averageHeartRate={averageHeartRate}
+            caloriesBurned={caloriesBurned}
+            totalVolumeKg={totalVolumeKg}
+            elapsedLabel={formatTime(elapsed)}
+            zone={currentZone}
+            connectedDevice={connectedDevice}
+            onOpenDevice={() => setShowHealthModal(true)}
+          />
 
           {/* Exercise Progression Segment Bar */}
           <div className="live-segment-bar">
@@ -813,7 +849,7 @@ export default function LiveSession({ plan, title, onClose }) {
 
               <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px" }}>
                 <button
-                  className="apple-pay-btn"
+                  className="wide-cta-btn"
                   style={{ background: "var(--surface2)", borderColor: "var(--accent)" }}
                   onClick={connectBluetoothSensor}
                   disabled={isConnectingBt}

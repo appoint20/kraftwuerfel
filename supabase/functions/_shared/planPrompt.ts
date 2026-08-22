@@ -109,6 +109,7 @@ export function buildPrompt(a: Answers) {
     '  "days": [',
     "    {",
     '      "weekday": "Mo"|"Di"|"Mi"|"Do"|"Fr"|"Sa"|"So",',
+    '      "name": string,   // GENAU EIN Wort als Rufname, z.B. "Titan"',
     '      "focus": string,  // z.B. "Push" oder "Beine & Gesäß"',
     '      "exercises": [',
     '        { "name": string, "sets": number, "reps": string, "rest": number, "note": string }',
@@ -121,6 +122,10 @@ export function buildPrompt(a: Answers) {
     `rest ist die Satzpause in Sekunden (${REST_VALUES.join(", ")}).`,
     'reps ist ein Bereich als Text, z.B. "6-8" oder "10-12" oder "12-15".',
     "note ist ein kurzer Hinweis (max. 12 Wörter) oder ein leerer String.",
+    "",
+    "name ist ein einzelnes, einprägsames Wort pro Tag — ein Rufname, keine",
+    "Beschreibung, kein Satz, keine Wortkombination. Innerhalb eines Plans darf",
+    "sich kein Name wiederholen. Er bleibt in beiden Sprachen unverändert.",
   ].join("\n");
 
   const user = [
@@ -183,6 +188,9 @@ export function validatePlan(raw: unknown, answers: Answers) {
     const rawWeekday = typeof dayObj.weekday === "string" ? dayObj.weekday : "";
     const weekday = WEEKDAYS.includes(rawWeekday) ? rawWeekday : requestedWeekday;
     const focus = typeof dayObj.focus === "string" && dayObj.focus ? dayObj.focus.slice(0, 80) : `Tag ${weekday}`;
+    // Ein Wort, nicht mehr: das Modell liefert gelegentlich einen halben Satz.
+    const name =
+      typeof dayObj.name === "string" ? dayObj.name.trim().split(/\s+/)[0].slice(0, 24) : "";
 
     const rawExercises = Array.isArray(dayObj.exercises) ? dayObj.exercises : [];
     const validExercises = [];
@@ -220,6 +228,7 @@ export function validatePlan(raw: unknown, answers: Answers) {
     if (validExercises.length > 0) {
       days.push({
         weekday,
+        name,
         focus,
         exercises: validExercises,
       });

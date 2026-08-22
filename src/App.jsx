@@ -66,6 +66,18 @@ export default function App() {
   // Ohne Konto gibt es nichts zu laden — anonyme Besucher würfeln nur.
   const canLoadData = isLocalMode || isAuthenticated;
 
+  /*
+    Favoriten werden einmal geladen, sobald überhaupt geladen werden kann —
+    nicht erst beim Öffnen des Favoriten-Tabs. Die Herzen hängen an den Tabs
+    Trainingsplan und KI-Coach; ohne geladene Liste hielt der Umschalter dort
+    jeden Tag für "noch nicht gespeichert" und legte bei jedem Tippen einen
+    weiteren Eintrag an.
+  */
+  useEffect(() => {
+    if (!canLoadData) return;
+    reloadFavorites();
+  }, [canLoadData, reloadFavorites]);
+
   useEffect(() => {
     if (!canLoadData) return;
     if (tab === "gespeichert") reloadSaved();
@@ -127,12 +139,31 @@ export default function App() {
       return n;
     });
 
-  const toggleTpDay = (day) =>
+  /*
+    Andere Trainingstage heißt: die gewürfelten Pläne passen nicht mehr zur
+    Auswahl. Sie werden deshalb verworfen, sobald sich die Tage ändern.
+    Favoriten sind eigene Einträge und bleiben davon unberührt.
+  */
+  const toggleTpDay = (day) => {
     setTpDays((prev) => {
       const n = new Set(prev);
       n.has(day) ? n.delete(day) : n.add(day);
       return n;
     });
+    setDayPlans(null);
+    setExpandedDay(null);
+  };
+
+  const changeTpDuration = (weeks) => {
+    setTpDuration(weeks);
+    setDayPlans(null);
+    setExpandedDay(null);
+  };
+
+  const resetTpPlans = () => {
+    setDayPlans(null);
+    setExpandedDay(null);
+  };
 
   const startLiveTraining = (slotsToRun, sessionTitle) => {
     if (!slotsToRun || slotsToRun.length === 0) return;
@@ -265,7 +296,8 @@ export default function App() {
               tpDays,
               toggleTpDay,
               tpDuration,
-              setTpDuration,
+              setTpDuration: changeTpDuration,
+              resetTpPlans,
               dayPlans,
               createDayPlans,
               expandedDay,
