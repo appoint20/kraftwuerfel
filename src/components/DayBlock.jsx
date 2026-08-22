@@ -64,6 +64,32 @@ export default function DayBlock({
               dayName={weekday(day)}
             />
           ))}
+
+          <div className="tp-day-actions-row">
+            {canFavorite && (
+              <button
+                className={`tp-day-fav-btn ${justSaved ? "saved" : ""}`}
+                onClick={() => onFavorite(day, cyclePlans)}
+              >
+                <Heart size={14} fill={justSaved ? "currentColor" : "none"} />
+                <span>{justSaved ? "✓ Favorisiert" : "♡ Als Favorit speichern"}</span>
+              </button>
+            )}
+            {onStartLiveTraining && cyclePlans.length > 0 && (
+              <button
+                className="tp-day-start-btn"
+                onClick={() => {
+                  const targetCycle = currentCycleIdx != null && cyclePlans[currentCycleIdx]
+                    ? cyclePlans[currentCycleIdx]
+                    : cyclePlans[0];
+                  onStartLiveTraining(targetCycle, `${weekday(day)} · ${t("tp.cycleLabel", { n: (currentCycleIdx || 0) + 1 })}`);
+                }}
+              >
+                <Play size={14} fill="currentColor" />
+                <span>{t("live.startTraining")}</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
