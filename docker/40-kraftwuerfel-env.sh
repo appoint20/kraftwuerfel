@@ -24,16 +24,20 @@ json_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
 }
 
+# Ermittle den Anon/Publishable Key (Supabase nutzt beide Bezeichnungen)
+SUPABASE_KEY="${VITE_SUPABASE_ANON_KEY:-${VITE_SUPABASE_PUBLISHABLE_KEY:-}}"
+
 ENV_FILE=/usr/share/nginx/html/env.js
 cat > "$ENV_FILE" <<EOF
 window.__KRAFTWUERFEL_ENV__ = {
   "VITE_SUPABASE_URL": "$(json_escape "${VITE_SUPABASE_URL:-}")",
-  "VITE_SUPABASE_ANON_KEY": "$(json_escape "${VITE_SUPABASE_ANON_KEY:-}")",
+  "VITE_SUPABASE_ANON_KEY": "$(json_escape "${SUPABASE_KEY}")",
+  "VITE_SUPABASE_PUBLISHABLE_KEY": "$(json_escape "${SUPABASE_KEY}")",
   "VITE_LOCAL_ROLE": "$(json_escape "${VITE_LOCAL_ROLE:-}")"
 };
 EOF
 
-if [ -z "${VITE_SUPABASE_URL:-}" ] || [ -z "${VITE_SUPABASE_ANON_KEY:-}" ]; then
+if [ -z "${VITE_SUPABASE_URL:-}" ] || [ -z "${SUPABASE_KEY}" ]; then
   echo "kraftwuerfel: WARNUNG — VITE_SUPABASE_URL oder VITE_SUPABASE_ANON_KEY fehlt." >&2
   echo "kraftwuerfel: Die App startet im lokalen Modus: keine Anmeldung, kein KI-Coach," >&2
   echo "kraftwuerfel: Pläne bleiben im Browser des Besuchers." >&2
