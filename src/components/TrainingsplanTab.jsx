@@ -1,4 +1,4 @@
-import { Dice5, Dumbbell, RotateCcw, X } from "lucide-react";
+import { Dice5, Dumbbell, RotateCcw, X, Play } from "lucide-react";
 import { METHODS } from "../data/exercises.js";
 import { WEEKDAYS, sortWeekdays, normalizeDate } from "../lib/dateUtils.js";
 import { cyclesForDuration, serializeDayPlans } from "../lib/planLogic.js";
@@ -8,7 +8,7 @@ import { useI18n } from "../lib/i18n.jsx";
 import DayBlock from "./DayBlock.jsx";
 import PremiumGate from "./PremiumGate.jsx";
 
-export default function TrainingsplanTab({ settings, tp, active, favorites, onGetPro }) {
+export default function TrainingsplanTab({ settings, tp, active, favorites, onGetPro, onStartLiveTraining }) {
   const { isPremium } = useAuth();
   const { t, split: splitLabel, weekday } = useI18n();
   const { split, method, count, restTime, activeCategories } = settings;
@@ -40,6 +40,7 @@ export default function TrainingsplanTab({ settings, tp, active, favorites, onGe
       onFavorite={(d, cycles) => favorites.add(d, cycles, split, method)}
       justSaved={favorites.justSaved.has(day)}
       canFavorite={isPremium}
+      onStartLiveTraining={onStartLiveTraining}
     />
   );
 

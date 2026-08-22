@@ -20,7 +20,7 @@ export function resolveEnv(runtime = {}, buildTime = {}) {
 
   return {
     supabaseUrl: pick("VITE_SUPABASE_URL"),
-    supabaseAnonKey: pick("VITE_SUPABASE_ANON_KEY"),
+    supabaseAnonKey: pick("VITE_SUPABASE_ANON_KEY") || pick("VITE_SUPABASE_PUBLISHABLE_KEY"),
     localRole: (pick("VITE_LOCAL_ROLE") || "free").toLowerCase(),
   };
 }

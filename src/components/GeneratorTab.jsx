@@ -1,11 +1,21 @@
 import { useState } from "react";
-import { Shuffle, Plus, Minus, Dumbbell, RotateCcw } from "lucide-react";
+import { Shuffle, Plus, Minus, Dumbbell, RotateCcw, Play } from "lucide-react";
 import { SPLITS, CATEGORIES, METHODS, REST_OPTIONS } from "../data/exercises.js";
 import { useAuth } from "../lib/auth.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import PremiumGate from "./PremiumGate.jsx";
 
-export default function GeneratorTab({ settings, plan, reel, onGenerate, onReroll, onUpdateSlot, saved, onGetPro }) {
+export default function GeneratorTab({
+  settings,
+  plan,
+  reel,
+  onGenerate,
+  onReroll,
+  onUpdateSlot,
+  saved,
+  onGetPro,
+  onStartLiveTraining,
+}) {
   const { isPremium } = useAuth();
   const { t, category, equipment, split: splitLabel, locale } = useI18n();
   const { split, setSplit, customCats, toggleCustomCat, count, setCount, method, setMethod, restTime, setRestTime } =
@@ -145,6 +155,15 @@ export default function GeneratorTab({ settings, plan, reel, onGenerate, onRerol
               </div>
             );
           })}
+          {onStartLiveTraining && (
+            <button
+              className="kw-btn live-start-btn"
+              onClick={() => onStartLiveTraining(plan, `${splitLabel(split)} · ${plan.length} Übungen`)}
+            >
+              <Play size={18} fill="currentColor" /> {t("live.startTraining")}
+            </button>
+          )}
+
           <button className="remix-btn" onClick={onGenerate}>
             <RotateCcw size={14} /> {t("gen.remix")}
           </button>

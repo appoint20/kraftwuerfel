@@ -1,14 +1,29 @@
+import { Play } from "lucide-react";
 import { useI18n } from "../lib/i18n.jsx";
 
-export default function CycleBlock({ label, slots, isCurrent }) {
+export default function CycleBlock({ label, slots, isCurrent, onStartLiveTraining, dayName }) {
   const { t, category, equipment } = useI18n();
 
   return (
     <div className={`tp-cycle-block ${isCurrent ? "current" : ""}`}>
       {label && (
         <div className="tp-cycle-header">
-          <span className="tp-cycle-label">{label}</span>
-          {isCurrent && <span className="tp-cycle-now">{t("tp.current")}</span>}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span className="tp-cycle-label">{label}</span>
+            {isCurrent && <span className="tp-cycle-now">{t("tp.current")}</span>}
+          </div>
+          {onStartLiveTraining && (
+            <button
+              className="tp-cycle-start-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStartLiveTraining(slots, `${dayName ? `${dayName} · ` : ""}${label}`);
+              }}
+              title={t("live.startTraining")}
+            >
+              <Play size={12} fill="currentColor" /> {t("live.startTraining")}
+            </button>
+          )}
         </div>
       )}
       <div className="tp-rows">

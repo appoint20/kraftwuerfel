@@ -17,6 +17,7 @@ import TrainingsplanTab from "./components/TrainingsplanTab.jsx";
 import GespeichertTab from "./components/GespeichertTab.jsx";
 import FavoritenTab from "./components/FavoritenTab.jsx";
 import ProScreen from "./components/ProScreen.jsx";
+import LiveSession from "./components/LiveSession.jsx";
 
 const TABS = [
   ["generator", "tabs.generator"],
@@ -31,6 +32,7 @@ export default function App() {
   const { t, lang, setLang } = useI18n();
   const [tab, setTab] = useState("generator");
   const [showPro, setShowPro] = useState(false);
+  const [liveSession, setLiveSession] = useState(null);
 
   const [split, setSplit] = useState("Ganzkörper");
   const [customCats, setCustomCats] = useState(new Set(["Brust", "Rücken"]));
@@ -126,6 +128,11 @@ export default function App() {
       return n;
     });
 
+  const startLiveTraining = (slotsToRun, sessionTitle) => {
+    if (!slotsToRun || slotsToRun.length === 0) return;
+    setLiveSession({ plan: slotsToRun, title: sessionTitle });
+  };
+
   const settings = {
     split,
     setSplit,
@@ -141,6 +148,16 @@ export default function App() {
   };
 
   if (!ready) return <div className="app" />;
+
+  if (liveSession) {
+    return (
+      <LiveSession
+        plan={liveSession.plan}
+        title={liveSession.title}
+        onClose={() => setLiveSession(null)}
+      />
+    );
+  }
 
   if (showPro) return <ProScreen onClose={() => setShowPro(false)} />;
 
@@ -208,6 +225,7 @@ export default function App() {
             onUpdateSlot={updateSlot}
             saved={saved}
             onGetPro={openPro}
+            onStartLiveTraining={startLiveTraining}
           />
         )}
 
@@ -216,6 +234,7 @@ export default function App() {
             active={{ ...active, end: endActivePlan }}
             favorites={favorites}
             onGetPro={openPro}
+            onStartLiveTraining={startLiveTraining}
           />
         )}
 
@@ -235,6 +254,7 @@ export default function App() {
             active={{ ...active, end: endActivePlan }}
             favorites={favorites}
             onGetPro={openPro}
+            onStartLiveTraining={startLiveTraining}
           />
         )}
 
