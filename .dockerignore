@@ -18,5 +18,4 @@ README.md
 supabase
 scripts
 render.yaml
-Dockerfile
-.dockerignore
+
