@@ -49,12 +49,23 @@ export async function hideNativeSplash() {
 }
 
 /*
-  Statusleiste: nativ gesetzt, nicht über ein Plugin — Info.plist
-  (UIStatusBarStyle) und styles.xml. Die App ist durchgehend dunkel und muss
-  zur Laufzeit nie umschalten, also braucht es dafür keine Abhängigkeit.
+  Statusleiste hell auf dunklem Grund.
+
+  Ohne das stehen auf iOS dunkle Symbole auf dem dunklen App-Hintergrund — also
+  praktisch unsichtbar. Auf Android kommt die Hintergrundfarbe dazu, damit die
+  Leiste nicht in einem anderen Grauton neben dem Header sitzt.
 */
 export async function setupStatusBar() {
-  // absichtlich leer — die Konfiguration liegt in den nativen Projekten
+  if (!isNative) return;
+  try {
+    const { StatusBar, Style } = await import("@capacitor/status-bar");
+    await StatusBar.setStyle({ style: Style.Dark });
+    if (platform === "android") {
+      await StatusBar.setBackgroundColor({ color: "#0D0E10" });
+    }
+  } catch {
+    // Plattform ohne konfigurierbare Statusleiste
+  }
 }
 
 /*
