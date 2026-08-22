@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Shuffle, Plus, Minus, Dumbbell, RotateCcw, Play } from "lucide-react";
 import { SPLITS, CATEGORIES, METHODS, REST_OPTIONS } from "../data/exercises.js";
+import { useAuth } from "../lib/auth.jsx";
 import { useI18n } from "../lib/i18n.jsx";
+import PremiumGate from "./PremiumGate.jsx";
 import { uniquePlanName } from "../lib/planNames.js";
 import ExerciseVisual from "./ExerciseVisual.jsx";
 
@@ -14,8 +16,10 @@ export default function GeneratorTab({
   onUpdateSlot,
   saved,
   takenNames = [],
+  onGetPro,
   onStartLiveTraining,
 }) {
+  const { isPremium } = useAuth();
   const { t, category, equipment, split: splitLabel, locale, exerciseName } = useI18n();
   const { split, setSplit, customCats, toggleCustomCat, count, setCount, method, setMethod, restTime, setRestTime } =
     settings;
@@ -171,8 +175,9 @@ export default function GeneratorTab({
             <RotateCcw size={14} /> {t("gen.remix")}
           </button>
 
-          {/* Speichern gehört zur freien Stufe — bezahlt wird für KI und Live-Session. */}
-          <div className="save-row">
+          {isPremium ? (
+            <>
+              <div className="save-row">
             <input
               className="save-input"
               placeholder={t("gen.namePlaceholder")}
@@ -182,11 +187,15 @@ export default function GeneratorTab({
                 if (e.key === "Enter") savePlan();
               }}
             />
-            <button className="save-btn" onClick={savePlan}>
-              <Dumbbell size={15} /> {t("gen.save")}
-            </button>
-          </div>
-          {saved.status && <div className="save-status">{saved.status}</div>}
+                <button className="save-btn" onClick={savePlan}>
+                  <Dumbbell size={15} /> {t("gen.save")}
+                </button>
+              </div>
+              {saved.status && <div className="save-status">{saved.status}</div>}
+            </>
+          ) : (
+            <PremiumGate feature={t("pro.feature.save")} onGetPro={onGetPro} />
+          )}
         </div>
       ) : (
         <div className="empty">

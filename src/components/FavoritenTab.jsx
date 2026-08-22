@@ -3,10 +3,13 @@ import { METHODS } from "../data/exercises.js";
 import { deserializeSlots } from "../lib/planLogic.js";
 import { rotateWeekdaysFromToday, todayWeekday } from "../lib/dateUtils.js";
 import { planNameFor } from "../lib/planNames.js";
+import { useAuth } from "../lib/auth.jsx";
 import { useI18n } from "../lib/i18n.jsx";
+import PremiumGate from "./PremiumGate.jsx";
 import CycleBlock from "./CycleBlock.jsx";
 
 export default function FavoritenTab({ favorites: fav, onGetPro, onStartLiveTraining }) {
+  const { isPremium } = useAuth();
   const { t, locale, weekday } = useI18n();
   const { favorites, loading, remove } = fav;
 
@@ -24,6 +27,15 @@ export default function FavoritenTab({ favorites: fav, onGetPro, onStartLiveTrai
     return (b.favoritedAt || "").localeCompare(a.favoritedAt || "");
   });
 
+
+  if (!isPremium && favorites.length === 0) {
+    return (
+      <>
+        <div className="section-label">{t("fav.title")}</div>
+        <PremiumGate feature={t("pro.feature.favorites")} onGetPro={onGetPro} />
+      </>
+    );
+  }
 
   return (
     <>

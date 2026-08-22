@@ -2,14 +2,26 @@ import { useState } from "react";
 import { Shuffle, X, Play, ChevronDown, ChevronUp } from "lucide-react";
 import { METHODS } from "../data/exercises.js";
 import { deserializeSlots } from "../lib/planLogic.js";
+import { useAuth } from "../lib/auth.jsx";
 import { useI18n } from "../lib/i18n.jsx";
+import PremiumGate from "./PremiumGate.jsx";
 import CycleBlock from "./CycleBlock.jsx";
 
-export default function GespeichertTab({ saved, onLoad, onStartLiveTraining }) {
+export default function GespeichertTab({ saved, onLoad, onStartLiveTraining, onGetPro }) {
+  const { isPremium } = useAuth();
   const { t, locale } = useI18n();
   const { plans, loading, remove } = saved;
   // Aufgeklappt wird immer nur ein Plan — sonst scrollt man ewig.
   const [openId, setOpenId] = useState(null);
+
+  if (!isPremium && plans.length === 0) {
+    return (
+      <>
+        <div className="section-label">{t("saved.title")}</div>
+        <PremiumGate feature={t("pro.feature.save")} onGetPro={onGetPro} />
+      </>
+    );
+  }
 
   return (
     <>

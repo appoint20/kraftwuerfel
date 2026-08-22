@@ -14,7 +14,7 @@ const BENEFITS = [
 
 export default function ProScreen({ onClose }) {
   const { t } = useI18n();
-  const { user, userName, isAuthenticated, isPremium, syncEntitlement, updateUserName } = useAuth();
+  const { user, userName, isAuthenticated, isPremium, canSignIn, syncEntitlement, updateUserName } = useAuth();
 
   const [mode, setMode] = useState("signup");
   const [name, setName] = useState(userName || "");
@@ -30,6 +30,15 @@ export default function ProScreen({ onClose }) {
   // Authentication submit (Sign In / Sign Up)
   const submit = async (e) => {
     e.preventDefault();
+    /*
+      Ohne Zugangsdaten gibt es keinen Client — supabase ist dann null. Vorher
+      lief das direkt in "null is not an object (supabase.auth)", weil dieser
+      Bildschirm über die Live-Session auch ohne Backend erreichbar wurde.
+    */
+    if (!canSignIn || !supabase) {
+      setError(t("proScreen.noBackend"));
+      return;
+    }
     setBusy(true);
     setError("");
     setNotice("");
@@ -128,8 +137,15 @@ export default function ProScreen({ onClose }) {
               {t("proScreen.back")}
             </button>
           </div>
+        ) : !canSignIn ? (
+          /* Ohne Server gibt es kein Konto — kein Formular anbieten, das nicht
+             funktionieren kann. */
+          <div className="pro-pending">
+            <Sparkles size={16} />
+            <span>{t("proScreen.noBackend")}</span>
+          </div>
         ) : isAuthenticated ? (
-          /* AUTHENTICATED: SHOW APPLE PAY & MEMBERSHIP PAYMENT SELECTION */
+          /* AUTHENTICATED: SHOW MEMBERSHIP SELECTION */
           <div className="pro-payment-section">
             {userName && (
               <div className="pro-user-greeting">

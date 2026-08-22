@@ -310,6 +310,7 @@ export default function App() {
             onUpdateSlot={updateSlot}
             saved={saved}
             takenNames={takenPlanNames}
+            onGetPro={openPro}
             onStartLiveTraining={startLiveTraining}
           />
         )}
@@ -345,7 +346,12 @@ export default function App() {
         )}
 
         {tab === "gespeichert" && (
-          <GespeichertTab saved={saved} onLoad={loadSavedPlan} onStartLiveTraining={startLiveTraining} />
+          <GespeichertTab
+            saved={saved}
+            onLoad={loadSavedPlan}
+            onStartLiveTraining={startLiveTraining}
+            onGetPro={openPro}
+          />
         )}
 
         {tab === "favoriten" && (
