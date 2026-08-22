@@ -12,6 +12,7 @@ services:
     plan: free
     region: frankfurt
     dockerfilePath: ./Dockerfile
+    dockerContext: .
     healthCheckPath: /healthz
     autoDeploy: true
     envVars:
