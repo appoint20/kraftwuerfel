@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Check, Sparkles, ShieldCheck, Zap } from "lucide-react";
+import { ArrowLeft, Check, Sparkles, ShieldCheck, Zap, User, ToggleLeft, ToggleRight } from "lucide-react";
 import { supabase } from "../lib/supabase.js";
 import { useI18n } from "../lib/i18n.jsx";
 import { useAuth } from "../lib/auth.jsx";
@@ -14,9 +14,10 @@ const BENEFITS = [
 
 export default function ProScreen({ onClose }) {
   const { t } = useI18n();
-  const { user, isAuthenticated, isPremium, upgradeToPro, refreshProfile } = useAuth();
+  const { user, userName, isAuthenticated, isPremium, upgradeToPro, toggleTestPro, updateUserName } = useAuth();
 
   const [mode, setMode] = useState("signup");
+  const [name, setName] = useState(userName || "");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [selectedPlan, setSelectedPlan] = useState("monthly"); // "monthly" | "yearly"
@@ -48,6 +49,9 @@ export default function ProScreen({ onClose }) {
           email,
           password,
           options: {
+            data: {
+              name: name.trim() || email.split("@")[0],
+            },
             emailRedirectTo: redirectTo,
           },
         });
@@ -113,6 +117,14 @@ export default function ProScreen({ onClose }) {
     }
   };
 
+  // Test User Toggle (One-tap test unlock / lock)
+  const handleTestToggle = async () => {
+    setBusy(true);
+    const next = await toggleTestPro();
+    setBusy(false);
+    setNotice(next ? "PRO aktiviert (Testmodus)" : "PRO deaktiviert / gesperrt (Testmodus)");
+  };
+
   return (
     <div className="auth-screen">
       <div className="auth-card">
@@ -139,7 +151,7 @@ export default function ProScreen({ onClose }) {
           ))}
         </ul>
 
-        {upgraded || isPremium ? (
+        {upgraded ? (
           <div className="pro-success-box">
             <Sparkles size={28} className="pro-success-icon" />
             <div className="pro-success-title">{t("proScreen.upgradeSuccess")}</div>
@@ -150,55 +162,86 @@ export default function ProScreen({ onClose }) {
         ) : isAuthenticated ? (
           /* AUTHENTICATED: SHOW APPLE PAY & MEMBERSHIP PAYMENT SELECTION */
           <div className="pro-payment-section">
-            <div className="auth-title">{t("proScreen.choosePlan")}</div>
-
-            <div className="pro-plans-grid">
-              <div
-                className={`pro-plan-card ${selectedPlan === "monthly" ? "active" : ""}`}
-                onClick={() => setSelectedPlan("monthly")}
-              >
-                <div className="pro-plan-header">
-                  <div className="pro-plan-name">{t("proScreen.monthlyPlan")}</div>
-                  <div className="pro-plan-price">{t("proScreen.monthlyPrice")}</div>
-                </div>
-                <div className="pro-plan-sub">{t("proScreen.monthlySub")}</div>
+            {userName && (
+              <div className="pro-user-greeting">
+                👋 Hallo <strong>{userName}</strong> ({user.email})
               </div>
+            )}
 
-              <div
-                className={`pro-plan-card ${selectedPlan === "yearly" ? "active" : ""}`}
-                onClick={() => setSelectedPlan("yearly")}
-              >
-                <div className="pro-plan-badge">SPART 33%</div>
-                <div className="pro-plan-header">
-                  <div className="pro-plan-name">{t("proScreen.yearlyPlan")}</div>
-                  <div className="pro-plan-price">{t("proScreen.yearlyPrice")}</div>
+            {!isPremium && <div className="auth-title">{t("proScreen.choosePlan")}</div>}
+
+            {!isPremium && (
+              <div className="pro-plans-grid">
+                <div
+                  className={`pro-plan-card ${selectedPlan === "monthly" ? "active" : ""}`}
+                  onClick={() => setSelectedPlan("monthly")}
+                >
+                  <div className="pro-plan-header">
+                    <div className="pro-plan-name">{t("proScreen.monthlyPlan")}</div>
+                    <div className="pro-plan-price">{t("proScreen.monthlyPrice")}</div>
+                  </div>
+                  <div className="pro-plan-sub">{t("proScreen.monthlySub")}</div>
                 </div>
-                <div className="pro-plan-sub">{t("proScreen.yearlySub")}</div>
+
+                <div
+                  className={`pro-plan-card ${selectedPlan === "yearly" ? "active" : ""}`}
+                  onClick={() => setSelectedPlan("yearly")}
+                >
+                  <div className="pro-plan-badge">SPART 33%</div>
+                  <div className="pro-plan-header">
+                    <div className="pro-plan-name">{t("proScreen.yearlyPlan")}</div>
+                    <div className="pro-plan-price">{t("proScreen.yearlyPrice")}</div>
+                  </div>
+                  <div className="pro-plan-sub">{t("proScreen.yearlySub")}</div>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Apple Pay Button */}
-            <button
-              className="apple-pay-btn"
-              disabled={busy}
-              onClick={() => handlePayment("apple_pay")}
-            >
-              <svg width="20" height="24" viewBox="0 0 170 170" fill="currentColor">
-                <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.81-11.96-14.34-6.42-9.79-11.38-20.73-14.88-32.82-3.5-12.09-5.25-23.27-5.25-33.54 0-14.14 3.73-25.96 11.19-35.46 7.46-9.5 16.63-14.34 27.52-14.53 4.58 0 9.84 1.17 15.79 3.51 5.95 2.34 9.53 3.56 10.74 3.65 1.57-.22 5.34-1.57 11.31-4.06 5.98-2.49 11.06-3.63 15.25-3.41 12.87.65 23.01 5.38 30.41 14.19-11.2 6.74-16.69 16.09-16.48 28.05.22 9.57 3.97 17.65 11.26 24.24 7.29 6.59 15.86 10.22 25.7 10.89-2.17 6.53-4.94 13.06-8.3 19.59zM119.22 33.39c0-7.39 2.66-14.36 7.98-20.91 5.33-6.55 12.05-10.82 20.16-12.81.98 7.07-.98 14.17-5.88 21.3-4.9 7.13-11.49 11.53-19.77 13.2-1.63-.22-2.49-.44-2.49-.78z" />
-              </svg>
-              <span>{busy ? "Wird verarbeitet…" : t("proScreen.applePay")}</span>
-            </button>
+            {!isPremium && (
+              <button
+                className="apple-pay-btn"
+                disabled={busy}
+                onClick={() => handlePayment("apple_pay")}
+              >
+                <svg width="20" height="24" viewBox="0 0 170 170" fill="currentColor">
+                  <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.81-11.96-14.34-6.42-9.79-11.38-20.73-14.88-32.82-3.5-12.09-5.25-23.27-5.25-33.54 0-14.14 3.73-25.96 11.19-35.46 7.46-9.5 16.63-14.34 27.52-14.53 4.58 0 9.84 1.17 15.79 3.51 5.95 2.34 9.53 3.56 10.74 3.65 1.57-.22 5.34-1.57 11.31-4.06 5.98-2.49 11.06-3.63 15.25-3.41 12.87.65 23.01 5.38 30.41 14.19-11.2 6.74-16.69 16.09-16.48 28.05.22 9.57 3.97 17.65 11.26 24.24 7.29 6.59 15.86 10.22 25.7 10.89-2.17 6.53-4.94 13.06-8.3 19.59zM119.22 33.39c0-7.39 2.66-14.36 7.98-20.91 5.33-6.55 12.05-10.82 20.16-12.81.98 7.07-.98 14.17-5.88 21.3-4.9 7.13-11.49 11.53-19.77 13.2-1.63-.22-2.49-.44-2.49-.78z" />
+                </svg>
+                <span>{busy ? "Wird verarbeitet…" : t("proScreen.applePay")}</span>
+              </button>
+            )}
 
             {/* Standard Payment Button */}
-            <button
-              className="auth-submit"
-              disabled={busy}
-              onClick={() => handlePayment("standard")}
-            >
-              {busy ? "…" : t("proScreen.payNow")}
-            </button>
+            {!isPremium && (
+              <button
+                className="auth-submit"
+                disabled={busy}
+                onClick={() => handlePayment("standard")}
+              >
+                {busy ? "…" : t("proScreen.payNow")}
+              </button>
+            )}
+
+            {/* Test User Switch: Toggle Pro on / off instantly */}
+            <div className="test-pro-toggle-box">
+              <div className="test-pro-label">
+                <span>🧪 Test-Modus: PRO Status</span>
+                <span className={`test-pro-status ${isPremium ? "active" : ""}`}>
+                  {isPremium ? "PRO Aktiv" : "Gesperrt (Free)"}
+                </span>
+              </div>
+              <button
+                className="test-pro-btn"
+                type="button"
+                onClick={handleTestToggle}
+                disabled={busy}
+              >
+                {isPremium ? "PRO sperren (Free testen)" : "PRO sofort freischalten"}
+              </button>
+            </div>
 
             {error && <div className="auth-error">{error}</div>}
+            {notice && <div className="save-status">{notice}</div>}
           </div>
         ) : (
           /* NOT AUTHENTICATED: SHOW SIGN IN / SIGN UP FORM */
@@ -206,6 +249,20 @@ export default function ProScreen({ onClose }) {
             <div className="auth-title">
               {t(mode === "login" ? "proScreen.signIn" : "proScreen.signUp")}
             </div>
+
+            {mode === "signup" && (
+              <div className="auth-field">
+                <label htmlFor="auth-name">Dein Vorname / Name</label>
+                <input
+                  id="auth-name"
+                  type="text"
+                  placeholder="z. B. Alex"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+            )}
 
             <div className="auth-field">
               <label htmlFor="auth-email">{t("proScreen.email")}</label>

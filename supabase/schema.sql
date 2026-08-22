@@ -13,6 +13,7 @@ create extension if not exists pgcrypto;
 create table if not exists public.profiles (
   id uuid primary key references auth.users on delete cascade,
   email text,
+  name text,
   is_admin boolean not null default false,
   is_premium boolean not null default false,
   created_at timestamptz not null default now()
@@ -24,7 +25,11 @@ drop policy if exists "read own profile" on public.profiles;
 create policy "read own profile" on public.profiles
   for select using (auth.uid() = id);
 
--- Profil automatisch bei der Registrierung anlegen (frei, nicht Admin)
+drop policy if exists "update own profile" on public.profiles;
+create policy "update own profile" on public.profiles
+  for update using (auth.uid() = id) with check (auth.uid() = id);
+
+-- Profil automatisch bei der Registrierung anlegen (inkl. Name)
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -32,9 +37,14 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email)
-  values (new.id, new.email)
-  on conflict (id) do nothing;
+  insert into public.profiles (id, email, name)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1))
+  )
+  on conflict (id) do update set
+    name = coalesce(excluded.name, public.profiles.name);
   return new;
 end;
 $$;

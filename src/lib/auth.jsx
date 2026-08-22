@@ -12,17 +12,16 @@ import { ENV } from "./env.js";
   als Pro und ist für spätere Verwaltungsfunktionen reserviert.
 */
 
-const FREE = { isPremium: false, isAdmin: false };
+const FREE = { name: "", isPremium: false, isAdmin: false };
 
 // Ohne Supabase-Zugangsdaten gibt es keine Konten. Für die lokale Entwicklung
-// lässt sich die Rolle über VITE_LOCAL_ROLE=free|pro durchspielen. Der KI-Coach
-// bleibt lokal unerreichbar — er braucht die Edge Function.
+// lässt sich die Rolle über VITE_LOCAL_ROLE=free|pro durchspielen.
 const LOCAL_ROLE = ENV.localRole;
 const LOCAL_PROFILE = {
   free: FREE,
-  pro: { isPremium: true, isAdmin: false },
-  premium: { isPremium: true, isAdmin: false },
-  admin: { isPremium: true, isAdmin: true },
+  pro: { name: "Athlet", isPremium: true, isAdmin: false },
+  premium: { name: "Athlet", isPremium: true, isAdmin: false },
+  admin: { name: "Admin", isPremium: true, isAdmin: true },
 }[LOCAL_ROLE] || FREE;
 
 const AuthContext = createContext(null);
@@ -39,10 +38,17 @@ export function AuthProvider({ children }) {
     }
     const { data } = await supabase
       .from("profiles")
-      .select("is_premium, is_admin")
+      .select("is_premium, is_admin, name")
       .eq("id", nextUser.id)
       .maybeSingle();
-    setProfile({ isPremium: !!data?.is_premium, isAdmin: !!data?.is_admin });
+
+    const userName =
+      data?.name || nextUser.user_metadata?.name || nextUser.email?.split("@")[0] || "";
+    setProfile({
+      name: userName,
+      isPremium: !!data?.is_premium,
+      isAdmin: !!data?.is_admin,
+    });
   }, []);
 
   useEffect(() => {
@@ -68,7 +74,7 @@ export function AuthProvider({ children }) {
         return true;
       }
     } catch {
-      // Fallback below
+      // Fallback
     }
     const { error: updateError } = await supabase
       .from("profiles")
@@ -81,15 +87,37 @@ export function AuthProvider({ children }) {
     return false;
   }, [user, loadProfile]);
 
+  // Test-Helfer: Pro Version für Testuser umschalten (freischalten / sperren)
+  const toggleTestPro = useCallback(async () => {
+    if (!user || !supabase) return false;
+    const nextState = !profile.isPremium;
+    await supabase.from("profiles").update({ is_premium: nextState }).eq("id", user.id);
+    await loadProfile(user);
+    return nextState;
+  }, [user, profile.isPremium, loadProfile]);
+
+  const updateUserName = useCallback(
+    async (newName) => {
+      if (!user || !supabase || !newName) return;
+      await supabase.from("profiles").update({ name: newName }).eq("id", user.id);
+      await supabase.auth.updateUser({ data: { name: newName } });
+      await loadProfile(user);
+    },
+    [user, loadProfile]
+  );
+
   const value = {
     user,
     ready,
+    userName: profile.name,
     isAuthenticated: !!user,
     isPremium: profile.isPremium,
     isAdmin: profile.isAdmin,
     canSignIn: isSupabaseConfigured,
     signOut: () => supabase?.auth.signOut(),
     upgradeToPro,
+    toggleTestPro,
+    updateUserName,
     refreshProfile: () => loadProfile(user),
   };
 

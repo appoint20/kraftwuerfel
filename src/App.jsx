@@ -28,7 +28,7 @@ const TABS = [
 ];
 
 export default function App() {
-  const { user, isAuthenticated, isPremium, canSignIn, signOut, ready } = useAuth();
+  const { user, userName, isAuthenticated, isPremium, canSignIn, signOut, ready } = useAuth();
   const { t, lang, setLang } = useI18n();
   const [tab, setTab] = useState("generator");
   const [showPro, setShowPro] = useState(false);
@@ -183,7 +183,7 @@ export default function App() {
                 EN
               </button>
             </div>
-            {isAuthenticated && isPremium ? (
+            {isAuthenticated ? (
               <button className="logout-btn" onClick={signOut} title={t("nav.signOut")}>
                 <LogOut size={14} />
               </button>
@@ -197,7 +197,21 @@ export default function App() {
             )}
           </div>
         </div>
-        {isAuthenticated && isPremium && <div className="account-mail">{user.email}</div>}
+
+        {isAuthenticated && (
+          <div className="account-greeting-bar">
+            <span className="account-greeting">
+              👋 {lang === "en" ? "Hello" : "Hallo"}, <strong>{userName || "Athlet"}</strong>
+            </span>
+            <span className={`account-badge ${isPremium ? "pro" : "free"}`}>
+              {isPremium ? "PRO" : "FREE"}
+            </span>
+            <button className="account-pro-manage-btn" onClick={openPro} title="Profil & Abo verwalten">
+              ⚙️
+            </button>
+          </div>
+        )}
+
         <div className="tabs">
           {TABS.map(([id, key]) => (
             <button key={id} className={`tab-btn ${tab === id ? "active" : ""}`} onClick={() => setTab(id)}>
