@@ -131,17 +131,31 @@ npx cap open ios                   # Xcode
 npx cap open android               # Android Studio
 ```
 
-**Voraussetzungen:** Xcode 16 mit iOS-Simulator, und für Android ein JDK 21. Das JDK von Android
-Studio reicht:
+**Voraussetzungen:** Xcode 16 mit iOS-Simulator, CocoaPods, und für Android ein JDK 21. Das JDK
+von Android Studio reicht:
 
 ```bash
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ```
 
-**Versionen sind exakt gepinnt.** Zwischen Capacitor 8.3 und 8.5 hat sich die Swift-API geändert,
-mit der `@capacitor/local-notifications` gebaut wird — mit `^` im `package.json` bricht der
-iOS-Build bei der nächsten Installation. Wer aktualisiert, ändert alle `@capacitor/*` zusammen und
-baut iOS einmal komplett neu.
+iOS wird über den **Workspace** gebaut, nicht über das Projekt (CocoaPods):
+
+```bash
+cd ios/App && xcodebuild -workspace App.xcworkspace -scheme App ...
+```
+
+### Warum Capacitor 7 und nicht 8
+
+Capacitor 8 ist installierbar, aber die veröffentlichten Plugins bauen dort nicht: Core 8.5 hat
+Teile der Plugin-API entfernt (`CAPPluginCall.reject`, `PluginConfig.getString`,
+`CAPBridgeProtocol.viewController`), und `app`, `haptics`, `splash-screen`, `status-bar` und
+`local-notifications` benutzen sie alle noch. Eine leere Capacitor-8-App baut, sobald ein Plugin
+dazukommt nicht mehr — und es gibt keine Kombination aus Core- und Plugin-Versionen im 8er-Zweig,
+in der alle fünf durchlaufen.
+
+Capacitor 7 ist ein abgeschlossener, in sich stimmiger Stand. **Alle `@capacitor/*` sind exakt
+gepinnt** — mit `^` zieht npm beim nächsten `install` wieder Versionen, die nicht zusammenpassen.
+Wer aktualisiert, ändert alle zusammen und baut iOS einmal komplett neu.
 
 ### Was nativ dazukommt
 

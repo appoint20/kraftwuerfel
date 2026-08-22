@@ -20,3 +20,5 @@ android/local.properties
 android/.idea/
 android/app/src/main/assets/public/
 ios/App/App/public/
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
