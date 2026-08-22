@@ -9,7 +9,7 @@ import { useAuth } from "../lib/auth.jsx";
 import PremiumGate from "./PremiumGate.jsx";
 import CycleBlock from "./CycleBlock.jsx";
 
-const GOALS = ["muscle", "strength", "definition", "fitness"];
+const GOALS = ["muscle", "strength", "definition", "fitness", "abnehmen"];
 const EXPERIENCE = ["beginner", "intermediate", "advanced"];
 const SESSION_MINUTES = [30, 45, 60, 90];
 const WEEK_OPTIONS = [2, 4, 6];
@@ -403,12 +403,12 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
         <div className="wizard-step-content">
           <div className="wizard-headline">{t("ai.days")}</div>
 
-          <div className="tp-day-picker">
+          <div className="filter-chips" style={{ marginBottom: "14px" }}>
             {WEEKDAYS.map((d) => (
               <button
                 key={d}
                 type="button"
-                className={`tp-day-btn ${days.has(d) ? "active" : ""}`}
+                className={`chip ${days.has(d) ? "active" : ""}`}
                 onClick={() => toggleSet(setDays)(d)}
               >
                 {weekday(d)}
@@ -525,36 +525,36 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
 
           <div className="ai-review-card">
             <div className="review-row">
-              <span className="review-lbl">{t("ai.goal").toUpperCase()}</span>
-              <span className="review-val">{t(`ai.goal.${goal}`)}</span>
+              <span className="review-lbl">{t("ai.goal")}</span>
+              <span className="review-val highlight">{t(`ai.goal.${goal}`)}</span>
             </div>
             <div className="review-row">
-              <span className="review-lbl">{t("ai.experience").toUpperCase()}</span>
+              <span className="review-lbl">{t("ai.experience")}</span>
               <span className="review-val">{t(`ai.exp.${experience}`)}</span>
             </div>
             <div className="review-row">
-              <span className="review-lbl">{t("ai.biometricsTitle").toUpperCase()}</span>
+              <span className="review-lbl">{t("ai.biometricsTitle")}</span>
               <span className="review-val">
-                {sex === "male" ? t("ai.sexMale") : sex === "female" ? t("ai.sexFemale") : t("ai.sexOther")} · {age} J. · {height} cm · {weight} kg
+                {sex === "male" ? t("ai.sexMale") : sex === "female" ? t("ai.sexFemale") : t("ai.sexOther")} · {age} {t("ai.years")} · {height} cm · {weight} kg
               </span>
             </div>
             <div className="review-row">
-              <span className="review-lbl">{t("ai.days").toUpperCase()}</span>
-              <span className="review-val mono">{sortWeekdays(days).join(", ")}</span>
+              <span className="review-lbl">{t("ai.days")}</span>
+              <span className="review-val mono">{sortWeekdays(days).map((d) => weekday(d)).join(", ")}</span>
             </div>
             <div className="review-row">
-              <span className="review-lbl">DAUER & WOCHEN</span>
+              <span className="review-lbl">Dauer & Wochen</span>
               <span className="review-val">{sessionMinutes} Min · {weeks} Wochen</span>
             </div>
             <div className="review-row">
-              <span className="review-lbl">EQUIPMENT</span>
+              <span className="review-lbl">Equipment</span>
               <span className="review-val">
                 {equipment.size === 0 ? "Alles" : [...equipment].map((e) => equipmentLabel(e)).join(", ")}
               </span>
             </div>
             {getCombinedLimitations() && (
               <div className="review-row">
-                <span className="review-lbl">EINSCHRÄNKUNGEN</span>
+                <span className="review-lbl">Einschränkungen</span>
                 <span className="review-val highlight">{getCombinedLimitations()}</span>
               </div>
             )}

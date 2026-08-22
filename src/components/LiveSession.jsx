@@ -21,9 +21,11 @@ import {
   Smartphone,
   Maximize2,
   Sparkles,
+  Music,
 } from "lucide-react";
 import { useI18n } from "../lib/i18n.jsx";
 import ExerciseVisual from "./ExerciseVisual.jsx";
+import GymMusicPlayer from "./GymMusicPlayer.jsx";
 
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
@@ -36,6 +38,7 @@ export default function LiveSession({ plan, title, onClose }) {
 
   const [mode, setMode] = useState("fokus"); // "fokus" | "protokoll" | "watch"
   const [showLockScreenCard, setShowLockScreenCard] = useState(false);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [exerciseIdx, setExerciseIdx] = useState(0);
   const [setIdx, setSetIdx] = useState(0);
 
@@ -475,6 +478,13 @@ export default function LiveSession({ plan, title, onClose }) {
             <div className="live-header-right">
               <button
                 className="live-lockscreen-btn"
+                onClick={() => setShowMusicPlayer(true)}
+                title="Gym Music & Spotify"
+              >
+                <Music size={15} />
+              </button>
+              <button
+                className="live-lockscreen-btn"
                 onClick={() => setShowLockScreenCard(!showLockScreenCard)}
                 title={t("live.lockScreenCard")}
               >
@@ -908,6 +918,9 @@ export default function LiveSession({ plan, title, onClose }) {
             </div>
           </div>
         )}
+
+        {/* Gym Music & Spotify Drawer */}
+        {showMusicPlayer && <GymMusicPlayer onClose={() => setShowMusicPlayer(false)} />}
 
         {/* Confirmation Modal to End Workout */}
         {showConfirmEnd && (

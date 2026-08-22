@@ -8,7 +8,6 @@ export default function useFavorites() {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
-  const [justSaved, setJustSaved] = useState(new Set());
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -21,31 +20,49 @@ export default function useFavorites() {
     }
   }, []);
 
-  const add = useCallback(
+  const isFavorited = useCallback(
+    (day) => favorites.some((f) => f.day === day),
+    [favorites]
+  );
+
+  const toggle = useCallback(
     async (day, cyclePlans, split, method) => {
-      try {
-        const created = await repository.createFavorite({
-          day,
-          split,
-          method,
-          cycles: cyclePlans.map(serializeSlots),
-        });
-        setFavorites((prev) => [created, ...prev]);
-        setJustSaved((prev) => new Set(prev).add(day));
-        setStatus(t("fav.added", { day: weekday(day) }));
-        setTimeout(() => {
-          setJustSaved((prev) => {
-            const n = new Set(prev);
-            n.delete(day);
-            return n;
+      const existing = favorites.find((f) => f.day === day);
+      if (existing) {
+        // Remove from favorites
+        try {
+          await repository.deleteFavorite(existing.id);
+          setFavorites((prev) => prev.filter((f) => f.id !== existing.id));
+          setStatus(t("fav.removed", { day: weekday(day) }) || `„${weekday(day)}“ entfernt`);
+          setTimeout(() => setStatus(""), 2000);
+        } catch (e) {
+          setStatus(e?.message || "Fehler");
+        }
+      } else {
+        // Add to favorites (Prevent duplicates)
+        try {
+          const created = await repository.createFavorite({
+            day,
+            split,
+            method,
+            cycles: cyclePlans.map(serializeSlots),
           });
-        }, 1500);
-        setTimeout(() => setStatus(""), 2500);
-      } catch (e) {
-        setStatus(e?.message || "Fehler");
+          setFavorites((prev) => [created, ...prev.filter((f) => f.day !== day)]);
+          setStatus(t("fav.added", { day: weekday(day) }));
+          setTimeout(() => setStatus(""), 2000);
+        } catch (e) {
+          setStatus(e?.message || "Fehler");
+        }
       }
     },
-    [t, weekday]
+    [favorites, t, weekday]
+  );
+
+  const add = useCallback(
+    async (day, cyclePlans, split, method) => {
+      await toggle(day, cyclePlans, split, method);
+    },
+    [toggle]
   );
 
   const remove = useCallback(async (id) => {
@@ -57,5 +74,15 @@ export default function useFavorites() {
     }
   }, []);
 
-  return { favorites, loading, status, justSaved, reload, add, remove };
+  return {
+    favorites,
+    loading,
+    status,
+    isFavorited,
+    justSaved: new Set(favorites.map((f) => f.day)),
+    reload,
+    add,
+    toggle,
+    remove,
+  };
 }

@@ -776,17 +776,31 @@ body{ -webkit-font-smoothing:antialiased; }
   display:flex; align-items:center; gap:6px; color:#ff6b6b; font-size:12px; font-weight:500;
   margin-top:2px;
 }
-.wizard-summary-card{
-  background:var(--surface); border:1px solid var(--border); border-radius:14px;
-  padding:14px 16px; display:flex; flex-direction:column; gap:10px; margin-bottom:6px;
+.wizard-summary-card,
+.ai-review-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:16px 18px; display:flex; flex-direction:column; gap:12px; margin:8px 0 14px 0;
+  box-shadow:0 4px 20px rgba(0,0,0,0.25);
 }
-.summary-row{
-  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
-  padding-bottom:8px; border-bottom:1px solid var(--surface2); font-size:13px;
+.summary-row,
+.review-row{
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  padding-bottom:10px; border-bottom:1px solid var(--surface2); font-size:13px;
 }
-.summary-row:last-child{ border-bottom:none; padding-bottom:0; }
-.summary-label{ font-family:'Bebas Neue', sans-serif; font-size:13px; letter-spacing:.08em; color:var(--muted); }
-.summary-val{ font-weight:600; text-align:right; color:var(--text); }
+.summary-row:last-child,
+.review-row:last-child{ border-bottom:none; padding-bottom:0; }
+.summary-label,
+.review-lbl{
+  font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.06em;
+  font-weight:700; color:var(--muted); text-transform:uppercase; flex-shrink:0;
+}
+.summary-val,
+.review-val{
+  font-size:13.5px; font-weight:600; text-align:right; color:var(--text);
+  word-break:break-word;
+}
+.review-val.highlight{ color:var(--accent); font-weight:700; }
+.review-val.mono{ font-family:'JetBrains Mono', monospace; font-size:12.5px; }
 .wizard-footer{
   display:flex; align-items:center; justify-content:space-between; gap:12px;
   margin-top:14px; padding-top:14px; border-top:1px solid var(--border);
@@ -1102,4 +1116,84 @@ body{ -webkit-font-smoothing:antialiased; }
 }
 .watch-action-btn:active{ transform:scale(0.97); }
 .watch-metrics-row{ display:flex; justify-content:space-around; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted); }
+
+/* Gym Music & Spotify Drawer */
+.gym-music-overlay{
+  position:fixed; inset:0; z-index:250; background:rgba(0,0,0,0.75);
+  display:flex; align-items:flex-end; justify-content:center;
+  backdrop-filter:blur(6px); animation:step-fade .2s ease-out;
+}
+.gym-music-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:24px 24px 0 0;
+  max-width:540px; width:100%; padding:20px 20px 32px 20px; display:flex; flex-direction:column; gap:14px;
+  box-shadow:0 -10px 40px rgba(0,0,0,0.6); max-height:85vh; overflow-y:auto;
+}
+.gym-music-header{ display:flex; align-items:center; justify-content:space-between; }
+.gym-music-title{
+  display:flex; align-items:center; gap:8px; font-family:'Bebas Neue', sans-serif;
+  font-size:20px; letter-spacing:1px; color:var(--text);
+}
+.playlist-chip-row{
+  display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; -webkit-overflow-scrolling:touch;
+}
+.playlist-chip{
+  display:flex; align-items:center; gap:8px; background:var(--surface2);
+  border:1px solid var(--border); border-radius:12px; padding:8px 12px;
+  cursor:pointer; flex-shrink:0; text-align:left; transition:all .15s ease;
+}
+.playlist-chip:hover{ border-color:var(--accent); }
+.playlist-chip.active{
+  border-color:var(--accent); background:var(--accent-dim);
+}
+.pl-name{ font-size:13px; font-weight:700; color:var(--text); }
+.pl-genre{ font-size:10.5px; color:var(--muted); }
+.spotify-embed-wrapper{ margin:10px 0 6px 0; border-radius:14px; overflow:hidden; }
+.spotify-app-link{
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  background:#1DB954; color:#000000; font:700 13px Inter, sans-serif;
+  padding:10px 16px; border-radius:12px; text-decoration:none; margin-top:4px;
+  transition:transform .15s ease;
+}
+.spotify-app-link:hover{ transform:scale(1.02); }
+
+/* Offline Beats & Upload Audio */
+.local-music-tab-content{ display:flex; flex-direction:column; gap:12px; }
+.offline-synth-card{
+  background:var(--surface2); border:1px solid var(--border); border-radius:14px;
+  padding:14px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.synth-info{ display:flex; align-items:center; gap:10px; }
+.synth-title{ font-size:13.5px; font-weight:700; color:var(--text); }
+.synth-sub{ font-size:11px; color:var(--muted); margin-top:2px; }
+.synth-toggle-btn{
+  background:var(--accent); color:#0D0E10; border:none; border-radius:10px;
+  padding:8px 14px; font:700 12px Inter, sans-serif; cursor:pointer;
+  display:flex; align-items:center; gap:6px; white-space:nowrap;
+}
+.synth-toggle-btn.active{ background:#FF5D8F; color:#FFFFFF; }
+.or-divider{
+  text-align:center; font-family:'JetBrains Mono', monospace; font-size:10px;
+  letter-spacing:1px; color:var(--muted); margin:4px 0;
+}
+.music-upload-box{
+  background:var(--bg); border:1px dashed var(--border); border-radius:14px;
+  padding:16px; text-align:center; display:flex; flex-direction:column; align-items:center;
+  gap:4px; cursor:pointer; transition:border-color .15s ease;
+}
+.music-upload-box:hover{ border-color:var(--accent); }
+.upload-title{ font-size:13px; font-weight:700; color:var(--text); }
+.upload-sub{ font-size:11px; color:var(--muted); }
+.local-player-strip{
+  background:var(--surface2); border:1px solid var(--accent); border-radius:14px;
+  padding:12px 14px; display:flex; align-items:center; gap:12px; margin-top:4px;
+}
+.local-play-btn{
+  width:36px; height:36px; border-radius:10px; background:var(--accent);
+  color:#0D0E10; border:none; display:grid; place-items:center; cursor:pointer;
+  flex-shrink:0;
+}
+.local-meta{ flex:1; min-width:0; }
+.local-title{ font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.local-time{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted); margin-top:2px; }
+
 
