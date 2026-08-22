@@ -178,10 +178,28 @@ export default function App() {
     setExpandedDay(null);
   };
 
+  /*
+    Die Live-Session ist die bezahlte Funktion. Der Einstieg liegt an vier
+    Stellen (Generator, Tagesblock, Favoriten, KI-Plan) — deshalb hängt die
+    Prüfung hier an einer Stelle und nicht an jedem einzelnen Knopf.
+  */
   const startLiveTraining = (slotsToRun, sessionTitle) => {
     if (!slotsToRun || slotsToRun.length === 0) return;
+    if (!isPremium) {
+      setShowPro(true);
+      return;
+    }
     setLiveSession({ plan: slotsToRun, title: sessionTitle });
   };
+
+  /*
+    Alle bereits vergebenen Namen — gespeicherte Pläne und Favoriten zusammen,
+    damit sich kein Name doppelt.
+  */
+  const takenPlanNames = [
+    ...saved.plans.map((p) => p.name),
+    ...favorites.favorites.map((f) => f.name).filter(Boolean),
+  ];
 
   const settings = {
     split,
@@ -291,7 +309,7 @@ export default function App() {
             onReroll={reroll}
             onUpdateSlot={updateSlot}
             saved={saved}
-            onGetPro={openPro}
+            takenNames={takenPlanNames}
             onStartLiveTraining={startLiveTraining}
           />
         )}
@@ -326,7 +344,9 @@ export default function App() {
           />
         )}
 
-        {tab === "gespeichert" && <GespeichertTab saved={saved} onLoad={loadSavedPlan} onGetPro={openPro} />}
+        {tab === "gespeichert" && (
+          <GespeichertTab saved={saved} onLoad={loadSavedPlan} onStartLiveTraining={startLiveTraining} />
+        )}
 
         {tab === "favoriten" && (
           <FavoritenTab favorites={favorites} onGetPro={openPro} onStartLiveTraining={startLiveTraining} />

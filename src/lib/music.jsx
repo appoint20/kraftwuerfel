@@ -35,6 +35,13 @@ export function MusicProvider({ children }) {
   if (!audioRef.current && typeof Audio !== "undefined") {
     audioRef.current = new Audio();
     audioRef.current.preload = "metadata";
+    /*
+      Damit die Musik weiterläuft, wenn das Display ausgeht: iOS braucht dafür
+      UIBackgroundModes=audio in der Info.plist (ist gesetzt) und ein Element,
+      das nicht als stummes Inline-Video behandelt wird.
+    */
+    audioRef.current.setAttribute("playsinline", "");
+    audioRef.current.loop = false;
   }
 
   const reload = useCallback(async () => {

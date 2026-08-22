@@ -11,7 +11,14 @@ import { planNamesForDays } from "./planNames.js";
 */
 
 export async function generateAiPlan(answers) {
-  // 1. Versuche Edge Function Aufruf auf Supabase
+  /*
+    Warum der Rückfall passiert, muss sichtbar sein. Vorher wurde jeder Fehler
+    verschluckt und der Vorlagenplan kam wortlos heraus — damit ließ sich nicht
+    unterscheiden, ob der Schlüssel fehlt, die Function nicht deployt ist oder
+    das Tageslimit erreicht wurde.
+  */
+  let reason = "no-backend";
+
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase.functions.invoke("generate-plan", {
@@ -21,15 +28,28 @@ export async function generateAiPlan(answers) {
       if (!error && data?.plan) {
         return { ...data.plan, source: "ai" };
       }
-    } catch {
-      // Fallback below
+
+      reason = "unknown";
+      if (error) {
+        // invoke() verpackt HTTP-Fehler; die eigentliche Meldung steckt im Body.
+        reason = error.message || "invoke-failed";
+        try {
+          const body = await error.context?.json?.();
+          if (body?.error) reason = body.error;
+        } catch {
+          // Body war kein JSON
+        }
+      }
+      console.warn("[kraftwuerfel] KI-Coach nicht erreichbar:", reason);
+    } catch (err) {
+      reason = err?.message || "network";
+      console.warn("[kraftwuerfel] KI-Coach nicht erreichbar:", reason);
     }
   }
 
-  // 2. Lokale Vorlagen-Engine, wenn das Backend nicht erreichbar ist.
-  //    Wird als solche gekennzeichnet — ein Plan aus der Vorlage darf sich
-  //    nicht als Modellantwort ausgeben.
-  return { ...generateLocalAiPlan(answers), source: "local" };
+  // Lokale Vorlagen-Engine. Wird als solche gekennzeichnet, inklusive Grund —
+  // ein Plan aus der Vorlage darf sich nicht als Modellantwort ausgeben.
+  return { ...generateLocalAiPlan(answers), source: "local", fallbackReason: reason };
 }
 
 /*
@@ -444,6 +464,7 @@ export function normalizePlan(plan) {
 
   return {
     source: plan.source || "ai",
+    fallbackReason: plan.fallbackReason || "",
     title: plan.title || "",
     summary: plan.summary || plan.overview || "",
     notes: Array.isArray(plan.notes) && plan.notes.length

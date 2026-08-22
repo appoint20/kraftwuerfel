@@ -3,13 +3,10 @@ import { METHODS } from "../data/exercises.js";
 import { WEEKDAYS, sortWeekdays, normalizeDate } from "../lib/dateUtils.js";
 import { cyclesForDuration, serializeDayPlans } from "../lib/planLogic.js";
 import { getProgress, getLastTrained } from "../lib/progress.js";
-import { useAuth } from "../lib/auth.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import DayBlock from "./DayBlock.jsx";
-import PremiumGate from "./PremiumGate.jsx";
 
 export default function TrainingsplanTab({ settings, tp, active, favorites, onGetPro, onStartLiveTraining }) {
-  const { isPremium } = useAuth();
   const { t, split: splitLabel, weekday } = useI18n();
   const { split, method, count, restTime, activeCategories } = settings;
   const { tpDays, toggleTpDay, tpDuration, setTpDuration, resetTpPlans, dayPlans, createDayPlans, expandedDay, setExpandedDay } = tp;
@@ -39,7 +36,7 @@ export default function TrainingsplanTab({ settings, tp, active, favorites, onGe
       onToggle={() => setExpandedDay(expandedDay === day ? null : day)}
       onFavorite={(d, cycles) => favorites.add(d, cycles, split, method)}
       justSaved={favorites.justSaved.has(day)}
-      canFavorite={isPremium}
+      canFavorite
       onStartLiveTraining={onStartLiveTraining}
       planSalt={`${split}:${method}`}
     />
@@ -105,7 +102,10 @@ export default function TrainingsplanTab({ settings, tp, active, favorites, onGe
           {activeDays.map((day) => {
             const info = getLastTrained(activePlan, day);
             return (
-              <div className="weekday-status-chip" key={day}>
+              <div
+                className={`weekday-status-chip ${info.isToday ? "is-today" : ""} ${info.upcoming ? "upcoming" : ""}`}
+                key={day}
+              >
                 <div className="wd-label">{weekday(day)}</div>
                 {info.upcoming ? (
                   <div className="wd-info">{t("tp.inDays", { n: info.inDays })}</div>
@@ -194,13 +194,9 @@ export default function TrainingsplanTab({ settings, tp, active, favorites, onGe
           <button className="remix-btn" onClick={createDayPlans}>
             <RotateCcw size={14} /> {t("tp.rollAgain")}
           </button>
-          {isPremium ? (
-            <button className="save-btn tp-start-btn" onClick={startPlan} disabled={tpDays.size === 0}>
-              <Dumbbell size={15} /> {t("tp.start")}
-            </button>
-          ) : (
-            <PremiumGate feature={t("pro.feature.start")} onGetPro={onGetPro} />
-          )}
+          <button className="save-btn tp-start-btn" onClick={startPlan} disabled={tpDays.size === 0}>
+            <Dumbbell size={15} /> {t("tp.start")}
+          </button>
         </>
       )}
       {status && <div className="save-status">{status}</div>}

@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Shuffle, Plus, Minus, Dumbbell, RotateCcw, Play } from "lucide-react";
 import { SPLITS, CATEGORIES, METHODS, REST_OPTIONS } from "../data/exercises.js";
-import { useAuth } from "../lib/auth.jsx";
 import { useI18n } from "../lib/i18n.jsx";
-import PremiumGate from "./PremiumGate.jsx";
+import { uniquePlanName } from "../lib/planNames.js";
 import ExerciseVisual from "./ExerciseVisual.jsx";
 
 export default function GeneratorTab({
@@ -14,10 +13,9 @@ export default function GeneratorTab({
   onReroll,
   onUpdateSlot,
   saved,
-  onGetPro,
+  takenNames = [],
   onStartLiveTraining,
 }) {
-  const { isPremium } = useAuth();
   const { t, category, equipment, split: splitLabel, locale, exerciseName } = useI18n();
   const { split, setSplit, customCats, toggleCustomCat, count, setCount, method, setMethod, restTime, setRestTime } =
     settings;
@@ -26,7 +24,9 @@ export default function GeneratorTab({
 
   const savePlan = async () => {
     if (plan.length === 0) return;
-    const name = planName.trim() || t("gen.defaultName", { date: new Date().toLocaleDateString(locale) });
+    // Ohne eigenen Namen einen vergeben, der noch frei ist — quer über
+    // gespeicherte Pläne und Favoriten hinweg.
+    const name = planName.trim() || uniquePlanName(takenNames, plan.map((s2) => s2.exercise.name).join());
     const ok = await saved.save(name, method, plan);
     if (ok) setPlanName("");
   };
@@ -171,27 +171,22 @@ export default function GeneratorTab({
             <RotateCcw size={14} /> {t("gen.remix")}
           </button>
 
-          {isPremium ? (
-            <>
-              <div className="save-row">
-                <input
-                  className="save-input"
-                  placeholder={t("gen.namePlaceholder")}
-                  value={planName}
-                  onChange={(e) => setPlanName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") savePlan();
-                  }}
-                />
-                <button className="save-btn" onClick={savePlan}>
-                  <Dumbbell size={15} /> {t("gen.save")}
-                </button>
-              </div>
-              {saved.status && <div className="save-status">{saved.status}</div>}
-            </>
-          ) : (
-            <PremiumGate feature={t("pro.feature.save")} onGetPro={onGetPro} />
-          )}
+          {/* Speichern gehört zur freien Stufe — bezahlt wird für KI und Live-Session. */}
+          <div className="save-row">
+            <input
+              className="save-input"
+              placeholder={t("gen.namePlaceholder")}
+              value={planName}
+              onChange={(e) => setPlanName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") savePlan();
+              }}
+            />
+            <button className="save-btn" onClick={savePlan}>
+              <Dumbbell size={15} /> {t("gen.save")}
+            </button>
+          </div>
+          {saved.status && <div className="save-status">{saved.status}</div>}
         </div>
       ) : (
         <div className="empty">

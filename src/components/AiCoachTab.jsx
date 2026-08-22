@@ -195,7 +195,12 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
           <div className="ai-plan-title">{plan.title}</div>
           {plan.summary && <div className="ai-plan-summary">{plan.summary}</div>}
           {plan.source === "local" && (
-            <div className="ai-plan-origin">{t("ai.localFallback")}</div>
+            <div className="ai-plan-origin">
+              {t("ai.localFallback")}
+              {plan.fallbackReason && (
+                <span className="ai-plan-reason">{t("ai.fallbackReason", { reason: plan.fallbackReason })}</span>
+              )}
+            </div>
           )}
         </div>
 

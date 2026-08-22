@@ -1,22 +1,15 @@
-import { Shuffle, X } from "lucide-react";
+import { useState } from "react";
+import { Shuffle, X, Play, ChevronDown, ChevronUp } from "lucide-react";
 import { METHODS } from "../data/exercises.js";
-import { useAuth } from "../lib/auth.jsx";
+import { deserializeSlots } from "../lib/planLogic.js";
 import { useI18n } from "../lib/i18n.jsx";
-import PremiumGate from "./PremiumGate.jsx";
+import CycleBlock from "./CycleBlock.jsx";
 
-export default function GespeichertTab({ saved, onLoad, onGetPro }) {
-  const { isPremium } = useAuth();
+export default function GespeichertTab({ saved, onLoad, onStartLiveTraining }) {
   const { t, locale } = useI18n();
   const { plans, loading, remove } = saved;
-
-  if (!isPremium && plans.length === 0) {
-    return (
-      <>
-        <div className="section-label">{t("saved.title")}</div>
-        <PremiumGate feature={t("pro.feature.save")} onGetPro={onGetPro} />
-      </>
-    );
-  }
+  // Aufgeklappt wird immer nur ein Plan — sonst scrollt man ewig.
+  const [openId, setOpenId] = useState(null);
 
   return (
     <>
@@ -30,28 +23,49 @@ export default function GespeichertTab({ saved, onLoad, onGetPro }) {
           {t("saved.emptyHint")}
         </div>
       ) : (
-        plans.map((sp) => (
-          <div className="saved-card" key={sp.id}>
-            <div className="saved-card-top">
-              <div>
-                <div className="saved-name">{sp.name}</div>
-                <div className="saved-meta">
-                  {t("saved.exercises", { n: sp.items.length })} ·{" "}
-                  {METHODS.find((m) => m.id === sp.method)?.label || "Standard"} ·{" "}
-                  {new Date(sp.savedAt).toLocaleDateString(locale)}
+        plans.map((sp) => {
+          const isOpen = openId === sp.id;
+          const slots = deserializeSlots(sp.items);
+          return (
+            <div className="saved-card" key={sp.id}>
+              {/* Die ganze Kopfzeile klappt auf — vorher stand hier nur
+                  "6 Übungen" und man kam nicht an die Übungen heran. */}
+              <button className="saved-card-toggle" onClick={() => setOpenId(isOpen ? null : sp.id)}>
+                <div>
+                  <div className="saved-name">{sp.name}</div>
+                  <div className="saved-meta">
+                    {t("saved.exercises", { n: sp.items.length })} ·{" "}
+                    {METHODS.find((m) => m.id === sp.method)?.label || "Standard"} ·{" "}
+                    {new Date(sp.savedAt).toLocaleDateString(locale)}
+                  </div>
                 </div>
+                <span className="saved-chevron">
+                  {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </span>
+              </button>
+
+              {isOpen && (
+                <div className="tp-day-cycles no-pad">
+                  <CycleBlock slots={slots} />
+                </div>
+              )}
+
+              <div className="saved-actions">
+                {onStartLiveTraining && slots.length > 0 && (
+                  <button className="load" onClick={() => onStartLiveTraining(slots, sp.name)}>
+                    <Play size={13} fill="currentColor" /> {t("live.startTraining")}
+                  </button>
+                )}
+                <button onClick={() => onLoad(sp)}>
+                  <Shuffle size={13} /> {t("saved.load")}
+                </button>
+                <button className="delete" onClick={() => remove(sp.id)}>
+                  <X size={13} /> {t("saved.delete")}
+                </button>
               </div>
             </div>
-            <div className="saved-actions">
-              <button className="load" onClick={() => onLoad(sp)}>
-                <Shuffle size={13} /> {t("saved.load")}
-              </button>
-              <button className="delete" onClick={() => remove(sp.id)}>
-                <X size={13} /> {t("saved.delete")}
-              </button>
-            </div>
-          </div>
-        ))
+          );
+        })
       )}
     </>
   );

@@ -3,26 +3,21 @@ import { supabase, isSupabaseConfigured } from "./supabase.js";
 import { ENV } from "./env.js";
 
 /*
-  Freemium in zwei Stufen:
-    frei — würfeln, so oft man will. Keine Anmeldung nötig, nichts wird gespeichert.
-    pro  — KI-Coach, Speichern, Trainingspläne, Favoriten, Sync über Geräte.
-
-  Wer nicht angemeldet ist, ist "frei". Die Rolle steht in public.profiles und
-  ist für Nutzer nur lesbar — freigeschaltet wird serverseitig. is_admin gilt
-  als Pro und ist für spätere Verwaltungsfunktionen reserviert.
+  Die Rolle steht in public.profiles und ist für Nutzer nur lesbar —
+  freigeschaltet wird serverseitig. is_admin gilt immer auch als Pro.
 */
 
 const FREE = { name: "", isPremium: false, isAdmin: false };
 
-// Ohne Supabase-Zugangsdaten gibt es keine Konten. Für die lokale Entwicklung
-// lässt sich die Rolle über VITE_LOCAL_ROLE=free|pro durchspielen.
 /*
-  Ohne Backend gibt es weder Konto noch Kaufmöglichkeit — und damit auch nichts
-  zu schützen: die Daten liegen ausschließlich auf diesem Gerät. Eine Sperre
-  wäre hier eine Sackgasse, denn es gibt keinen Knopf, der sie aufheben könnte.
-  Deshalb ist der lokale Modus vollständig freigeschaltet.
+  Zwei Stufen:
+    frei — würfeln, Trainingspläne bauen, speichern, favorisieren. Das ist die
+           App, die auch ohne Konto vollständig benutzbar ist.
+    pro  — KI-Coach und Live-Session mit Puls- und Kalorienanzeige.
 
-  Zum Prüfen der Sperren trotzdem: VITE_LOCAL_ROLE=free.
+  Ohne Backend (lokaler Modus) gilt die freie Stufe: Speichern funktioniert,
+  der KI-Coach nicht — der braucht ohnehin die Edge Function.
+  Zum Durchspielen: VITE_LOCAL_ROLE=pro.
 */
 const LOCAL_ROLE = ENV.localRole;
 const LOCAL_PRO = { name: "Athlet", isPremium: true, isAdmin: false };
@@ -31,7 +26,7 @@ const LOCAL_PROFILE = {
   pro: LOCAL_PRO,
   premium: LOCAL_PRO,
   admin: { name: "Admin", isPremium: true, isAdmin: true },
-}[LOCAL_ROLE] || LOCAL_PRO;
+}[LOCAL_ROLE] || FREE;
 
 const AuthContext = createContext(null);
 
