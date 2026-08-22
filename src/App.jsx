@@ -10,6 +10,7 @@ import useReel from "./hooks/useReel.js";
 import useSavedPlans from "./hooks/useSavedPlans.js";
 import useActivePlan from "./hooks/useActivePlan.js";
 import useFavorites from "./hooks/useFavorites.js";
+import { getDynamicGymGreeting } from "./lib/greetings.js";
 import LogoIcon from "./components/LogoIcon.jsx";
 import GeneratorTab from "./components/GeneratorTab.jsx";
 import AiCoachTab from "./components/AiCoachTab.jsx";
@@ -33,6 +34,11 @@ export default function App() {
   const [tab, setTab] = useState("generator");
   const [showPro, setShowPro] = useState(false);
   const [liveSession, setLiveSession] = useState(null);
+  const [greetingQuote, setGreetingQuote] = useState(() => getDynamicGymGreeting(userName, lang));
+
+  useEffect(() => {
+    setGreetingQuote(getDynamicGymGreeting(userName, lang));
+  }, [userName, lang]);
 
   const [split, setSplit] = useState("Ganzkörper");
   const [customCats, setCustomCats] = useState(new Set(["Brust", "Rücken"]));
@@ -200,8 +206,8 @@ export default function App() {
 
         {isAuthenticated && (
           <div className="account-greeting-bar">
-            <span className="account-greeting">
-              👋 {lang === "en" ? "Hello" : "Hallo"}, <strong>{userName || "Athlet"}</strong>
+            <span className="account-greeting" onClick={() => setGreetingQuote(getDynamicGymGreeting(userName, lang))} title="Tippen für neuen Motivations-Spruch" style={{ cursor: "pointer" }}>
+              {greetingQuote}
             </span>
             <span className={`account-badge ${isPremium ? "pro" : "free"}`}>
               {isPremium ? "PRO" : "FREE"}

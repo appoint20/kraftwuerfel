@@ -36,8 +36,7 @@ function formatTime(seconds) {
 export default function LiveSession({ plan, title, onClose }) {
   const { t, category, equipment, exerciseName } = useI18n();
 
-  const [mode, setMode] = useState("fokus"); // "fokus" | "protokoll" | "watch"
-  const [showLockScreenCard, setShowLockScreenCard] = useState(false);
+  const [mode, setMode] = useState("fokus"); // "fokus" | "protokoll"
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [exerciseIdx, setExerciseIdx] = useState(0);
   const [setIdx, setSetIdx] = useState(0);
@@ -483,13 +482,6 @@ export default function LiveSession({ plan, title, onClose }) {
               >
                 <Music size={15} />
               </button>
-              <button
-                className="live-lockscreen-btn"
-                onClick={() => setShowLockScreenCard(!showLockScreenCard)}
-                title={t("live.lockScreenCard")}
-              >
-                <Smartphone size={15} />
-              </button>
               <div className="live-elapsed-badge">
                 <Clock size={13} />
                 <span>{formatTime(elapsed)}</span>
@@ -547,7 +539,7 @@ export default function LiveSession({ plan, title, onClose }) {
             ))}
           </div>
 
-          {/* Mode Switcher (Fokus, Satz-Protokoll, Apple Watch) */}
+          {/* Mode Switcher (Fokus vs Satz-Protokoll) */}
           <div className="live-mode-switch">
             <button
               className={`live-mode-btn ${mode === "fokus" ? "active" : ""}`}
@@ -561,44 +553,8 @@ export default function LiveSession({ plan, title, onClose }) {
             >
               {t("live.modeLog")}
             </button>
-            <button
-              className={`live-mode-btn ${mode === "watch" ? "active" : ""}`}
-              onClick={() => setMode("watch")}
-            >
-              ⌚ Watch
-            </button>
           </div>
         </div>
-
-        {/* INTERACTIVE LOCK SCREEN / LIVE ACTIVITY CARD OVERLAY */}
-        {showLockScreenCard && (
-          <div className="live-activity-card">
-            <div className="live-activity-header">
-              <div className="live-activity-brand">
-                <span className="live-activity-dot" />
-                <span>KRAFTWÜRFEL LIVE ACTIVITY</span>
-              </div>
-              <span className="live-activity-time">{formatTime(elapsed)}</span>
-            </div>
-            <div className="live-activity-body">
-              <div>
-                <div className="live-activity-ex">{exerciseName(currentSlot.exercise)}</div>
-                <div className="live-activity-set">
-                  Satz {setIdx + 1}/{totalSetsForCurrent} · {currentWeight} kg × {currentReps} Wdh.
-                </div>
-              </div>
-              <div className="live-activity-metrics">
-                <div>🔥 {Math.round(caloriesBurned)} kcal</div>
-                <div>❤️ {heartRate} BPM</div>
-              </div>
-            </div>
-            {isResting && (
-              <div className="live-activity-rest-bar">
-                <span>PAUSE: {formatTime(restRemaining)}</span>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* VIEW 1: FOKUS VIEW (1e) */}
         {mode === "fokus" && (
@@ -839,41 +795,6 @@ export default function LiveSession({ plan, title, onClose }) {
             <button className="kw-btn-ghost" onClick={() => setShowConfirmEnd(true)}>
               {t("live.endSession")}
             </button>
-          </div>
-        )}
-
-        {/* VIEW 3: APPLE WATCH OLED CONTROLLER VIEW */}
-        {mode === "watch" && (
-          <div className="apple-watch-frame">
-            <div className="apple-watch-screen">
-              <div className="watch-header">
-                <span className="watch-time">{formatTime(elapsed)}</span>
-                <span className="watch-hr">❤️ {heartRate}</span>
-              </div>
-
-              <div className="watch-ex-title">{exerciseName(currentSlot.exercise)}</div>
-              <div className="watch-set-badge">
-                SATZ {setIdx + 1}/{totalSetsForCurrent} · {currentWeight}kg × {currentReps}
-              </div>
-
-              <div className="watch-ring-area">
-                <div className="watch-big-timer">
-                  {isResting ? formatTime(restRemaining) : `${currentWeight} kg`}
-                </div>
-                <div className="watch-sub-label">
-                  {isResting ? "REST" : `${currentReps} REPS`}
-                </div>
-              </div>
-
-              <button className="watch-action-btn" onClick={completeSet}>
-                <Check size={20} /> {isResting ? "FERTIG" : "SATZ ABHAKEN"}
-              </button>
-
-              <div className="watch-metrics-row">
-                <span>🔥 {Math.round(caloriesBurned)} kcal</span>
-                <span>🏋️ {totalVolumeKg} kg</span>
-              </div>
-            </div>
           </div>
         )}
 

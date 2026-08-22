@@ -4,6 +4,7 @@ import { SPLITS, CATEGORIES, METHODS, REST_OPTIONS } from "../data/exercises.js"
 import { useAuth } from "../lib/auth.jsx";
 import { useI18n } from "../lib/i18n.jsx";
 import PremiumGate from "./PremiumGate.jsx";
+import ExerciseVisual from "./ExerciseVisual.jsx";
 
 export default function GeneratorTab({
   settings,
@@ -98,10 +99,13 @@ export default function GeneratorTab({
             return (
               <div key={i} className={`plan-card ${isRolling ? "rolling" : ""}`}>
                 <div className="plan-card-top">
-                  <div className="plan-left">
-                    <div className="plan-badge">{category(slot.exercise.category)}</div>
-                    <div className={`plan-name ${isRolling ? "rolling" : ""}`}>
-                      {isRolling ? scramble[i] || exerciseName(slot.exercise) : exerciseName(slot.exercise)}
+                  <div className="plan-left" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <ExerciseVisual category={slot.exercise.category} size={44} compact />
+                    <div>
+                      <div className="plan-badge">{category(slot.exercise.category)}</div>
+                      <div className={`plan-name ${isRolling ? "rolling" : ""}`}>
+                        {isRolling ? scramble[i] || exerciseName(slot.exercise) : exerciseName(slot.exercise)}
+                      </div>
                     </div>
                   </div>
                   <button className="reroll-btn" onClick={() => onReroll(i)} title={t("gen.rerollOne")}>

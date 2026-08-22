@@ -1,7 +1,7 @@
 import React from "react";
 
 // Muscle group SVG path coordinates for anatomical visualization
-export default function ExerciseVisual({ category, exerciseName, size = 120 }) {
+export default function ExerciseVisual({ category, exerciseName, size = 120, compact = false }) {
   const cat = (category || "").toLowerCase();
 
   // Determine highlighted muscle groups based on exercise category
@@ -20,8 +20,13 @@ export default function ExerciseVisual({ category, exerciseName, size = 120 }) {
   const inactiveColor = "#2A2B30";
   const outlineColor = "#3E4048";
 
+  const isSmall = size <= 50 || compact;
+
   return (
-    <div className="exercise-visual-wrapper" style={{ width: size, height: size }}>
+    <div
+      className={`exercise-visual-wrapper ${isSmall ? "compact" : ""}`}
+      style={{ width: size, height: size, minWidth: size }}
+    >
       <svg
         viewBox="0 0 100 120"
         width={size}

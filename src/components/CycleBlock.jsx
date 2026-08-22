@@ -1,5 +1,6 @@
 import { Play } from "lucide-react";
 import { useI18n } from "../lib/i18n.jsx";
+import ExerciseVisual from "./ExerciseVisual.jsx";
 
 export default function CycleBlock({ label, slots, isCurrent, onStartLiveTraining, dayName }) {
   const { t, category, equipment, exerciseName } = useI18n();
@@ -29,12 +30,15 @@ export default function CycleBlock({ label, slots, isCurrent, onStartLiveTrainin
       <div className="tp-rows">
         {slots.map((s, i) => (
           <div className="tp-row" key={i}>
-            <div className="tp-row-main">
-              <span className="tp-row-name">{exerciseName(s.exercise)}</span>
-              <span className="tp-row-cat">
-                {category(s.exercise.category)}
-                {s.note ? ` · ${s.note}` : ""}
-              </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1, minWidth: 0 }}>
+              <ExerciseVisual category={s.exercise.category} size={34} compact />
+              <div className="tp-row-main">
+                <span className="tp-row-name">{exerciseName(s.exercise)}</span>
+                <span className="tp-row-cat">
+                  {category(s.exercise.category)}
+                  {s.note ? ` · ${s.note}` : ""}
+                </span>
+              </div>
             </div>
             <div className="tp-row-right">
               <span className="tp-row-sets">
