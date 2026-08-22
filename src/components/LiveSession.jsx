@@ -18,8 +18,12 @@ import {
   Bluetooth,
   Share2,
   Download,
+  Smartphone,
+  Maximize2,
+  Sparkles,
 } from "lucide-react";
 import { useI18n } from "../lib/i18n.jsx";
+import ExerciseVisual from "./ExerciseVisual.jsx";
 
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
@@ -28,9 +32,10 @@ function formatTime(seconds) {
 }
 
 export default function LiveSession({ plan, title, onClose }) {
-  const { t, category, equipment } = useI18n();
+  const { t, category, equipment, exerciseName } = useI18n();
 
-  const [mode, setMode] = useState("fokus"); // "fokus" | "protokoll"
+  const [mode, setMode] = useState("fokus"); // "fokus" | "protokoll" | "watch"
+  const [showLockScreenCard, setShowLockScreenCard] = useState(false);
   const [exerciseIdx, setExerciseIdx] = useState(0);
   const [setIdx, setSetIdx] = useState(0);
 
@@ -71,6 +76,24 @@ export default function LiveSession({ plan, title, onClose }) {
   const [currentReps, setCurrentReps] = useState(8);
   const [isFinished, setIsFinished] = useState(false);
   const [showConfirmEnd, setShowConfirmEnd] = useState(false);
+
+  // Screen WakeLock API: Keeps screen awake during workout
+  useEffect(() => {
+    let wakeLock = null;
+    const requestWakeLock = async () => {
+      try {
+        if ("wakeLock" in navigator) {
+          wakeLock = await navigator.wakeLock.request("screen");
+        }
+      } catch {
+        // Unsupported or inactive
+      }
+    };
+    requestWakeLock();
+    return () => {
+      if (wakeLock) wakeLock.release().catch(() => {});
+    };
+  }, []);
 
   // Sound/Vibration effect helper
   const playBeep = () => {
@@ -115,7 +138,7 @@ export default function LiveSession({ plan, title, onClose }) {
           });
         }
 
-        // Real-time calorie calculation: ~6-9 kcal/min active lifting, ~3.5 kcal/min resting
+        // Real-time calorie calculation
         setCaloriesBurned((currCal) => {
           const burnPerSec = isResting ? 0.06 : 0.13;
           const hrMultiplier = heartRate > 120 ? heartRate / 115 : 1.0;
@@ -152,6 +175,21 @@ export default function LiveSession({ plan, title, onClose }) {
   const currentSlot = plan[exerciseIdx] || plan[0];
   const totalExercises = plan.length;
   const totalSetsForCurrent = currentSlot.sets || 3;
+
+  // MediaSession API: Lock Screen & Apple Watch Now Playing Widget
+  useEffect(() => {
+    if ("mediaSession" in navigator && currentSlot?.exercise) {
+      try {
+        navigator.mediaSession.metadata = new window.MediaMetadata({
+          title: `${exerciseName(currentSlot.exercise)} (${currentWeight}kg × ${currentReps})`,
+          artist: `Satz ${setIdx + 1}/${totalSetsForCurrent} · ${Math.round(caloriesBurned)} kcal · ${heartRate} BPM`,
+          album: isResting ? `Pause: ${formatTime(restRemaining)}` : `Kraftwürfel Live Training`,
+        });
+      } catch {
+        // Ignore
+      }
+    }
+  }, [currentSlot, setIdx, totalSetsForCurrent, currentWeight, currentReps, isResting, restRemaining, caloriesBurned, heartRate, exerciseName]);
 
   // Sync weight & reps with current set
   useEffect(() => {
@@ -401,7 +439,7 @@ export default function LiveSession({ plan, title, onClose }) {
               const doneSets = Object.values(sets).filter((s) => s.done);
               return (
                 <div key={idx} className="live-summary-row">
-                  <div className="live-summary-name">{slot.exercise.name}</div>
+                  <div className="live-summary-name">{exerciseName(slot.exercise)}</div>
                   <div className="live-summary-detail">
                     {doneSets.length > 0
                       ? `${doneSets.length}× (${doneSets.map((s) => `${s.weight}kg`).join(", ")})`
@@ -435,6 +473,13 @@ export default function LiveSession({ plan, title, onClose }) {
               </div>
             </div>
             <div className="live-header-right">
+              <button
+                className="live-lockscreen-btn"
+                onClick={() => setShowLockScreenCard(!showLockScreenCard)}
+                title={t("live.lockScreenCard")}
+              >
+                <Smartphone size={15} />
+              </button>
               <div className="live-elapsed-badge">
                 <Clock size={13} />
                 <span>{formatTime(elapsed)}</span>
@@ -492,7 +537,7 @@ export default function LiveSession({ plan, title, onClose }) {
             ))}
           </div>
 
-          {/* Mode Switcher */}
+          {/* Mode Switcher (Fokus, Satz-Protokoll, Apple Watch) */}
           <div className="live-mode-switch">
             <button
               className={`live-mode-btn ${mode === "fokus" ? "active" : ""}`}
@@ -506,13 +551,49 @@ export default function LiveSession({ plan, title, onClose }) {
             >
               {t("live.modeLog")}
             </button>
+            <button
+              className={`live-mode-btn ${mode === "watch" ? "active" : ""}`}
+              onClick={() => setMode("watch")}
+            >
+              ⌚ Watch
+            </button>
           </div>
         </div>
+
+        {/* INTERACTIVE LOCK SCREEN / LIVE ACTIVITY CARD OVERLAY */}
+        {showLockScreenCard && (
+          <div className="live-activity-card">
+            <div className="live-activity-header">
+              <div className="live-activity-brand">
+                <span className="live-activity-dot" />
+                <span>KRAFTWÜRFEL LIVE ACTIVITY</span>
+              </div>
+              <span className="live-activity-time">{formatTime(elapsed)}</span>
+            </div>
+            <div className="live-activity-body">
+              <div>
+                <div className="live-activity-ex">{exerciseName(currentSlot.exercise)}</div>
+                <div className="live-activity-set">
+                  Satz {setIdx + 1}/{totalSetsForCurrent} · {currentWeight} kg × {currentReps} Wdh.
+                </div>
+              </div>
+              <div className="live-activity-metrics">
+                <div>🔥 {Math.round(caloriesBurned)} kcal</div>
+                <div>❤️ {heartRate} BPM</div>
+              </div>
+            </div>
+            {isResting && (
+              <div className="live-activity-rest-bar">
+                <span>PAUSE: {formatTime(restRemaining)}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* VIEW 1: FOKUS VIEW (1e) */}
         {mode === "fokus" && (
           <div className="live-fokus-view">
-            {/* Rest Timer Ring */}
+            {/* Rest Timer Ring with Anatomy Visual */}
             <div className="live-timer-area">
               <div className="live-ring-container">
                 <svg width="220" height="220" viewBox="0 0 220 220">
@@ -549,14 +630,17 @@ export default function LiveSession({ plan, title, onClose }) {
               </div>
             </div>
 
-            {/* Exercise Title & Information */}
+            {/* Exercise Title, Info & Muscle Anatomy Diagram */}
             <div className="live-exercise-info">
+              <div className="live-visual-row">
+                <ExerciseVisual category={currentSlot.exercise.category} size={90} />
+              </div>
               <div className="live-tags-row">
                 <span className="kw-tag">
                   {category(currentSlot.exercise.category)} · {equipment(currentSlot.exercise.equipment)}
                 </span>
               </div>
-              <div className="live-exercise-name">{currentSlot.exercise.name}</div>
+              <div className="live-exercise-name">{exerciseName(currentSlot.exercise)}</div>
               <div className="live-set-subtitle">
                 {t("live.setOf", { current: setIdx + 1, total: totalSetsForCurrent })} ·{" "}
                 {t("live.repsTarget", { reps: currentSlot.reps || "4-8" })}
@@ -651,7 +735,7 @@ export default function LiveSession({ plan, title, onClose }) {
                 <div className="live-proto-status">
                   {isResting ? `${t("live.rest")} · ${formatTime(restRemaining)}` : t("live.target")}
                 </div>
-                <div className="live-proto-ex-name">{currentSlot.exercise.name}</div>
+                <div className="live-proto-ex-name">{exerciseName(currentSlot.exercise)}</div>
               </div>
               <div className="live-proto-timer-badge">{formatTime(isResting ? restRemaining : elapsed)}</div>
             </div>
@@ -730,7 +814,7 @@ export default function LiveSession({ plan, title, onClose }) {
                     <div key={i} className="live-upnext-card">
                       <span className="live-upnext-num mono">{exerciseIdx + i + 2}</span>
                       <div className="live-upnext-info">
-                        <div className="live-upnext-name">{nxt.exercise.name}</div>
+                        <div className="live-upnext-name">{exerciseName(nxt.exercise)}</div>
                         <div className="live-upnext-meta">{category(nxt.exercise.category)}</div>
                       </div>
                       <span className="live-upnext-scheme mono">
@@ -745,6 +829,41 @@ export default function LiveSession({ plan, title, onClose }) {
             <button className="kw-btn-ghost" onClick={() => setShowConfirmEnd(true)}>
               {t("live.endSession")}
             </button>
+          </div>
+        )}
+
+        {/* VIEW 3: APPLE WATCH OLED CONTROLLER VIEW */}
+        {mode === "watch" && (
+          <div className="apple-watch-frame">
+            <div className="apple-watch-screen">
+              <div className="watch-header">
+                <span className="watch-time">{formatTime(elapsed)}</span>
+                <span className="watch-hr">❤️ {heartRate}</span>
+              </div>
+
+              <div className="watch-ex-title">{exerciseName(currentSlot.exercise)}</div>
+              <div className="watch-set-badge">
+                SATZ {setIdx + 1}/{totalSetsForCurrent} · {currentWeight}kg × {currentReps}
+              </div>
+
+              <div className="watch-ring-area">
+                <div className="watch-big-timer">
+                  {isResting ? formatTime(restRemaining) : `${currentWeight} kg`}
+                </div>
+                <div className="watch-sub-label">
+                  {isResting ? "REST" : `${currentReps} REPS`}
+                </div>
+              </div>
+
+              <button className="watch-action-btn" onClick={completeSet}>
+                <Check size={20} /> {isResting ? "FERTIG" : "SATZ ABHAKEN"}
+              </button>
+
+              <div className="watch-metrics-row">
+                <span>🔥 {Math.round(caloriesBurned)} kcal</span>
+                <span>🏋️ {totalVolumeKg} kg</span>
+              </div>
+            </div>
           </div>
         )}
 

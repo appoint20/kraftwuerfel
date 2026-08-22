@@ -17,7 +17,7 @@ export default function GeneratorTab({
   onStartLiveTraining,
 }) {
   const { isPremium } = useAuth();
-  const { t, category, equipment, split: splitLabel, locale } = useI18n();
+  const { t, category, equipment, split: splitLabel, locale, exerciseName } = useI18n();
   const { split, setSplit, customCats, toggleCustomCat, count, setCount, method, setMethod, restTime, setRestTime } =
     settings;
   const { rollingIdx, scramble } = reel;
@@ -101,7 +101,7 @@ export default function GeneratorTab({
                   <div className="plan-left">
                     <div className="plan-badge">{category(slot.exercise.category)}</div>
                     <div className={`plan-name ${isRolling ? "rolling" : ""}`}>
-                      {isRolling ? scramble[i] || slot.exercise.name : slot.exercise.name}
+                      {isRolling ? scramble[i] || exerciseName(slot.exercise) : exerciseName(slot.exercise)}
                     </div>
                   </div>
                   <button className="reroll-btn" onClick={() => onReroll(i)} title={t("gen.rerollOne")}>

@@ -205,6 +205,15 @@ const DE = {
   "live.zone4": "Anaerob",
   "live.zone5": "Maximal",
 
+  "ai.biometricsTitle": "Körper & Physis",
+  "ai.sex": "Geschlecht",
+  "ai.sexMale": "Männlich",
+  "ai.sexFemale": "Weiblich",
+  "ai.sexOther": "Divers",
+  "ai.age": "Alter",
+  "ai.height": "Größe (cm)",
+  "ai.weight": "Gewicht (kg)",
+  "ai.years": "Jahre",
   "ai.step": "Schritt {current} von {total}",
   "ai.next": "WEITER",
   "ai.back": "Zurück",
@@ -217,6 +226,9 @@ const DE = {
   "ai.limitOverhead": "Kein Überkopfdrücken",
   "ai.limitBack": "Unterer Rücken schonen",
   "ai.limitWrists": "Handgelenke schonen",
+  "live.lockScreenCard": "Live Activity / Sperrbildschirm",
+  "live.watchMode": "Apple Watch Controller",
+  "live.wakeLockActive": "Fokus aktiv · Display bleibt an",
 
   "crash.title": "DA IST WAS SCHIEFGELAUFEN",
   "crash.text": "Die App ist auf einen unerwarteten Fehler gestoßen. Neu laden hilft meistens — gespeicherte Pläne bleiben erhalten.",
@@ -423,6 +435,15 @@ const EN = {
   "live.zone4": "Anaerobic",
   "live.zone5": "Peak",
 
+  "ai.biometricsTitle": "Body & Biometrics",
+  "ai.sex": "Sex",
+  "ai.sexMale": "Male",
+  "ai.sexFemale": "Female",
+  "ai.sexOther": "Other",
+  "ai.age": "Age",
+  "ai.height": "Height (cm)",
+  "ai.weight": "Weight (kg)",
+  "ai.years": "years",
   "ai.step": "Step {current} of {total}",
   "ai.next": "NEXT",
   "ai.back": "Back",
@@ -435,6 +456,9 @@ const EN = {
   "ai.limitOverhead": "No overhead pressing",
   "ai.limitBack": "Protect lower back",
   "ai.limitWrists": "Protect wrists",
+  "live.lockScreenCard": "Live Activity / Lock Screen",
+  "live.watchMode": "Apple Watch Controller",
+  "live.wakeLockActive": "Focus active · Screen stays awake",
 
   "crash.title": "SOMETHING WENT WRONG",
   "crash.text": "The app hit an unexpected error. Reloading usually helps — saved plans are safe.",
@@ -512,6 +536,14 @@ export function I18nProvider({ children }) {
     equipment: (name) => (lang === "en" ? EQUIPMENT_EN[name] || name : name),
     split: (name) => (lang === "en" ? SPLIT_EN[name] || name : name),
     weekday: (name) => (lang === "en" ? WEEKDAY_EN[name] || name : name),
+    exerciseName: (ex) => {
+      if (!ex) return "";
+      const deName = typeof ex === "string" ? ex : ex.name;
+      if (lang === "en") {
+        return (typeof ex === "object" && ex.nameEn) || deName;
+      }
+      return deName;
+    },
     locale: lang === "en" ? "en-GB" : "de-DE",
   };
 

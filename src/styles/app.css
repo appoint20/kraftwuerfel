@@ -1022,3 +1022,84 @@ body{ -webkit-font-smoothing:antialiased; }
 .live-confirm-title{ font-family:'Bebas Neue', sans-serif; font-size:20px; letter-spacing:.05em; }
 .live-confirm-actions{ display:flex; gap:10px; }
 
+/* Biometrics Steppers (AI Wizard Step 2) */
+.biometrics-inputs-grid{
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:14px;
+}
+.biometric-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  padding:12px 8px; text-align:center; display:flex; flex-direction:column; gap:8px;
+}
+.biometric-label{ font-size:10.5px; font-weight:700; color:var(--muted); text-transform:uppercase; }
+.biometric-stepper{ display:flex; align-items:center; justify-content:space-between; gap:4px; }
+.biometric-val{ font-family:'JetBrains Mono', monospace; font-size:15px; font-weight:700; color:var(--text); flex:1; }
+.biometric-val small{ font-size:10px; color:var(--muted); font-weight:400; }
+
+/* Exercise Muscle Visual SVG */
+.live-visual-row{ display:flex; justify-content:center; margin-bottom:6px; }
+.exercise-visual-wrapper{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:6px;
+}
+.exercise-visual-svg{ filter:drop-shadow(0 0 6px rgba(38,225,190,0.15)); }
+.muscle-pulse{ animation:muscle-flex 1.6s infinite ease-in-out; }
+@keyframes muscle-flex{
+  0%,100%{ filter:brightness(1); opacity:0.85; }
+  50%{ filter:brightness(1.35) drop-shadow(0 0 4px var(--accent)); opacity:1; }
+}
+.exercise-visual-label{
+  font-family:'Bebas Neue', sans-serif; font-size:11px; letter-spacing:1px;
+  color:var(--accent); margin-top:2px;
+}
+
+/* Lock Screen Live Activity Card */
+.live-lockscreen-btn{
+  width:34px; height:34px; border-radius:10px; background:var(--surface);
+  border:1px solid var(--border); color:var(--muted); display:grid; place-items:center; cursor:pointer;
+}
+.live-lockscreen-btn:hover{ color:var(--accent); border-color:var(--accent); }
+.live-activity-card{
+  background:rgba(20,21,24,0.95); border:1px solid var(--accent); border-radius:18px;
+  padding:14px 16px; margin-bottom:12px; display:flex; flex-direction:column; gap:10px;
+  box-shadow:0 8px 30px rgba(0,0,0,0.5), 0 0 16px rgba(38,225,190,0.2);
+  backdrop-filter:blur(10px);
+}
+.live-activity-header{ display:flex; align-items:center; justify-content:space-between; }
+.live-activity-brand{ display:flex; align-items:center; gap:6px; font-family:'Bebas Neue', sans-serif; font-size:12px; letter-spacing:1px; color:var(--accent); }
+.live-activity-dot{ width:6px; height:6px; border-radius:50%; background:var(--accent); animation:ai-pulse 1.2s infinite; }
+.live-activity-time{ font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--muted); }
+.live-activity-body{ display:flex; align-items:center; justify-content:space-between; }
+.live-activity-ex{ font-family:'Bebas Neue', sans-serif; font-size:18px; letter-spacing:0.5px; }
+.live-activity-set{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+.live-activity-metrics{ text-align:right; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--accent); }
+.live-activity-rest-bar{
+  background:var(--accent-dim); border:1px solid var(--accent); border-radius:8px;
+  padding:6px; text-align:center; font-family:'JetBrains Mono', monospace; font-size:11px;
+  font-weight:700; color:var(--accent);
+}
+
+/* Apple Watch OLED UI Mockup */
+.apple-watch-frame{
+  width:100%; max-width:320px; margin:0 auto; padding:18px 14px;
+  background:#000000; border:4px solid #333336; border-radius:40px;
+  box-shadow:0 12px 40px rgba(0,0,0,0.8), inset 0 0 10px rgba(255,255,255,0.05);
+}
+.apple-watch-screen{ display:flex; flex-direction:column; gap:12px; text-align:center; }
+.watch-header{ display:flex; justify-content:space-between; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted); }
+.watch-hr{ color:#FF5D8F; font-weight:700; }
+.watch-ex-title{ font-family:'Bebas Neue', sans-serif; font-size:24px; letter-spacing:0.5px; line-height:1; color:#FFFFFF; }
+.watch-set-badge{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--accent); }
+.watch-ring-area{
+  padding:16px 0; background:#111215; border-radius:24px; border:1px solid #222328;
+}
+.watch-big-timer{ font-family:'JetBrains Mono', monospace; font-size:36px; font-weight:700; color:var(--accent); line-height:1; }
+.watch-sub-label{ font-family:'Bebas Neue', sans-serif; font-size:12px; letter-spacing:2px; color:var(--muted); margin-top:4px; }
+.watch-action-btn{
+  width:100%; padding:14px; background:var(--accent); color:#0D0E10; border:none;
+  border-radius:18px; font-family:'Bebas Neue', sans-serif; font-size:18px; letter-spacing:1px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.watch-action-btn:active{ transform:scale(0.97); }
+.watch-metrics-row{ display:flex; justify-content:space-around; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted); }
+

@@ -2,7 +2,7 @@ import { Play } from "lucide-react";
 import { useI18n } from "../lib/i18n.jsx";
 
 export default function CycleBlock({ label, slots, isCurrent, onStartLiveTraining, dayName }) {
-  const { t, category, equipment } = useI18n();
+  const { t, category, equipment, exerciseName } = useI18n();
 
   return (
     <div className={`tp-cycle-block ${isCurrent ? "current" : ""}`}>
@@ -30,7 +30,7 @@ export default function CycleBlock({ label, slots, isCurrent, onStartLiveTrainin
         {slots.map((s, i) => (
           <div className="tp-row" key={i}>
             <div className="tp-row-main">
-              <span className="tp-row-name">{s.exercise.name}</span>
+              <span className="tp-row-name">{exerciseName(s.exercise)}</span>
               <span className="tp-row-cat">
                 {category(s.exercise.category)}
                 {s.note ? ` · ${s.note}` : ""}

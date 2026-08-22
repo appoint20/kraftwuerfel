@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, RotateCcw, Dumbbell, Heart, ArrowRight, ArrowLeft, Check, AlertCircle, Play } from "lucide-react";
+import { Sparkles, RotateCcw, Dumbbell, Heart, ArrowRight, ArrowLeft, Check, AlertCircle, Play, User } from "lucide-react";
 import { CATEGORIES, EQUIPMENT } from "../data/exercises.js";
 import { WEEKDAYS, sortWeekdays, normalizeDate } from "../lib/dateUtils.js";
 import { serializeSlots } from "../lib/planLogic.js";
@@ -30,9 +30,17 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
   // Wizard step (1 to 5)
   const [step, setStep] = useState(1);
 
-  // Form State
+  // Form State: Goal & Experience
   const [goal, setGoal] = useState("muscle");
   const [experience, setExperience] = useState("intermediate");
+
+  // Form State: Biometrics (Sex, Age, Height, Weight)
+  const [sex, setSex] = useState("male"); // "male" | "female" | "other"
+  const [age, setAge] = useState(28);
+  const [height, setHeight] = useState(180);
+  const [weight, setWeight] = useState(80);
+
+  // Form State: Schedule & Equipment
   const [days, setDays] = useState(new Set(["Mo", "Mi", "Fr"]));
   const [sessionMinutes, setSessionMinutes] = useState(60);
   const [equipment, setEquipment] = useState(new Set());
@@ -103,6 +111,10 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
     try {
       const combinedLimits = getCombinedLimitations();
       const result = await generateAiPlan({
+        sex,
+        age,
+        height,
+        weight,
         goal,
         experience,
         days: sortWeekdays(days),
@@ -115,15 +127,7 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
       });
       setPlan(result);
     } catch (e) {
-      if (e.message === "no-backend") {
-        setError(t("ai.noBackend"));
-      } else if (e.message === "daily limit reached") {
-        setError(t("ai.limitReached"));
-      } else if (e.message === "premium required") {
-        setError(t("pro.gateText", { feature: t("pro.feature.ai") }));
-      } else {
-        setError(t("ai.error", { message: e.message }));
-      }
+      setError(t("ai.error", { message: e.message || "Fehler bei der Plangenerierung" }));
     } finally {
       setBusy(false);
     }
@@ -132,15 +136,15 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
   const startAsPlan = async () => {
     const dayPlans = {};
     plan.days.forEach((d) => {
-      dayPlans[d.weekday] = [serializeSlots(aiDayToSlots(d))];
+      dayPlans[d.day || d.weekday] = [serializeSlots(aiDayToSlots(d))];
     });
     const ok = await active.start({
       startDate: normalizeDate(new Date()).toISOString(),
       duration: weeks,
-      days: sortWeekdays(plan.days.map((d) => d.weekday)),
+      days: sortWeekdays(plan.days.map((d) => d.day || d.weekday)),
       split: "KI",
       method: "standard",
-      count: plan.days[0]?.exercises.length || 6,
+      count: plan.days[0]?.exercises.length || 5,
       restTime: 60,
       dayPlans,
     });
@@ -164,24 +168,25 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
       <>
         <div className="ai-plan-head">
           <div className="ai-plan-title">{plan.title}</div>
-          {plan.summary && <div className="ai-plan-summary">{plan.summary}</div>}
+          {plan.overview && <div className="ai-plan-summary">{plan.overview}</div>}
         </div>
 
         <div className="tp-day-list">
-          {plan.days.map((day, idx) => {
-            const slots = aiDayToSlots(day);
+          {plan.days.map((dayObj, idx) => {
+            const dayName = dayObj.day || dayObj.weekday;
+            const slots = aiDayToSlots(dayObj);
             return (
-              <div className="tp-day-block" key={`${day.weekday}-${idx}`}>
+              <div className="tp-day-block" key={`${dayName}-${idx}`}>
                 <div className="tp-day-toggle-row">
                   <div className="tp-day-toggle as-header">
-                    <span className="tp-day-toggle-label">{weekday(day.weekday)}</span>
-                    <span className="tp-day-toggle-count">{day.focus}</span>
+                    <span className="tp-day-toggle-label">{weekday(dayName)}</span>
+                    <span className="tp-day-toggle-count">{dayObj.focus}</span>
                   </div>
                   <div style={{ display: "flex", gap: "6px" }}>
                     {onStartLiveTraining && (
                       <button
                         className="tp-fav-btn"
-                        onClick={() => onStartLiveTraining(slots, `${weekday(day.weekday)} · ${day.focus}`)}
+                        onClick={() => onStartLiveTraining(slots, `${weekday(dayName)} · ${dayObj.focus}`)}
                         title={t("live.startTraining")}
                         style={{ color: "var(--accent)" }}
                       >
@@ -190,7 +195,7 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
                     )}
                     <button
                       className="tp-fav-btn"
-                      onClick={() => favorites.add(day.weekday, [slots], "KI", "standard")}
+                      onClick={() => favorites.add(dayName, [slots], "KI", "standard")}
                       title={t("tp.favorite")}
                     >
                       <Heart size={15} />
@@ -205,15 +210,10 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
           })}
         </div>
 
-        {plan.notes?.length > 0 && (
-          <>
-            <div className="section-label">{t("ai.notes")}</div>
-            <ul className="ai-notes">
-              {plan.notes.map((note, i) => (
-                <li key={i}>{note}</li>
-              ))}
-            </ul>
-          </>
+        {plan.periodization && (
+          <div className="ai-notes" style={{ marginTop: "12px" }}>
+            💡 {plan.periodization}
+          </div>
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "16px" }}>
@@ -223,11 +223,11 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
               onClick={() =>
                 onStartLiveTraining(
                   aiDayToSlots(plan.days[0]),
-                  `${weekday(plan.days[0].weekday)} · ${plan.days[0].focus}`
+                  `${weekday(plan.days[0].day || plan.days[0].weekday)} · ${plan.days[0].focus}`
                 )
               }
             >
-              <Play size={18} fill="currentColor" /> {t("live.startTraining")} ({weekday(plan.days[0].weekday)})
+              <Play size={18} fill="currentColor" /> {t("live.startTraining")} ({weekday(plan.days[0].day || plan.days[0].weekday)})
             </button>
           )}
 
@@ -262,9 +262,9 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
           <span className="wizard-step-label">{t("ai.step", { current: step, total: 5 })}</span>
           <span className="wizard-title-badge">
             {step === 1 && t("ai.goal")}
-            {step === 2 && t("ai.days")}
-            {step === 3 && t("ai.equipment")}
-            {step === 4 && t("ai.limitations")}
+            {step === 2 && t("ai.biometricsTitle")}
+            {step === 3 && t("ai.days")}
+            {step === 4 && t("ai.equipment")}
             {step === 5 && t("ai.review")}
           </span>
         </div>
@@ -298,84 +298,179 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
             ))}
           </div>
 
-          <div className="section-label">{t("ai.experience")}</div>
+          <div className="section-label" style={{ marginTop: "18px" }}>
+            {t("ai.experience")}
+          </div>
           <div className="chip-grid">
-            {EXPERIENCE.map((e) => (
+            {EXPERIENCE.map((exp) => (
               <button
-                key={e}
-                className={`wizard-card-chip ${experience === e ? "active" : ""}`}
-                onClick={() => setExperience(e)}
+                key={exp}
+                className={`wizard-card-chip ${experience === exp ? "active" : ""}`}
+                onClick={() => setExperience(exp)}
               >
-                <div className="chip-main-label">{t(`ai.experience.${e}`)}</div>
+                <div className="chip-main-label">{t(`ai.exp.${exp}`)}</div>
               </button>
             ))}
+          </div>
+
+          <button className="kw-btn wizard-next-btn" onClick={() => setStep(2)}>
+            {t("ai.next")} <ArrowRight size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* STEP 2: BODY & BIOMETRICS (SEX, AGE, HEIGHT, WEIGHT) */}
+      {step === 2 && (
+        <div className="wizard-step-content">
+          <div className="wizard-headline">{t("ai.biometricsTitle")}</div>
+          <div className="ai-intro">
+            Für präzise Trainingsanpassung, progressive Belastung und exakte Kalorienberechnung.
+          </div>
+
+          {/* Sex Selection */}
+          <div className="section-label">{t("ai.sex")}</div>
+          <div className="chip-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+            {[
+              { id: "male", label: t("ai.sexMale") },
+              { id: "female", label: t("ai.sexFemale") },
+              { id: "other", label: t("ai.sexOther") },
+            ].map((s) => (
+              <button
+                key={s.id}
+                className={`wizard-card-chip ${sex === s.id ? "active" : ""}`}
+                onClick={() => setSex(s.id)}
+              >
+                <div className="chip-main-label">{s.label}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Age, Height, Weight inputs */}
+          <div className="biometrics-inputs-grid">
+            <div className="biometric-card">
+              <div className="biometric-label">{t("ai.age")}</div>
+              <div className="biometric-stepper">
+                <button className="live-mini-btn" onClick={() => setAge((a) => Math.max(14, a - 1))}>
+                  −
+                </button>
+                <div className="biometric-val">{age} <small>{t("ai.years")}</small></div>
+                <button className="live-mini-btn" onClick={() => setAge((a) => Math.min(99, a + 1))}>
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="biometric-card">
+              <div className="biometric-label">{t("ai.height")}</div>
+              <div className="biometric-stepper">
+                <button className="live-mini-btn" onClick={() => setHeight((h) => Math.max(120, h - 1))}>
+                  −
+                </button>
+                <div className="biometric-val">{height} <small>cm</small></div>
+                <button className="live-mini-btn" onClick={() => setHeight((h) => Math.min(230, h + 1))}>
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="biometric-card">
+              <div className="biometric-label">{t("ai.weight")}</div>
+              <div className="biometric-stepper">
+                <button className="live-mini-btn" onClick={() => setWeight((w) => Math.max(35, w - 1))}>
+                  −
+                </button>
+                <div className="biometric-val">{weight} <small>kg</small></div>
+                <button className="live-mini-btn" onClick={() => setWeight((w) => Math.min(250, w + 1))}>
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="wizard-btn-row">
+            <button className="kw-btn-ghost wizard-back-btn" onClick={() => setStep(1)}>
+              <ArrowLeft size={16} /> {t("ai.back")}
+            </button>
+            <button className="kw-btn wizard-next-btn" onClick={() => setStep(3)}>
+              {t("ai.next")} <ArrowRight size={16} />
+            </button>
           </div>
         </div>
       )}
 
-      {/* STEP 2: DAYS & DURATION */}
-      {step === 2 && (
+      {/* STEP 3: SCHEDULE & DURATION */}
+      {step === 3 && (
         <div className="wizard-step-content">
-          <div className="section-label">{t("ai.days")}</div>
-          <div className="chip-row">
+          <div className="wizard-headline">{t("ai.days")}</div>
+
+          <div className="tp-day-picker">
             {WEEKDAYS.map((d) => (
               <button
                 key={d}
-                className={`chip ${days.has(d) ? "active" : ""}`}
+                type="button"
+                className={`tp-day-btn ${days.has(d) ? "active" : ""}`}
                 onClick={() => toggleSet(setDays)(d)}
               >
                 {weekday(d)}
               </button>
             ))}
           </div>
-          {days.size === 0 && (
-            <div className="wizard-error-hint">
-              <AlertCircle size={13} /> {t("ai.pickDaysFirst")}
-            </div>
-          )}
 
-          <div className="section-label">{t("ai.duration")}</div>
-          <div className="chip-row">
+          <div className="section-label" style={{ marginTop: "18px" }}>
+            {t("ai.duration")}
+          </div>
+          <div className="chip-grid">
             {SESSION_MINUTES.map((m) => (
               <button
                 key={m}
-                className={`chip ${sessionMinutes === m ? "active" : ""}`}
+                className={`wizard-card-chip ${sessionMinutes === m ? "active" : ""}`}
                 onClick={() => setSessionMinutes(m)}
               >
-                {t("ai.minutes", { n: m })}
+                <div className="chip-main-label">{m} Min</div>
               </button>
             ))}
           </div>
 
-          <div className="section-label">{t("ai.weeks")}</div>
-          <div className="chip-row">
+          <div className="section-label" style={{ marginTop: "18px" }}>
+            {t("ai.weeks")}
+          </div>
+          <div className="chip-grid">
             {WEEK_OPTIONS.map((w) => (
               <button
                 key={w}
-                className={`chip ${weeks === w ? "active" : ""}`}
+                className={`wizard-card-chip ${weeks === w ? "active" : ""}`}
                 onClick={() => setWeeks(w)}
               >
-                {t("ai.weeksValue", { n: w })}
+                <div className="chip-main-label">{w} {t("tp.weeks")}</div>
               </button>
             ))}
+          </div>
+
+          <div className="wizard-btn-row">
+            <button className="kw-btn-ghost wizard-back-btn" onClick={() => setStep(2)}>
+              <ArrowLeft size={16} /> {t("ai.back")}
+            </button>
+            <button
+              className="kw-btn wizard-next-btn"
+              disabled={days.size === 0}
+              onClick={() => setStep(4)}
+            >
+              {t("ai.next")} <ArrowRight size={16} />
+            </button>
           </div>
         </div>
       )}
 
-      {/* STEP 3: EQUIPMENT & FOCUS */}
-      {step === 3 && (
+      {/* STEP 4: EQUIPMENT & LIMITATIONS */}
+      {step === 4 && (
         <div className="wizard-step-content">
-          <div className="section-label">{t("ai.equipment")}</div>
-          <div className="chip-row">
-            <button
-              className={`chip ${equipment.size === 0 ? "active" : ""}`}
-              onClick={() => setEquipment(new Set())}
-            >
-              {t("ai.equipmentAll")}
-            </button>
+          <div className="wizard-headline">{t("ai.equipment")}</div>
+
+          <div className="filter-chips">
             {EQUIPMENT.map((eq) => (
               <button
                 key={eq}
+                type="button"
                 className={`chip ${equipment.has(eq) ? "active" : ""}`}
                 onClick={() => toggleSet(setEquipment)(eq)}
               >
@@ -384,125 +479,100 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
             ))}
           </div>
 
-          <div className="section-label">{t("ai.focus")}</div>
-          <div className="chip-row">
-            {CATEGORIES.map((c) => (
-              <button
-                key={c}
-                className={`chip ${focus.has(c) ? "active" : ""}`}
-                onClick={() => toggleSet(setFocus)(c)}
-              >
-                {category(c)}
-              </button>
-            ))}
+          <div className="section-label" style={{ marginTop: "18px" }}>
+            {t("ai.quickLimitations")}
           </div>
-        </div>
-      )}
-
-      {/* STEP 4: LIMITATIONS & HEALTH */}
-      {step === 4 && (
-        <div className="wizard-step-content">
-          <div className="section-label">{t("ai.quickLimitations")}</div>
-          <div className="chip-grid">
-            {QUICK_LIMITATIONS.map((l) => (
+          <div className="filter-chips">
+            {QUICK_LIMITATIONS.map((limit) => (
               <button
-                key={l.id}
-                className={`wizard-card-chip ${selectedQuickLimits.has(l.id) ? "active" : ""}`}
-                onClick={() => toggleQuickLimit(l.id)}
+                key={limit.id}
+                type="button"
+                className={`chip ${selectedQuickLimits.has(limit.id) ? "active" : ""}`}
+                onClick={() => toggleQuickLimit(limit.id)}
               >
-                <div className="chip-main-label">{t(l.key)}</div>
+                {t(limit.key)}
               </button>
             ))}
           </div>
 
-          <div className="section-label">{t("ai.limitations")}</div>
+          <div className="section-label" style={{ marginTop: "18px" }}>
+            {t("ai.customLimitations")}
+          </div>
           <textarea
             className="ai-textarea"
-            rows={3}
-            maxLength={500}
-            placeholder={t("ai.limitationsPlaceholder")}
+            rows={2}
+            placeholder={t("ai.limitPlaceholder")}
             value={limitations}
             onChange={(e) => setLimitations(e.target.value)}
           />
+
+          <div className="wizard-btn-row">
+            <button className="kw-btn-ghost wizard-back-btn" onClick={() => setStep(3)}>
+              <ArrowLeft size={16} /> {t("ai.back")}
+            </button>
+            <button className="kw-btn wizard-next-btn" onClick={() => setStep(5)}>
+              {t("ai.next")} <ArrowRight size={16} />
+            </button>
+          </div>
         </div>
       )}
 
-      {/* STEP 5: REVIEW & SUBMIT */}
+      {/* STEP 5: REVIEW & GENERATE */}
       {step === 5 && (
         <div className="wizard-step-content">
-          <div className="wizard-headline">{t("ai.reviewSummary")}</div>
+          <div className="wizard-headline">{t("ai.review")}</div>
+          <div className="ai-intro">{t("ai.reviewSummary")}</div>
 
-          <div className="wizard-summary-card">
-            <div className="summary-row">
-              <span className="summary-label">{t("ai.goal")}</span>
-              <span className="summary-val">{t(`ai.goal.${goal}`)}</span>
+          <div className="ai-review-card">
+            <div className="review-row">
+              <span className="review-lbl">{t("ai.goal").toUpperCase()}</span>
+              <span className="review-val">{t(`ai.goal.${goal}`)}</span>
             </div>
-            <div className="summary-row">
-              <span className="summary-label">{t("ai.experience")}</span>
-              <span className="summary-val">{t(`ai.experience.${experience}`)}</span>
+            <div className="review-row">
+              <span className="review-lbl">{t("ai.experience").toUpperCase()}</span>
+              <span className="review-val">{t(`ai.exp.${experience}`)}</span>
             </div>
-            <div className="summary-row">
-              <span className="summary-label">{t("ai.days")}</span>
-              <span className="summary-val">
-                {sortWeekdays(days)
-                  .map((d) => weekday(d))
-                  .join(", ") || "—"}
+            <div className="review-row">
+              <span className="review-lbl">{t("ai.biometricsTitle").toUpperCase()}</span>
+              <span className="review-val">
+                {sex === "male" ? t("ai.sexMale") : sex === "female" ? t("ai.sexFemale") : t("ai.sexOther")} · {age} J. · {height} cm · {weight} kg
               </span>
             </div>
-            <div className="summary-row">
-              <span className="summary-label">{t("ai.duration")}</span>
-              <span className="summary-val">{sessionMinutes} Min · {weeks} Wochen</span>
+            <div className="review-row">
+              <span className="review-lbl">{t("ai.days").toUpperCase()}</span>
+              <span className="review-val mono">{sortWeekdays(days).join(", ")}</span>
             </div>
-            <div className="summary-row">
-              <span className="summary-label">{t("ai.equipment")}</span>
-              <span className="summary-val">
-                {equipment.size === 0
-                  ? t("ai.equipmentAll")
-                  : [...equipment].map((e) => equipmentLabel(e)).join(", ")}
+            <div className="review-row">
+              <span className="review-lbl">DAUER & WOCHEN</span>
+              <span className="review-val">{sessionMinutes} Min · {weeks} Wochen</span>
+            </div>
+            <div className="review-row">
+              <span className="review-lbl">EQUIPMENT</span>
+              <span className="review-val">
+                {equipment.size === 0 ? "Alles" : [...equipment].map((e) => equipmentLabel(e)).join(", ")}
               </span>
             </div>
-            {focus.size > 0 && (
-              <div className="summary-row">
-                <span className="summary-label">{t("ai.focus")}</span>
-                <span className="summary-val">{[...focus].map((f) => category(f)).join(", ")}</span>
-              </div>
-            )}
             {getCombinedLimitations() && (
-              <div className="summary-row">
-                <span className="summary-label">{t("ai.limitations")}</span>
-                <span className="summary-val">{getCombinedLimitations()}</span>
+              <div className="review-row">
+                <span className="review-lbl">EINSCHRÄNKUNGEN</span>
+                <span className="review-val highlight">{getCombinedLimitations()}</span>
               </div>
             )}
           </div>
 
-          <button className="roll-btn" onClick={submit} disabled={days.size === 0}>
-            <Sparkles size={20} /> {t("ai.submit")}
+          <button className="kw-btn ai-generate-btn" onClick={submit}>
+            <Sparkles size={18} /> {t("ai.submit")}
           </button>
 
-          {error && <div className="auth-error">{error}</div>}
+          {error && <div className="auth-error" style={{ marginTop: "12px" }}>{error}</div>}
+
+          <div className="wizard-btn-row" style={{ marginTop: "12px" }}>
+            <button className="kw-btn-ghost wizard-back-btn" onClick={() => setStep(4)}>
+              <ArrowLeft size={16} /> {t("ai.back")}
+            </button>
+          </div>
         </div>
       )}
-
-      {/* WIZARD FOOTER NAVIGATION */}
-      <div className="wizard-footer">
-        {step > 1 ? (
-          <button className="wizard-back-btn" onClick={() => setStep((s) => s - 1)}>
-            <ArrowLeft size={16} /> {t("ai.back")}
-          </button>
-        ) : (
-          <div />
-        )}
-
-        {step < 5 ? (
-          <button
-            className="wizard-next-btn"
-            disabled={step === 2 && days.size === 0}
-            onClick={() => setStep((s) => s + 1)}
-          >
-            {t("ai.next")} <ArrowRight size={16} />
-          </button>
-        ) : null}
-      </div>
     </div>
   );
 }
