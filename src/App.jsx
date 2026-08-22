@@ -6,6 +6,7 @@ import { sortWeekdays } from "./lib/dateUtils.js";
 import { useAuth } from "./lib/auth.jsx";
 import { useI18n } from "./lib/i18n.jsx";
 import { isLocalMode } from "./lib/repository.js";
+import { hideNativeSplash, setupStatusBar } from "./lib/native.js";
 import useReel from "./hooks/useReel.js";
 import useSavedPlans from "./hooks/useSavedPlans.js";
 import useActivePlan from "./hooks/useActivePlan.js";
@@ -35,6 +36,16 @@ export default function App() {
   const [tab, setTab] = useState("generator");
   const [showPro, setShowPro] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+
+  /*
+    In der nativen App gibt es zwei Startbilder: das von iOS/Android gezeigte
+    und unseres. Das native wird erst weggenommen, wenn React steht — sonst
+    blitzt dazwischen ein weißes Fenster auf.
+  */
+  useEffect(() => {
+    hideNativeSplash();
+    setupStatusBar();
+  }, []);
   const [liveSession, setLiveSession] = useState(null);
   const [greetingQuote, setGreetingQuote] = useState(() => getDynamicGymGreeting(userName, lang));
 
@@ -317,7 +328,9 @@ export default function App() {
 
         {tab === "gespeichert" && <GespeichertTab saved={saved} onLoad={loadSavedPlan} onGetPro={openPro} />}
 
-        {tab === "favoriten" && <FavoritenTab favorites={favorites} onGetPro={openPro} />}
+        {tab === "favoriten" && (
+          <FavoritenTab favorites={favorites} onGetPro={openPro} onStartLiveTraining={startLiveTraining} />
+        )}
       </div>
     </div>
   );

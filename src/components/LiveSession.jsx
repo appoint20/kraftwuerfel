@@ -27,6 +27,7 @@ import { useI18n } from "../lib/i18n.jsx";
 import ExerciseVisual from "./ExerciseVisual.jsx";
 import { useMusic } from "../lib/music.jsx";
 import HealthPanel from "./HealthPanel.jsx";
+import { haptic, hapticSuccess, scheduleRestAlarm, cancelRestAlarm } from "../lib/native.js";
 import GymMusicPlayer from "./GymMusicPlayer.jsx";
 
 function formatTime(seconds) {
@@ -195,6 +196,22 @@ export default function LiveSession({ plan, title, onClose }) {
     setHeartRateHistory((h) => (h.length > 300 ? [...h.slice(1), heartRate] : [...h, heartRate]));
   }, [heartRate]);
 
+  /*
+    Der Browser-Piep erreicht niemanden, der das Handy weggelegt hat. Nativ
+    geht deshalb zusätzlich eine Benachrichtigung raus, die auf Sperrbildschirm
+    und Uhr ankommt. Sie wird abgeräumt, sobald die Pause anders endet.
+  */
+  useEffect(() => {
+    if (!isResting || isFinished) {
+      cancelRestAlarm();
+      return;
+    }
+    scheduleRestAlarm(restRemaining, t("live.restOverBody"));
+    return () => cancelRestAlarm();
+    // Absichtlich nur beim Start der Pause, nicht bei jedem Sekundenticken.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isResting, isFinished]);
+
   // Pausen-Countdown: ebenfalls ein stehender Intervall.
   useEffect(() => {
     if (!isResting || isFinished) return;
@@ -203,6 +220,7 @@ export default function LiveSession({ plan, title, onClose }) {
         if (prev <= 1) {
           setIsResting(false);
           playBeep();
+          hapticSuccess();
           return 0;
         }
         return prev - 1;

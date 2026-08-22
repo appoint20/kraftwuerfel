@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { X, Play } from "lucide-react";
 import { METHODS } from "../data/exercises.js";
 import { deserializeSlots } from "../lib/planLogic.js";
 import { rotateWeekdaysFromToday, todayWeekday } from "../lib/dateUtils.js";
@@ -8,7 +8,7 @@ import { useI18n } from "../lib/i18n.jsx";
 import CycleBlock from "./CycleBlock.jsx";
 import PremiumGate from "./PremiumGate.jsx";
 
-export default function FavoritenTab({ favorites: fav, onGetPro }) {
+export default function FavoritenTab({ favorites: fav, onGetPro, onStartLiveTraining }) {
   const { isPremium } = useAuth();
   const { t, locale, weekday } = useI18n();
   const { favorites, loading, remove } = fav;
@@ -65,16 +65,38 @@ export default function FavoritenTab({ favorites: fav, onGetPro }) {
               </div>
             </div>
             <div className="tp-day-cycles no-pad">
-              {f.cycles.map((items, idx) => (
-                <CycleBlock
-                  key={`${f.id}-${idx}`}
-                  label={t("tp.cycleLabel", { n: idx + 1 })}
-                  slots={deserializeSlots(items)}
-                  isCurrent={false}
-                />
-              ))}
+              {f.cycles.map((items, idx) => {
+                const slots = deserializeSlots(items);
+                const planName = planNameFor(`${f.day}:${f.split || ""}`);
+                return (
+                  <CycleBlock
+                    key={`${f.id}-${idx}`}
+                    label={t("tp.cycleLabel", { n: idx + 1 })}
+                    slots={slots}
+                    isCurrent={false}
+                    onStartLiveTraining={
+                      onStartLiveTraining && slots.length > 0
+                        ? () => onStartLiveTraining(slots, `${planName} · ${weekday(f.day)}`)
+                        : undefined
+                    }
+                  />
+                );
+              })}
             </div>
             <div className="saved-actions">
+              {onStartLiveTraining && f.cycles.length > 0 && (
+                <button
+                  className="load"
+                  onClick={() =>
+                    onStartLiveTraining(
+                      deserializeSlots(f.cycles[0]),
+                      `${planNameFor(`${f.day}:${f.split || ""}`)} · ${weekday(f.day)}`
+                    )
+                  }
+                >
+                  <Play size={13} fill="currentColor" /> {t("live.startTraining")}
+                </button>
+              )}
               <button className="delete" onClick={() => remove(f.id)}>
                 <X size={13} /> {t("fav.remove")}
               </button>

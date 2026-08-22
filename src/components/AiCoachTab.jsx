@@ -1,4 +1,5 @@
 import { useState } from "react";
+import usePersistentState, { clearPersistentState } from "../hooks/usePersistentState.js";
 import { Sparkles, RotateCcw, Dumbbell, Heart, ArrowRight, ArrowLeft, Check, AlertCircle, Play, User, ChevronUp, ChevronDown } from "lucide-react";
 import { CATEGORIES, EQUIPMENT } from "../data/exercises.js";
 import { WEEKDAYS, sortWeekdays, normalizeDate } from "../lib/dateUtils.js";
@@ -28,28 +29,28 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
   const { isPremium } = useAuth();
 
   // Wizard step (1 to 5)
-  const [step, setStep] = useState(1);
+  const [step, setStep] = usePersistentState("ai.step", 1);
 
   // Form State: Goal & Experience
-  const [goal, setGoal] = useState("muscle");
-  const [experience, setExperience] = useState("intermediate");
+  const [goal, setGoal] = usePersistentState("ai.goal", "muscle");
+  const [experience, setExperience] = usePersistentState("ai.experience", "intermediate");
 
   // Form State: Biometrics (Sex, Age, Height, Weight)
-  const [sex, setSex] = useState("male"); // "male" | "female" | "other"
-  const [age, setAge] = useState(28);
-  const [height, setHeight] = useState(180);
-  const [weight, setWeight] = useState(80);
+  const [sex, setSex] = usePersistentState("ai.sex", "male"); // "male" | "female" | "other"
+  const [age, setAge] = usePersistentState("ai.age", 28);
+  const [height, setHeight] = usePersistentState("ai.height", 180);
+  const [weight, setWeight] = usePersistentState("ai.weight", 80);
 
   // Form State: Schedule & Equipment
-  const [days, setDays] = useState(new Set(["Mo", "Mi", "Fr"]));
-  const [sessionMinutes, setSessionMinutes] = useState(60);
-  const [equipment, setEquipment] = useState(new Set());
-  const [focus, setFocus] = useState(new Set());
-  const [selectedQuickLimits, setSelectedQuickLimits] = useState(new Set(["none"]));
-  const [limitations, setLimitations] = useState("");
-  const [weeks, setWeeks] = useState(4);
+  const [days, setDays] = usePersistentState("ai.days", new Set(["Mo", "Mi", "Fr"]));
+  const [sessionMinutes, setSessionMinutes] = usePersistentState("ai.sessionMinutes", 60);
+  const [equipment, setEquipment] = usePersistentState("ai.equipment", new Set());
+  const [focus, setFocus] = usePersistentState("ai.focus", new Set());
+  const [selectedQuickLimits, setSelectedQuickLimits] = usePersistentState("ai.quickLimits", new Set(["none"]));
+  const [limitations, setLimitations] = usePersistentState("ai.limitations", "");
+  const [weeks, setWeeks] = usePersistentState("ai.weeks", 4);
 
-  const [plan, setPlan] = useState(null);
+  const [plan, setPlan] = usePersistentState("ai.plan", null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
@@ -149,6 +150,12 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
       days[target] = { ...a, weekday: b.weekday };
       return { ...prev, days };
     });
+  };
+
+  const resetWizard = () => {
+    setPlan(null);
+    setStep(1);
+    clearPersistentState("ai.plan");
   };
 
   const startAsPlan = async () => {

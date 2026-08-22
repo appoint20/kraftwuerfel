@@ -9,15 +9,27 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "sync:exercises": "node scripts/sync-exercises.mjs"
+    "sync:exercises": "node scripts/sync-exercises.mjs",
+    "native:assets": "node scripts/generate-native-assets.mjs && npx capacitor-assets generate && git checkout public/manifest.json",
+    "native:sync": "npm run build && npx cap sync"
   },
   "dependencies": {
+    "@capacitor/android": "8.3.0",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/core": "8.3.0",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/ios": "8.3.0",
+    "@capacitor/local-notifications": "8.3.1",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.3",
     "@supabase/supabase-js": "^2.112.3",
     "lucide-react": "^1.33.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "8.3.0",
     "@vitejs/plugin-react": "^6.1.0",
     "vite": "^8.2.2",
     "vitest": "^3.2.7"

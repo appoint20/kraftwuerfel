@@ -120,6 +120,53 @@ npm run sync:exercises
 
 Das schreibt die Kopie für die Edge Function nach `supabase/functions/_shared/exercises.ts`.
 
+## Native Apps (iOS & Android)
+
+Capacitor packt denselben Web-Build in ein natives Projekt. Es gibt keinen zweiten Quellcode —
+`dist/` wandert unverändert in beide Apps.
+
+```bash
+npm run build && npx cap sync      # Web bauen und in beide Projekte kopieren
+npx cap open ios                   # Xcode
+npx cap open android               # Android Studio
+```
+
+**Voraussetzungen:** Xcode 16 mit iOS-Simulator, und für Android ein JDK 21. Das JDK von Android
+Studio reicht:
+
+```bash
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+```
+
+**Versionen sind exakt gepinnt.** Zwischen Capacitor 8.3 und 8.5 hat sich die Swift-API geändert,
+mit der `@capacitor/local-notifications` gebaut wird — mit `^` im `package.json` bricht der
+iOS-Build bei der nächsten Installation. Wer aktualisiert, ändert alle `@capacitor/*` zusammen und
+baut iOS einmal komplett neu.
+
+### Was nativ dazukommt
+
+| Plugin | Wofür |
+|---|---|
+| `local-notifications` | Pausenwecker, der auch ankommt, wenn das Handy in der Tasche steckt |
+| `haptics` | Vibration am Satzende — man schaut beim Training nicht aufs Display |
+| `splash-screen` | Startbild, bis React steht |
+| `status-bar` | helle Schrift auf dunklem Grund |
+| `app` | Android-Zurücktaste |
+
+Alles davon liegt hinter `src/lib/native.js` und prüft selbst, ob es laufen kann. Im Browser sind
+es No-ops, der Web-Build ändert sich dadurch nicht.
+
+### Icons und Startbilder neu erzeugen
+
+Quelle ist `public/icon.svg`. Nach einer Änderung:
+
+```bash
+node scripts/generate-native-assets.mjs && npx capacitor-assets generate
+```
+
+> `capacitor-assets` überschreibt dabei `public/manifest.json` mit falschen Pfaden — die Datei
+> danach aus git zurückholen: `git checkout public/manifest.json`.
+
 ## Skripte
 
 ```bash
