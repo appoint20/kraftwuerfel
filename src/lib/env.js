@@ -21,7 +21,9 @@ export function resolveEnv(runtime = {}, buildTime = {}) {
   return {
     supabaseUrl: pick("VITE_SUPABASE_URL"),
     supabaseAnonKey: pick("VITE_SUPABASE_ANON_KEY") || pick("VITE_SUPABASE_PUBLISHABLE_KEY"),
-    localRole: (pick("VITE_LOCAL_ROLE") || "free").toLowerCase(),
+    // Leer heißt "nicht gesetzt" — das ist etwas anderes als ausdrücklich
+    // "free", und nur der Aufrufer weiß, was der richtige Standard ist.
+    localRole: pick("VITE_LOCAL_ROLE").toLowerCase(),
   };
 }
 

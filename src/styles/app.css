@@ -17,13 +17,17 @@ body{ -webkit-font-smoothing:antialiased; }
   font-family:'Inter',sans-serif;
   min-height:100vh;
   width:100%;
-  padding-bottom:40px;
+  padding-bottom:calc(40px + env(safe-area-inset-bottom));
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);
 }
 .header{
   position:sticky; top:0; z-index:10;
   background:var(--bg);
   border-bottom:1px solid var(--border);
-  padding:18px 20px 0 20px;
+  /* Auf dem iPhone liegt die Statusleiste über der App (viewport-fit=cover).
+     Ohne diesen Abstand steht der Titel in der Uhrzeit. */
+  padding:calc(18px + env(safe-area-inset-top)) 20px 0 20px;
 }
 .brand{
   display:flex; align-items:center; gap:10px;
@@ -416,7 +420,9 @@ body{ -webkit-font-smoothing:antialiased; }
 /* --- Anmeldung / Konto (neu gegenüber dem Prototyp, gleiche Designsprache) --- */
 .auth-screen{
   min-height:100vh; display:flex; align-items:center; justify-content:center;
-  padding:24px; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif;
+  padding:calc(24px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right))
+          calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
+  background:var(--bg); color:var(--text); font-family:'Inter',sans-serif;
 }
 .auth-card{
   width:100%; max-width:380px;
@@ -815,6 +821,10 @@ body{ -webkit-font-smoothing:antialiased; }
   position:fixed; inset:0; z-index:100;
   background:var(--bg); color:var(--text);
   overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);
 }
 .live-session-container{
   max-width:540px; margin:0 auto; padding:18px 18px 40px 18px;
@@ -1246,7 +1256,8 @@ body{ -webkit-font-smoothing:antialiased; }
   position:fixed; left:0; right:0; bottom:0; z-index:60;
   max-height:82vh; overflow-y:auto;
   background:var(--surface); border-top:1px solid var(--border);
-  border-radius:18px 18px 0 0; padding:16px;
+  border-radius:18px 18px 0 0;
+  padding:16px 16px calc(16px + env(safe-area-inset-bottom)) 16px;
   display:flex; flex-direction:column; gap:12px;
   box-shadow:0 -12px 40px rgba(0,0,0,.5);
 }

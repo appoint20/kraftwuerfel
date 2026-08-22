@@ -37,8 +37,9 @@ describe("resolveEnv", () => {
     expect(out.supabaseUrl).toBe("https://x.supabase.co");
   });
 
-  it("normalisiert die lokale Rolle und fällt auf free zurück", () => {
+  it("normalisiert die lokale Rolle und lässt sie sonst leer", () => {
     expect(resolveEnv({ VITE_LOCAL_ROLE: "PRO" }, {}).localRole).toBe("pro");
-    expect(resolveEnv({}, {}).localRole).toBe("free");
+    // Nicht gesetzt ist nicht dasselbe wie "free" — darüber entscheidet auth.jsx.
+    expect(resolveEnv({}, {}).localRole).toBe("");
   });
 });

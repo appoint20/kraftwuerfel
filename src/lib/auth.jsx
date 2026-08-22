@@ -16,13 +16,22 @@ const FREE = { name: "", isPremium: false, isAdmin: false };
 
 // Ohne Supabase-Zugangsdaten gibt es keine Konten. Für die lokale Entwicklung
 // lässt sich die Rolle über VITE_LOCAL_ROLE=free|pro durchspielen.
+/*
+  Ohne Backend gibt es weder Konto noch Kaufmöglichkeit — und damit auch nichts
+  zu schützen: die Daten liegen ausschließlich auf diesem Gerät. Eine Sperre
+  wäre hier eine Sackgasse, denn es gibt keinen Knopf, der sie aufheben könnte.
+  Deshalb ist der lokale Modus vollständig freigeschaltet.
+
+  Zum Prüfen der Sperren trotzdem: VITE_LOCAL_ROLE=free.
+*/
 const LOCAL_ROLE = ENV.localRole;
+const LOCAL_PRO = { name: "Athlet", isPremium: true, isAdmin: false };
 const LOCAL_PROFILE = {
   free: FREE,
-  pro: { name: "Athlet", isPremium: true, isAdmin: false },
-  premium: { name: "Athlet", isPremium: true, isAdmin: false },
+  pro: LOCAL_PRO,
+  premium: LOCAL_PRO,
   admin: { name: "Admin", isPremium: true, isAdmin: true },
-}[LOCAL_ROLE] || FREE;
+}[LOCAL_ROLE] || LOCAL_PRO;
 
 const AuthContext = createContext(null);
 
