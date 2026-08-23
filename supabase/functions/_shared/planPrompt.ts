@@ -13,7 +13,7 @@ export const SESSION_MINUTES = [30, 45, 60, 90];
 export const WEEK_OPTIONS = [2, 4, 6];
 export const REST_VALUES = [45, 60, 90, 120, 180];
 export const WARMUP_MODES = ["auto", "yes", "no"];
-export const DIETS = ["omnivore", "vegetarian", "vegan"];
+export const DIETS = ["omnivore", "vegetarian", "lacto_vegetarian", "vegan"];
 
 export type Answers = {
   sex: "male" | "female" | "other";
@@ -149,8 +149,8 @@ export function buildPrompt(a: Answers) {
     "wie \"07:00\" oder \"Morgens\". items sind konkrete Lebensmittel.",
     "shakes sagt, WANN und WAS — leer lassen, wenn keine sinnvoll sind.",
     "Die Ernährungsangaben müssen zur gewählten Ernährungsform passen; bei vegan",
-    "kommen keinerlei tierische Produkte vor, bei vegetarisch kein Fleisch und",
-    "kein Fisch.",
+    "kommen keinerlei tierische Produkte vor, bei vegetarisch kein Fleisch und kein Fisch,",
+    "bei lacto_vegetarian Milchprodukte (Quark, Hüttenkäse, Milch, Paneer, Whey), aber KEINE Eier, kein Fleisch und kein Fisch.",
   ].join("\n");
 
   const user = [
@@ -165,7 +165,12 @@ export function buildPrompt(a: Answers) {
     a.equipment.length ? `Verfügbares Equipment: ${a.equipment.join(", ")}` : "Equipment: alles vorhanden",
     a.focus.length ? `Gewünschter Schwerpunkt: ${a.focus.join(", ")}` : "",
     `Ernährungsform: ${
-      { omnivore: "isst alles", vegetarian: "vegetarisch", vegan: "vegan" }[a.diet] || "isst alles"
+      {
+        omnivore: "isst alles",
+        vegetarian: "vegetarisch (kein Fleisch/Fisch)",
+        lacto_vegetarian: "lakto-vegetarisch (Milchprodukte erlaubt, aber KEINE Eier, kein Fleisch, kein Fisch)",
+        vegan: "vegan (rein pflanzlich)",
+      }[a.diet] || "isst alles"
     }`,
     a.warmup === "yes"
       ? "Aufwärmen: ausdrücklich gewünscht — jeder Tag bekommt ein Aufwärmprogramm."

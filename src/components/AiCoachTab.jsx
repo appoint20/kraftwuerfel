@@ -458,14 +458,15 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
           <div className="section-label" style={{ marginTop: "18px" }}>
             {t("ai.experience")}
           </div>
-          <div className="chip-grid">
+          <div className="chip-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
             {EXPERIENCE.map((exp) => (
               <button
                 key={exp}
                 className={`wizard-card-chip ${experience === exp ? "active" : ""}`}
                 onClick={() => setExperience(exp)}
+                style={{ textAlign: "center", padding: "12px 6px" }}
               >
-                <div className="chip-main-label">{t(`ai.exp.${exp}`)}</div>
+                <div className="chip-main-label" style={{ fontSize: "12.5px" }}>{t(`ai.exp.${exp}`)}</div>
               </button>
             ))}
           </div>
@@ -486,7 +487,7 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
 
           {/* Sex Selection */}
           <div className="section-label">{t("ai.sex")}</div>
-          <div className="chip-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+          <div className="chip-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
             {[
               { id: "male", label: t("ai.sexMale") },
               { id: "female", label: t("ai.sexFemale") },
@@ -496,6 +497,7 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
                 key={s.id}
                 className={`wizard-card-chip ${sex === s.id ? "active" : ""}`}
                 onClick={() => setSex(s.id)}
+                style={{ textAlign: "center", padding: "12px 6px" }}
               >
                 <div className="chip-main-label">{s.label}</div>
               </button>
@@ -576,14 +578,15 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
           <div className="section-label" style={{ marginTop: "18px" }}>
             {t("ai.duration")}
           </div>
-          <div className="chip-grid">
+          <div className="chip-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
             {SESSION_MINUTES.map((m) => (
               <button
                 key={m}
                 className={`wizard-card-chip ${sessionMinutes === m ? "active" : ""}`}
                 onClick={() => setSessionMinutes(m)}
+                style={{ textAlign: "center", padding: "12px 4px" }}
               >
-                <div className="chip-main-label">{m} Min</div>
+                <div className="chip-main-label" style={{ fontSize: "13px" }}>{m} Min</div>
               </button>
             ))}
           </div>
@@ -591,14 +594,15 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
           <div className="section-label" style={{ marginTop: "18px" }}>
             {t("ai.weeks")}
           </div>
-          <div className="chip-grid">
+          <div className="chip-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
             {WEEK_OPTIONS.map((w) => (
               <button
                 key={w}
                 className={`wizard-card-chip ${weeks === w ? "active" : ""}`}
                 onClick={() => setWeeks(w)}
+                style={{ textAlign: "center", padding: "12px 6px" }}
               >
-                <div className="chip-main-label">{w} {t("tp.weeks")}</div>
+                <div className="chip-main-label" style={{ fontSize: "13px" }}>{w} {t("tp.weeks")}</div>
               </button>
             ))}
           </div>
@@ -664,28 +668,37 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
           />
 
           <div className="section-label">{t("ai.warmupTitle")}</div>
-          <div className="wizard-chip-grid">
+          <div className="chip-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
             {["auto", "yes", "no"].map((w) => (
               <button
                 key={w}
                 className={`wizard-card-chip ${warmup === w ? "active" : ""}`}
                 onClick={() => setWarmup(w)}
+                style={{ textAlign: "center", padding: "10px 4px" }}
               >
-                <div className="chip-main-label">{t(`ai.warmup.${w}`)}</div>
-                <div className="chip-sub-label">{t(`ai.warmupHint.${w}`)}</div>
+                <div className="chip-main-label" style={{ fontSize: "12px" }}>{t(`ai.warmup.${w}`)}</div>
+                <div className="chip-sub-label" style={{ fontSize: "10px", color: "var(--muted)", marginTop: "2px" }}>
+                  {t(`ai.warmupHint.${w}`)}
+                </div>
               </button>
             ))}
           </div>
 
           <div className="section-label">{t("ai.dietTitle")}</div>
-          <div className="wizard-chip-grid">
-            {["omnivore", "vegetarian", "vegan"].map((d) => (
+          <div className="chip-grid" style={{ gridTemplateColumns: "repeat(2, 1fr)" }}>
+            {[
+              { id: "omnivore", key: "ai.diet.omnivore" },
+              { id: "vegetarian", key: "ai.diet.vegetarian" },
+              { id: "lacto_vegetarian", key: "ai.diet.lacto_vegetarian" },
+              { id: "vegan", key: "ai.diet.vegan" },
+            ].map((d) => (
               <button
-                key={d}
-                className={`wizard-card-chip ${diet === d ? "active" : ""}`}
-                onClick={() => setDiet(d)}
+                key={d.id}
+                className={`wizard-card-chip ${diet === d.id ? "active" : ""}`}
+                onClick={() => setDiet(d.id)}
+                style={{ textAlign: "center", padding: "12px 8px" }}
               >
-                <div className="chip-main-label">{t(`ai.diet.${d}`)}</div>
+                <div className="chip-main-label" style={{ fontSize: "12.5px" }}>{t(d.key)}</div>
               </button>
             ))}
           </div>
@@ -735,6 +748,10 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
               <span className="review-val">
                 {equipment.size === 0 ? "Alles" : [...equipment].map((e) => equipmentLabel(e)).join(", ")}
               </span>
+            </div>
+            <div className="review-row">
+              <span className="review-lbl">{t("ai.dietTitle")}</span>
+              <span className="review-val">{t(`ai.diet.${diet}`)}</span>
             </div>
             {getCombinedLimitations() && (
               <div className="review-row">

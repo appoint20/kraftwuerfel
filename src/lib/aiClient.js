@@ -412,13 +412,18 @@ function generateLocalAiPlan(answers) {
   const carbs = Math.max(0, Math.round((dailyCalories - protein * 4 - fat * 9) / 4));
 
   const vegan = diet === "vegan";
+  const lacto = diet === "lacto_vegetarian";
   const vegetarian = diet === "vegetarian";
   const proteinSource = vegan
-    ? "Tofu, Linsen, Kichererbsen"
-    : vegetarian
-      ? "Magerquark, Eier, Hüttenkäse"
-      : "Hähnchenbrust, Fisch, Magerquark";
-  const shakeBase = vegan ? "Erbsen-/Reisprotein mit Hafermilch" : "Whey mit Milch oder Wasser";
+    ? (isEn ? "Tofu, lentils, chickpeas, edamame" : "Tofu, Linsen, Kichererbsen, Edamame")
+    : lacto
+      ? (isEn ? "Low-fat quark, cottage cheese, paneer, Greek yogurt" : "Magerquark, Hüttenkäse, Paneer, Griechischer Joghurt")
+      : vegetarian
+        ? (isEn ? "Low-fat quark, eggs, cottage cheese, tofu" : "Magerquark, Eier, Hüttenkäse, Tofu")
+        : (isEn ? "Chicken breast, salmon, low-fat quark, beef" : "Hähnchenbrust, Lachs, Magerquark, Rindfleisch");
+  const shakeBase = vegan
+    ? (isEn ? "Vegan pea/rice protein with oat milk" : "Veganes Erbsen-/Reisprotein mit Hafermilch")
+    : (isEn ? "Whey protein with low-fat milk or water" : "Whey Protein mit fettarmer Milch oder Wasser");
 
   const meals = [
     {

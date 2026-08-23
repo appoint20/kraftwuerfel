@@ -226,6 +226,7 @@ describe("Aufwärmen und Ernährung", () => {
 describe("sanitize: Aufwärmen und Ernährung", () => {
   it("nimmt gültige Werte an", () => {
     expect(sanitize({ ...VALID, warmup: "yes", diet: "vegan" })).toMatchObject({ warmup: "yes", diet: "vegan" });
+    expect(sanitize({ ...VALID, diet: "lacto_vegetarian" })).toMatchObject({ diet: "lacto_vegetarian" });
   });
   it("fällt bei Unsinn auf sichere Standards zurück", () => {
     expect(sanitize({ ...VALID, warmup: "vielleicht", diet: "steinzeit" })).toMatchObject({
