@@ -692,6 +692,10 @@ export function translateFocusString(text, lang) {
   });
 }
 
+const DICTS = { de: DE, en: EN };
+
+const I18nContext = createContext(null);
+
 export function I18nProvider({ children }) {
   const [lang, setLangState] = useState(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
