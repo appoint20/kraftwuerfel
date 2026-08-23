@@ -17,6 +17,8 @@ public struct AICoachWizardView: View {
     
     @State private var generatedPlan: TrainingPlan?
     @State private var selectedTab: String = "workout" // "workout" | "nutrition"
+    @State private var viewingCycle: Int = 1
+    @State private var activeWeek: Int = 1
     @State private var isGenerating: Bool = false
     
     public var onStartLiveWorkout: (([ExerciseSlot], String) -> Void)?
@@ -112,7 +114,57 @@ public struct AICoachWizardView: View {
                                     .cornerRadius(16)
                                     .padding(.horizontal)
                                     
+                                    // CYCLE SELECTOR BANNER
+                                    HStack {
+                                        Button(action: { viewingCycle = 1 }) {
+                                            HStack {
+                                                Text("Zyklus 1")
+                                                    .font(.system(size: 13, weight: .bold))
+                                                if (activeWeek % 2 == 1) {
+                                                    Text("AKTIV")
+                                                        .font(.system(size: 9, weight: .black))
+                                                        .padding(.horizontal, 4)
+                                                        .padding(.vertical, 2)
+                                                        .background(Color.orange)
+                                                        .foregroundColor(.black)
+                                                        .cornerRadius(4)
+                                                }
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 8)
+                                            .background(viewingCycle == 1 ? Color(white: 0.22) : Color.clear)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(10)
+                                        }
+                                        
+                                        Button(action: { viewingCycle = 2 }) {
+                                            HStack {
+                                                Text("Zyklus 2")
+                                                    .font(.system(size: 13, weight: .bold))
+                                                if (activeWeek % 2 == 0) {
+                                                    Text("AKTIV")
+                                                        .font(.system(size: 9, weight: .black))
+                                                        .padding(.horizontal, 4)
+                                                        .padding(.vertical, 2)
+                                                        .background(Color.orange)
+                                                        .foregroundColor(.black)
+                                                        .cornerRadius(4)
+                                                }
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 8)
+                                            .background(viewingCycle == 2 ? Color(white: 0.22) : Color.clear)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(10)
+                                        }
+                                    }
+                                    .padding(4)
+                                    .background(Color(white: 0.12))
+                                    .cornerRadius(12)
+                                    .padding(.horizontal)
+                                    
                                     ForEach(plan.days) { day in
+                                        let currentSlots = day.slots(forCycle: viewingCycle)
                                         VStack(alignment: .leading, spacing: 10) {
                                             HStack {
                                                 Text(day.weekday)
@@ -123,9 +175,14 @@ public struct AICoachWizardView: View {
                                                     .clipShape(Circle())
                                                 
                                                 VStack(alignment: .leading, spacing: 2) {
-                                                    Text(day.name)
-                                                        .font(.system(size: 16, weight: .bold))
-                                                        .foregroundColor(.white)
+                                                    HStack(spacing: 6) {
+                                                        Text(day.name)
+                                                            .font(.system(size: 16, weight: .bold))
+                                                            .foregroundColor(.white)
+                                                        Text("Zyklus \(viewingCycle)")
+                                                            .font(.system(size: 11, weight: .heavy))
+                                                            .foregroundColor(.orange)
+                                                    }
                                                     Text(day.focus)
                                                         .font(.system(size: 12))
                                                         .foregroundColor(.gray)
@@ -136,7 +193,10 @@ public struct AICoachWizardView: View {
                                                 if let onStartLiveWorkout = onStartLiveWorkout {
                                                     Button(action: {
                                                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                                        onStartLiveWorkout(day.slots, "\(day.name) · \(day.weekday)")
+                                                        onStartLiveWorkout(
+                                                            currentSlots,
+                                                            "\(day.name) · \(day.weekday) (Zyklus \(viewingCycle))"
+                                                        )
                                                     }) {
                                                         Image(systemName: "play.fill")
                                                             .font(.system(size: 12, weight: .bold))
@@ -149,7 +209,7 @@ public struct AICoachWizardView: View {
                                                 }
                                             }
                                             
-                                            ForEach(day.slots) { slot in
+                                            ForEach(currentSlots) { slot in
                                                 HStack {
                                                     Text(slot.exercise.name)
                                                         .font(.system(size: 14, weight: .semibold))

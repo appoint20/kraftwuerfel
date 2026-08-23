@@ -34,14 +34,41 @@ public struct DayPlan: Identifiable, Codable, Hashable {
     public let name: String    // "Titan", "Vulkan", etc.
     public let focus: String   // "Chest & Triceps", "Glutes & Legs"
     public let warmup: [WarmupExercise]
-    public let slots: [ExerciseSlot]
+    public var cycle1Slots: [ExerciseSlot]
+    public var cycle2Slots: [ExerciseSlot]
+    
+    public var slots: [ExerciseSlot] {
+        get { cycle1Slots }
+        set { cycle1Slots = newValue }
+    }
+    
+    public init(
+        weekday: String,
+        name: String,
+        focus: String,
+        warmup: [WarmupExercise] = [],
+        cycle1Slots: [ExerciseSlot],
+        cycle2Slots: [ExerciseSlot] = []
+    ) {
+        self.weekday = weekday
+        self.name = name
+        self.focus = focus
+        self.warmup = warmup
+        self.cycle1Slots = cycle1Slots
+        self.cycle2Slots = cycle2Slots.isEmpty ? cycle1Slots : cycle2Slots
+    }
     
     public init(weekday: String, name: String, focus: String, warmup: [WarmupExercise] = [], slots: [ExerciseSlot]) {
         self.weekday = weekday
         self.name = name
         self.focus = focus
         self.warmup = warmup
-        self.slots = slots
+        self.cycle1Slots = slots
+        self.cycle2Slots = slots
+    }
+    
+    public func slots(forCycle cycle: Int) -> [ExerciseSlot] {
+        return cycle == 2 ? cycle2Slots : cycle1Slots
     }
 }
 

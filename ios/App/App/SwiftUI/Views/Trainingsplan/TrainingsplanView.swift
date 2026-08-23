@@ -5,6 +5,7 @@ public struct TrainingsplanView: View {
     @State private var durationWeeks: Int = 4
     @State private var activeWeek: Int = 1
     @State private var expandedDay: String? = "Mo"
+    @State private var viewingCycle: Int = 1 // 1 or 2
     @State private var currentDayPlans: [DayPlan] = []
     
     public var onStartLiveWorkout: (([ExerciseSlot], String) -> Void)?
@@ -13,6 +14,11 @@ public struct TrainingsplanView: View {
     
     public init(onStartLiveWorkout: (([ExerciseSlot], String) -> Void)? = nil) {
         self.onStartLiveWorkout = onStartLiveWorkout
+    }
+    
+    private var activeCycleForWeek: Int {
+        // Zyklus 1 -> Zyklus 2 -> Zyklus 1 -> Zyklus 2 ...
+        return (activeWeek % 2 == 1) ? 1 : 2
     }
     
     public var body: some View {
@@ -26,7 +32,7 @@ public struct TrainingsplanView: View {
                             Text("TRAININGSPLAN")
                                 .font(.system(size: 24, weight: .black, design: .rounded))
                                 .foregroundColor(.white)
-                            Text("Mehrwochen-Periodisierung mit Fortschritt")
+                            Text("Zyklus 1 ➔ Zyklus 2 Periodisierung")
                                 .font(.system(size: 12))
                                 .foregroundColor(.gray)
                         }
@@ -40,7 +46,7 @@ public struct TrainingsplanView: View {
                     
                     // TRAINING DAYS SELECTOR
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("TRAININGSTAGE")
+                        Text("TRAININGSTAGE (TAGE PRO ZYKLUS)")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.gray)
                             .padding(.horizontal)
@@ -72,16 +78,17 @@ public struct TrainingsplanView: View {
                     
                     // WEEKS ROW
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("LAUFZEIT")
+                        Text("PLAN-LAUFZEIT")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.gray)
                             .padding(.horizontal)
                         
                         HStack(spacing: 8) {
-                            ForEach([2, 4, 6], id: \.self) { w in
+                            ForEach([2, 4, 6, 8], id: \.self) { w in
                                 Button(action: {
                                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                     durationWeeks = w
+                                    if activeWeek > w { activeWeek = 1 }
                                 }) {
                                     Text("\(w) Wochen")
                                         .font(.system(size: 14, weight: .bold))
@@ -96,32 +103,101 @@ public struct TrainingsplanView: View {
                         .padding(.horizontal)
                     }
                     
-                    // WEEKS PROGRESS SELECTOR
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(1...durationWeeks, id: \.self) { weekNum in
-                                Button(action: { activeWeek = weekNum }) {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "flame.fill")
-                                            .font(.system(size: 10))
-                                        Text("Woche \(weekNum)")
-                                            .font(.system(size: 13, weight: .bold))
-                                    }
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 8)
-                                    .background(activeWeek == weekNum ? Color.orange.opacity(0.2) : Color(white: 0.14))
-                                    .foregroundColor(activeWeek == weekNum ? .orange : .white)
-                                    .cornerRadius(10)
-                                }
-                            }
+                    // WEEKS PROGRESS SELECTOR (WITH CYCLE INDICATION)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("AKTIVE WOCHE & ZYKLUS")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.gray)
+                            Spacer()
+                            Text("Woche \(activeWeek) ➔ Zyklus \(activeCycleForWeek)")
+                                .font(.system(size: 12, weight: .black, design: .rounded))
+                                .foregroundColor(.orange)
                         }
                         .padding(.horizontal)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(1...durationWeeks, id: \.self) { weekNum in
+                                    let cycleForW = (weekNum % 2 == 1) ? 1 : 2
+                                    Button(action: {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        activeWeek = weekNum
+                                        viewingCycle = cycleForW
+                                    }) {
+                                        VStack(spacing: 2) {
+                                            Text("Woche \(weekNum)")
+                                                .font(.system(size: 13, weight: .bold))
+                                            Text("Zyklus \(cycleForW)")
+                                                .font(.system(size: 10, weight: .black))
+                                                .foregroundColor(activeWeek == weekNum ? .black : .orange)
+                                        }
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 8)
+                                        .background(activeWeek == weekNum ? Color.orange : Color(white: 0.14))
+                                        .foregroundColor(activeWeek == weekNum ? .black : .white)
+                                        .cornerRadius(12)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
                     }
+                    
+                    // CYCLE SWITCHER BANNER
+                    HStack {
+                        Button(action: { viewingCycle = 1 }) {
+                            HStack {
+                                Text("Zyklus 1")
+                                    .font(.system(size: 13, weight: .bold))
+                                if activeCycleForWeek == 1 {
+                                    Text("AKTIV")
+                                        .font(.system(size: 9, weight: .black))
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 2)
+                                        .background(Color.orange)
+                                        .foregroundColor(.black)
+                                        .cornerRadius(4)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(viewingCycle == 1 ? Color(white: 0.22) : Color.clear)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                        }
+                        
+                        Button(action: { viewingCycle = 2 }) {
+                            HStack {
+                                Text("Zyklus 2")
+                                    .font(.system(size: 13, weight: .bold))
+                                if activeCycleForWeek == 2 {
+                                    Text("AKTIV")
+                                        .font(.system(size: 9, weight: .black))
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 2)
+                                        .background(Color.orange)
+                                        .foregroundColor(.black)
+                                        .cornerRadius(4)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(viewingCycle == 2 ? Color(white: 0.22) : Color.clear)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                        }
+                    }
+                    .padding(4)
+                    .background(Color(white: 0.12))
+                    .cornerRadius(12)
+                    .padding(.horizontal)
                     
                     // DAY PLANS ACCORDION
                     VStack(spacing: 12) {
                         ForEach(currentDayPlans) { day in
                             let isOpen = expandedDay == day.weekday
+                            let currentSlots = day.slots(forCycle: viewingCycle)
                             
                             VStack(alignment: .leading, spacing: 0) {
                                 Button(action: {
@@ -137,9 +213,14 @@ public struct TrainingsplanView: View {
                                             .clipShape(Circle())
                                         
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text(day.name)
-                                                .font(.system(size: 16, weight: .bold))
-                                                .foregroundColor(.white)
+                                            HStack(spacing: 6) {
+                                                Text(day.name)
+                                                    .font(.system(size: 16, weight: .bold))
+                                                    .foregroundColor(.white)
+                                                Text("Zyklus \(viewingCycle)")
+                                                    .font(.system(size: 11, weight: .heavy))
+                                                    .foregroundColor(.orange)
+                                            }
                                             Text(day.focus)
                                                 .font(.system(size: 12))
                                                 .foregroundColor(.gray)
@@ -158,7 +239,7 @@ public struct TrainingsplanView: View {
                                     VStack(alignment: .leading, spacing: 10) {
                                         Divider().background(Color(white: 0.2))
                                         
-                                        ForEach(day.slots) { slot in
+                                        ForEach(currentSlots) { slot in
                                             HStack {
                                                 VStack(alignment: .leading, spacing: 2) {
                                                     Text(slot.exercise.name)
@@ -179,12 +260,15 @@ public struct TrainingsplanView: View {
                                         if let onStartLiveWorkout = onStartLiveWorkout {
                                             Button(action: {
                                                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                                onStartLiveWorkout(day.slots, "\(day.name) · \(day.weekday)")
+                                                onStartLiveWorkout(
+                                                    currentSlots,
+                                                    "\(day.name) · \(day.weekday) (Zyklus \(viewingCycle))"
+                                                )
                                             }) {
                                                 HStack {
                                                     Image(systemName: "play.fill")
-                                                    Text("TRAINING STARTEN (\(day.weekday))")
-                                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                                    Text("TRAINING STARTEN (\(day.weekday) · ZYKLUS \(viewingCycle))")
+                                                        .font(.system(size: 13, weight: .bold, design: .rounded))
                                                 }
                                                 .foregroundColor(.black)
                                                 .frame(maxWidth: .infinity)
@@ -225,12 +309,19 @@ public struct TrainingsplanView: View {
         let sortedDays = Array(selectedDays).sorted()
         for (i, day) in sortedDays.enumerated() {
             let name = dayNames[i % dayNames.count]
-            var slots: [ExerciseSlot] = []
+            var c1Slots: [ExerciseSlot] = []
+            var c2Slots: [ExerciseSlot] = []
             
             let targetMuscles: [MuscleCategory] = i % 2 == 0 ? [.chest, .shoulders, .triceps] : [.back, .legs, .biceps]
             for m in targetMuscles {
-                if let ex = pool.filter({ $0.category == m }).randomElement() {
-                    slots.append(ExerciseSlot(exercise: ex, sets: 3, reps: "8-12", restSeconds: 90))
+                let candidates = pool.filter { $0.category == m }.shuffled()
+                if let ex1 = candidates.first {
+                    c1Slots.append(ExerciseSlot(exercise: ex1, sets: 3, reps: "6-10", restSeconds: 90))
+                }
+                if candidates.count > 1 {
+                    c2Slots.append(ExerciseSlot(exercise: candidates[1], sets: 3, reps: "10-14", restSeconds: 90))
+                } else if let ex1 = candidates.first {
+                    c2Slots.append(ExerciseSlot(exercise: ex1, sets: 3, reps: "10-14", restSeconds: 90))
                 }
             }
             
@@ -238,7 +329,8 @@ public struct TrainingsplanView: View {
                 weekday: day,
                 name: name,
                 focus: targetMuscles.map { $0.localized }.joined(separator: " & "),
-                slots: slots
+                cycle1Slots: c1Slots,
+                cycle2Slots: c2Slots
             ))
         }
         

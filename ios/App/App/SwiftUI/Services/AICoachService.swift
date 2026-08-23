@@ -233,15 +233,28 @@ public final class AICoachService {
                 ]
             }
             
-            // Pick exercises
-            var slots: [ExerciseSlot] = []
+            // Pick exercises for Cycle 1 and Cycle 2
+            var cycle1Slots: [ExerciseSlot] = []
+            var cycle2Slots: [ExerciseSlot] = []
+            
             for muscle in targetMuscles {
                 let candidates = exercisePool.filter { $0.category == muscle }
-                if let ex = candidates.randomElement() {
-                    let sets = input.experience == .advanced ? 4 : 3
-                    let reps = input.goal == .strength ? "4-6" : (input.goal == .muscle ? "8-12" : "12-15")
-                    let rest = input.goal == .strength ? 120 : (input.goal == .muscle ? 90 : 60)
-                    slots.append(ExerciseSlot(exercise: ex, sets: sets, reps: reps, restSeconds: rest))
+                let shuffled = candidates.shuffled()
+                
+                let sets = input.experience == .advanced ? 4 : 3
+                let repsC1 = input.goal == .strength ? "4-6" : (input.goal == .muscle ? "6-10" : "10-12")
+                let repsC2 = input.goal == .strength ? "6-8" : (input.goal == .muscle ? "10-14" : "12-15")
+                let rest = input.goal == .strength ? 120 : (input.goal == .muscle ? 90 : 60)
+                
+                if let ex1 = shuffled.first {
+                    cycle1Slots.append(ExerciseSlot(exercise: ex1, sets: sets, reps: repsC1, restSeconds: rest))
+                }
+                
+                if shuffled.count > 1 {
+                    let ex2 = shuffled[1]
+                    cycle2Slots.append(ExerciseSlot(exercise: ex2, sets: sets, reps: repsC2, restSeconds: rest))
+                } else if let ex1 = shuffled.first {
+                    cycle2Slots.append(ExerciseSlot(exercise: ex1, sets: sets, reps: repsC2, restSeconds: rest))
                 }
             }
             
@@ -250,7 +263,8 @@ public final class AICoachService {
                 name: dayName,
                 focus: isEn ? focusEn : focusDe,
                 warmup: warmup,
-                slots: slots
+                cycle1Slots: cycle1Slots,
+                cycle2Slots: cycle2Slots
             ))
         }
         
