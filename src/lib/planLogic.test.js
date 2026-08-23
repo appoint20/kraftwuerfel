@@ -114,12 +114,12 @@ describe("Serialisierung", () => {
 describe("Datums-Mathematik", () => {
   const start = new Date(2026, 0, 5); // Montag
 
-  it("zählt Wochen ab 1 und Zyklen ab 0", () => {
+  it("zählt Wochen ab 1 und alterniert Zyklen zwischen 0 (Zyklus 1) und 1 (Zyklus 2)", () => {
     expect(weekInfoForDate(new Date(2026, 0, 5), start)).toMatchObject({ weekIdx: 1, cycleIdx: 0 });
     expect(weekInfoForDate(new Date(2026, 0, 11), start)).toMatchObject({ weekIdx: 1, cycleIdx: 0 });
-    expect(weekInfoForDate(new Date(2026, 0, 12), start)).toMatchObject({ weekIdx: 2, cycleIdx: 0 });
-    expect(weekInfoForDate(new Date(2026, 0, 19), start)).toMatchObject({ weekIdx: 3, cycleIdx: 1 });
-    expect(weekInfoForDate(new Date(2026, 1, 2), start)).toMatchObject({ weekIdx: 5, cycleIdx: 2 });
+    expect(weekInfoForDate(new Date(2026, 0, 12), start)).toMatchObject({ weekIdx: 2, cycleIdx: 1 });
+    expect(weekInfoForDate(new Date(2026, 0, 19), start)).toMatchObject({ weekIdx: 3, cycleIdx: 0 });
+    expect(weekInfoForDate(new Date(2026, 1, 2), start)).toMatchObject({ weekIdx: 5, cycleIdx: 0 });
   });
 
   it("findet den letzten und nächsten Wochentag", () => {

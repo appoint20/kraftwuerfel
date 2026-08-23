@@ -16,7 +16,8 @@ export function daysBetween(a, b) {
 export function weekInfoForDate(date, startDate) {
   const diff = daysBetween(startDate, date);
   const weekIdx = Math.floor(diff / 7) + 1;
-  const cycleIdx = Math.floor((weekIdx - 1) / 2); // 0-basiert: Woche 1-2 -> 0, Woche 3-4 -> 1, ...
+  // Alternierender Zyklus: Woche 1 -> Zyklus 1 (0), Woche 2 -> Zyklus 2 (1), Woche 3 -> Zyklus 1 (0), ...
+  const cycleIdx = (weekIdx % 2 === 1) ? 0 : 1;
   return { weekIdx, cycleIdx, diff };
 }
 

@@ -67,7 +67,7 @@ export default function TrainingsplanTab({ settings, tp, active, favorites, onGe
     const cycles = cyclesForDuration(activePlan.duration);
     const cycleWeeks = [];
     for (let w = 1; w <= activePlan.duration; w++) {
-      cycleWeeks.push({ w, cycleIdx: Math.floor((w - 1) / 2) });
+      cycleWeeks.push({ w, cycleIdx: (w % 2 === 1) ? 0 : 1 });
     }
     return (
       <>
