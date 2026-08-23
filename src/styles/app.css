@@ -1458,3 +1458,63 @@ input:not([type]), input[type="text"], input[type="email"], input[type="password
 input[type="number"], input[type="search"], textarea, select{
   font-size:16px;
 }
+
+/* --- Aufwärmen --- */
+.warmup-block{
+  background:var(--surface2); border:1px dashed var(--border); border-radius:10px;
+  padding:10px 12px; margin-bottom:8px;
+}
+.warmup-head{
+  font-family:'JetBrains Mono', monospace; font-size:9.5px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--accent); margin-bottom:6px;
+}
+.warmup-row{ display:flex; justify-content:space-between; gap:10px; padding:3px 0; }
+.warmup-name{ font-size:12.5px; color:var(--text); }
+.warmup-dur{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--muted); white-space:nowrap; }
+
+/* --- Ernährungsplan --- */
+.nutrition-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:14px; margin-top:14px; display:flex; flex-direction:column; gap:12px;
+}
+.nutrition-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+.nutrition-title{ font-family:'Bebas Neue', sans-serif; font-size:18px; letter-spacing:1px; }
+.nutrition-diet{
+  font-family:'JetBrains Mono', monospace; font-size:10px; font-weight:700;
+  background:var(--accent-dim); color:var(--accent); border-radius:5px; padding:2px 7px;
+}
+.nutrition-macros{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.macro{
+  background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+  padding:9px 6px; display:flex; flex-direction:column; align-items:center; gap:2px;
+}
+.macro.big{ border-color:var(--accent); }
+.macro-val{
+  font-family:'JetBrains Mono', monospace; font-size:14px; font-weight:700;
+  color:var(--text); font-variant-numeric:tabular-nums;
+}
+.macro.big .macro-val{ color:var(--accent); font-size:16px; }
+.macro-lbl{ font-size:8.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); text-align:center; }
+
+.meal-list{ display:flex; flex-direction:column; gap:8px; }
+.meal-row{ border-left:2px solid var(--accent); padding-left:10px; }
+.meal-when{ display:flex; align-items:baseline; gap:8px; }
+.meal-time{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--accent); }
+.meal-name{ font-size:13px; font-weight:600; }
+.meal-body{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-top:2px; }
+.meal-items{ font-size:11.5px; color:var(--muted); line-height:1.45; }
+.meal-kcal{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--muted); white-space:nowrap; }
+
+.shake-list{ background:var(--surface2); border-radius:10px; padding:10px 12px; }
+.shake-head{
+  font-family:'JetBrains Mono', monospace; font-size:9.5px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--accent); margin-bottom:6px;
+}
+.shake-row{ display:flex; flex-direction:column; gap:1px; padding:3px 0; }
+.shake-when{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--muted); }
+.shake-what{ font-size:12.5px; }
+
+.nutrition-disclaimer{
+  font-size:10.5px; line-height:1.5; color:var(--muted);
+  border-top:1px dashed var(--border); padding-top:8px;
+}

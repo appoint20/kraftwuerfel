@@ -12,6 +12,8 @@ export const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 export const SESSION_MINUTES = [30, 45, 60, 90];
 export const WEEK_OPTIONS = [2, 4, 6];
 export const REST_VALUES = [45, 60, 90, 120, 180];
+export const WARMUP_MODES = ["auto", "yes", "no"];
+export const DIETS = ["omnivore", "vegetarian", "vegan"];
 
 export type Answers = {
   sex: "male" | "female" | "other";
@@ -27,6 +29,8 @@ export type Answers = {
   limitations: string;
   weeks: number;
   language: "de" | "en";
+  warmup: string;
+  diet: string;
 };
 
 /* Nie dem Client vertrauen — alles, was in den Prompt geht, wird hier geprüft. */
@@ -64,7 +68,11 @@ export function sanitize(raw: Record<string, unknown>): Answers | { error: strin
 
   const language = raw.language === "en" ? "en" : "de";
 
-  return { sex, age, height, weight, goal, experience, days, sessionMinutes, equipment, focus, limitations, weeks, language };
+  // "auto" heißt: das Modell entscheidet anhand von Alter, Erfahrung und Zielen.
+  const warmup = WARMUP_MODES.includes(String(raw.warmup)) ? String(raw.warmup) : "auto";
+  const diet = DIETS.includes(String(raw.diet)) ? String(raw.diet) : "omnivore";
+
+  return { sex, age, height, weight, goal, experience, days, sessionMinutes, equipment, focus, limitations, weeks, language, warmup, diet };
 }
 
 export function buildPrompt(a: Answers) {
@@ -126,6 +134,23 @@ export function buildPrompt(a: Answers) {
     "name ist ein einzelnes, einprägsames Wort pro Tag — ein Rufname, keine",
     "Beschreibung, kein Satz, keine Wortkombination. Innerhalb eines Plans darf",
     "sich kein Name wiederholen. Er bleibt in beiden Sprachen unverändert.",
+    "",
+    "AUFWÄRMEN: warmup ist die einzige Liste, die NICHT aus dem Katalog kommen",
+    "muss — Mobilisation und Anlaufen stehen dort nicht drin. Freie Angaben sind",
+    "hier erlaubt, z.B. \"5 Min Rudergerät\" oder \"Hüftkreisen\". duration ist eine",
+    "kurze Zeit- oder Wiederholungsangabe. Zwei bis vier Einträge pro Tag, jeweils",
+    "passend zu dem, was an dem Tag trainiert wird. Wird kein Aufwärmen gewünscht,",
+    "bleibt warmup ein leeres Array.",
+    "",
+    "ERNÄHRUNG: berechne dailyCalories aus Geschlecht, Alter, Größe, Gewicht und",
+    "Trainingsumfang (Grundumsatz nach Mifflin-St Jeor, dann Aktivitätsfaktor und",
+    "ein Zu- oder Abschlag passend zum Ziel). meals deckt den ganzen Tag ab und",
+    "die Summe der calories ergibt ungefähr dailyCalories. time ist eine Tageszeit",
+    "wie \"07:00\" oder \"Morgens\". items sind konkrete Lebensmittel.",
+    "shakes sagt, WANN und WAS — leer lassen, wenn keine sinnvoll sind.",
+    "Die Ernährungsangaben müssen zur gewählten Ernährungsform passen; bei vegan",
+    "kommen keinerlei tierische Produkte vor, bei vegetarisch kein Fleisch und",
+    "kein Fisch.",
   ].join("\n");
 
   const user = [
@@ -139,6 +164,14 @@ export function buildPrompt(a: Answers) {
     `Zeit pro Einheit: ca. ${a.sessionMinutes} Minuten — wähle die Übungszahl entsprechend`,
     a.equipment.length ? `Verfügbares Equipment: ${a.equipment.join(", ")}` : "Equipment: alles vorhanden",
     a.focus.length ? `Gewünschter Schwerpunkt: ${a.focus.join(", ")}` : "",
+    `Ernährungsform: ${
+      { omnivore: "isst alles", vegetarian: "vegetarisch", vegan: "vegan" }[a.diet] || "isst alles"
+    }`,
+    a.warmup === "yes"
+      ? "Aufwärmen: ausdrücklich gewünscht — jeder Tag bekommt ein Aufwärmprogramm."
+      : a.warmup === "no"
+        ? "Aufwärmen: ausdrücklich nicht gewünscht — warmup bleibt überall leer."
+        : "Aufwärmen: entscheide selbst anhand von Alter, Erfahrung und Einschränkungen.",
     "",
     a.limitations
       ? `<einschraenkungen>\n${a.limitations}\n</einschraenkungen>`
@@ -225,11 +258,31 @@ export function validatePlan(raw: unknown, answers: Answers) {
       });
     }
 
+    /*
+      Aufwärmen ist die eine Liste ohne Katalogbindung — Mobilisation und
+      Anlaufen stehen dort nicht drin. Dafür wird hier hart gekürzt und
+      begrenzt, damit kein Freitext ungefiltert durchrutscht.
+    */
+    const rawWarmup = Array.isArray(dayObj.warmup) ? dayObj.warmup : [];
+    const warmup = rawWarmup
+      .filter((w) => w && typeof w === "object")
+      .slice(0, 5)
+      .map((w) => {
+        const item = w as Record<string, unknown>;
+        return {
+          name: String(item.name ?? "").slice(0, 60),
+          duration: String(item.duration ?? "").slice(0, 24),
+          note: String(item.note ?? "").slice(0, 100),
+        };
+      })
+      .filter((w) => w.name);
+
     if (validExercises.length > 0) {
       days.push({
         weekday,
         name,
         focus,
+        warmup,
         exercises: validExercises,
       });
     }
@@ -242,6 +295,62 @@ export function validatePlan(raw: unknown, answers: Answers) {
     summary,
     notes,
     days,
+    nutrition: validateNutrition(obj.nutrition, answers),
+  };
+}
+
+/*
+  Ernährungsangaben landen als Zahlen in der Oberfläche, also müssen sie Zahlen
+  sein und in einem Bereich liegen, der einen Menschen nicht gefährdet. Was das
+  Modell hier liefert, ist eine Schätzung — die Anzeige sagt das auch.
+*/
+function validateNutrition(raw: unknown, answers: Answers) {
+  if (!raw || typeof raw !== "object") return null;
+  const n = raw as Record<string, unknown>;
+
+  const num = (value: unknown, min: number, max: number) => {
+    const parsed = Math.round(Number(value));
+    return Number.isFinite(parsed) ? Math.max(min, Math.min(max, parsed)) : 0;
+  };
+
+  const dailyCalories = num(n.dailyCalories, 1200, 5000);
+  if (!dailyCalories) return null;
+
+  const meals = (Array.isArray(n.meals) ? n.meals : [])
+    .filter((m) => m && typeof m === "object")
+    .slice(0, 8)
+    .map((m) => {
+      const meal = m as Record<string, unknown>;
+      return {
+        time: String(meal.time ?? "").slice(0, 24),
+        name: String(meal.name ?? "").slice(0, 60),
+        calories: num(meal.calories, 0, 3000),
+        items: (Array.isArray(meal.items) ? meal.items : []).slice(0, 8).map((i) => String(i).slice(0, 80)),
+      };
+    })
+    .filter((m) => m.name || m.items.length);
+
+  const shakes = (Array.isArray(n.shakes) ? n.shakes : [])
+    .filter((sh) => sh && typeof sh === "object")
+    .slice(0, 4)
+    .map((sh) => {
+      const shake = sh as Record<string, unknown>;
+      return {
+        when: String(shake.when ?? "").slice(0, 40),
+        what: String(shake.what ?? "").slice(0, 120),
+      };
+    })
+    .filter((sh) => sh.what);
+
+  return {
+    diet: answers.diet,
+    dailyCalories,
+    protein: num(n.protein, 0, 400),
+    carbs: num(n.carbs, 0, 800),
+    fat: num(n.fat, 0, 250),
+    meals,
+    shakes,
+    notes: (Array.isArray(n.notes) ? n.notes : []).slice(0, 4).map((x) => String(x).slice(0, 200)),
   };
 }
 

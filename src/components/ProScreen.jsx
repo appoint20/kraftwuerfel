@@ -72,6 +72,12 @@ export default function ProScreen({ onClose }) {
         }
       }
       setBusy(false);
+      /*
+        Nach dem Anmelden gehört man in die App, nicht auf eine Seite, die einem
+        erklärt, was man gerade gekauft hat. Vorher blieb hier die Vorteilsliste
+        stehen und man musste selbst zurücknavigieren.
+      */
+      onClose();
     } catch (err) {
       setBusy(false);
       setError(err.message || "Authentifizierungsfehler");
@@ -96,8 +102,7 @@ export default function ProScreen({ onClose }) {
     const ok = await syncEntitlement();
     setBusy(false);
     if (ok) {
-      setUpgraded(true);
-      setTimeout(onClose, 1500);
+      onClose();
     } else {
       setNotice(t("proScreen.noEntitlement"));
     }

@@ -38,7 +38,7 @@ function formatTime(seconds) {
 
 export default function LiveSession({ plan, title, onClose }) {
   const { t, category, equipment, exerciseName } = useI18n();
-  const { setWorkoutContext } = useMusic();
+  const { setWorkoutContext, holdLockScreen, releaseLockScreen } = useMusic();
 
   const [mode, setMode] = useState("fokus"); // "fokus" | "protokoll"
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
@@ -266,6 +266,15 @@ export default function LiveSession({ plan, title, onClose }) {
 
   // Beim Verlassen der Session verschwindet der Trainingsteil wieder aus der Karte.
   useEffect(() => () => setWorkoutContext(null), [setWorkoutContext]);
+
+  /*
+    Ohne laufendes Audio gibt es keine Sperrbildschirm-Karte. Der Start der
+    Session ist eine Nutzergeste — genau dann darf die Wiedergabe beginnen.
+  */
+  useEffect(() => {
+    holdLockScreen();
+    return () => releaseLockScreen();
+  }, [holdLockScreen, releaseLockScreen]);
 
   // Sync weight & reps with current set
   useEffect(() => {

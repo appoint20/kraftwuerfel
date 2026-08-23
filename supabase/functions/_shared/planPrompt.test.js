@@ -11,6 +11,8 @@ const VALID = {
   limitations: "",
   weeks: 4,
   language: "de",
+  warmup: "auto",
+  diet: "omnivore",
 };
 
 describe("sanitize", () => {
@@ -161,6 +163,75 @@ describe("validatePlan", () => {
 
   it("stolpert nicht über kaputte Strukturen", () => {
     expect(() => validatePlan({ days: [null, {}, { exercises: [null, 5] }] }, VALID)).not.toThrow();
+  });
+});
+
+describe("Aufwärmen und Ernährung", () => {
+  const day = (extra = {}) => ({
+    weekday: "Mo",
+    focus: "Push",
+    exercises: [{ name: "Bankdrücken", sets: 3, reps: "8-10", rest: 60 }],
+    ...extra,
+  });
+
+  it("nimmt Aufwärmübungen an, obwohl sie nicht im Katalog stehen", () => {
+    const out = validatePlan(
+      { days: [day({ warmup: [{ name: "5 Min Rudergerät", duration: "5 min" }] })] },
+      VALID
+    );
+    expect(out.days[0].warmup).toEqual([{ name: "5 Min Rudergerät", duration: "5 min", note: "" }]);
+  });
+
+  it("kürzt Aufwärmangaben und begrenzt ihre Anzahl", () => {
+    const many = Array.from({ length: 12 }, () => ({ name: "x".repeat(200), duration: "y".repeat(90) }));
+    const out = validatePlan({ days: [day({ warmup: many })] }, VALID);
+    expect(out.days[0].warmup).toHaveLength(5);
+    expect(out.days[0].warmup[0].name).toHaveLength(60);
+    expect(out.days[0].warmup[0].duration).toHaveLength(24);
+  });
+
+  it("lässt warmup leer, wenn nichts geliefert wird", () => {
+    expect(validatePlan({ days: [day()] }, VALID).days[0].warmup).toEqual([]);
+  });
+
+  it("übernimmt einen Ernährungsplan und hält Zahlen in sinnvollen Grenzen", () => {
+    const out = validatePlan(
+      {
+        days: [day()],
+        nutrition: {
+          dailyCalories: 99999,
+          protein: -5,
+          carbs: 300,
+          fat: 70,
+          meals: [{ time: "07:00", name: "Frühstück", calories: 500, items: ["Haferflocken"] }],
+          shakes: [{ when: "nach dem Training", what: "Whey" }],
+          notes: ["Viel trinken"],
+        },
+      },
+      VALID
+    );
+    expect(out.nutrition.dailyCalories).toBe(5000);
+    expect(out.nutrition.protein).toBe(0);
+    expect(out.nutrition.meals[0].name).toBe("Frühstück");
+    expect(out.nutrition.shakes[0].what).toBe("Whey");
+    expect(out.nutrition.diet).toBe(VALID.diet);
+  });
+
+  it("liefert null, wenn keine brauchbaren Kalorien dabei sind", () => {
+    expect(validatePlan({ days: [day()], nutrition: { dailyCalories: "keine Ahnung" } }, VALID).nutrition).toBeNull();
+    expect(validatePlan({ days: [day()] }, VALID).nutrition).toBeNull();
+  });
+});
+
+describe("sanitize: Aufwärmen und Ernährung", () => {
+  it("nimmt gültige Werte an", () => {
+    expect(sanitize({ ...VALID, warmup: "yes", diet: "vegan" })).toMatchObject({ warmup: "yes", diet: "vegan" });
+  });
+  it("fällt bei Unsinn auf sichere Standards zurück", () => {
+    expect(sanitize({ ...VALID, warmup: "vielleicht", diet: "steinzeit" })).toMatchObject({
+      warmup: "auto",
+      diet: "omnivore",
+    });
   });
 });
 

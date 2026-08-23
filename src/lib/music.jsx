@@ -14,6 +14,43 @@ import { musicLibrary } from "./musicLibrary.js";
   dann zusammen mit dem Titel auf dem Sperrbildschirm steht.
 */
 
+/*
+  Ein kurzer, stiller Ton zum Schleifen.
+
+  iOS zeigt die Sperrbildschirm-Karte nur, solange tatsächlich Audio läuft —
+  Metadaten allein reichen nicht. Wer die Live-Session ohne Musik startet, hatte
+  deshalb keine Karte. Diese Stille hält die Wiedergabesitzung offen, damit
+  Übung, Satz und Pause dort trotzdem erscheinen.
+
+  Nebenwirkung, die man kennen muss: eine laufende Wiedergabesitzung kann Musik
+  aus anderen Apps unterbrechen. Läuft unsere eigene Playlist, wird die Stille
+  gar nicht erst gestartet.
+*/
+function silentTrackUrl() {
+  const sampleRate = 8000;
+  const seconds = 0.5;
+  const frames = sampleRate * seconds;
+  const buffer = new ArrayBuffer(44 + frames * 2);
+  const view = new DataView(buffer);
+  const ascii = (offset, text) => {
+    for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
+  };
+  ascii(0, "RIFF");
+  view.setUint32(4, 36 + frames * 2, true);
+  ascii(8, "WAVEfmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  ascii(36, "data");
+  view.setUint32(40, frames * 2, true);
+  // Samples bleiben 0 — das ist die Stille.
+  return URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
+}
+
 const MusicContext = createContext(null);
 
 const ARTWORK = [
@@ -24,6 +61,9 @@ const ARTWORK = [
 export function MusicProvider({ children }) {
   const audioRef = useRef(null);
   const objectUrlRef = useRef(null);
+
+  const silentRef = useRef(null);
+  const silentUrlRef = useRef(null);
 
   const [tracks, setTracks] = useState([]);
   const [currentId, setCurrentId] = useState(null);
@@ -223,6 +263,45 @@ export function MusicProvider({ children }) {
     };
   }, [resume, pause, next, prev]);
 
+  /*
+    Von der Live-Session aufgerufen: sorgt dafür, dass die Karte auf
+    Sperrbildschirm und Uhr überhaupt einen Platz bekommt.
+  */
+  const holdLockScreen = useCallback(async () => {
+    if (isPlaying) return; // echte Musik hält die Sitzung schon
+    try {
+      if (!silentRef.current) {
+        silentUrlRef.current = silentTrackUrl();
+        silentRef.current = new Audio(silentUrlRef.current);
+        silentRef.current.loop = true;
+        silentRef.current.volume = 0;
+        silentRef.current.setAttribute("playsinline", "");
+      }
+      await silentRef.current.play();
+    } catch {
+      // Ohne Nutzergeste verweigert der Browser die Wiedergabe — dann eben
+      // keine Karte, statt eines Fehlers.
+    }
+  }, [isPlaying]);
+
+  const releaseLockScreen = useCallback(() => {
+    if (!silentRef.current) return;
+    silentRef.current.pause();
+  }, []);
+
+  // Sobald echte Musik läuft, wird die Stille überflüssig.
+  useEffect(() => {
+    if (isPlaying && silentRef.current) silentRef.current.pause();
+  }, [isPlaying]);
+
+  useEffect(
+    () => () => {
+      silentRef.current?.pause();
+      if (silentUrlRef.current) URL.revokeObjectURL(silentUrlRef.current);
+    },
+    []
+  );
+
   const value = {
     available: musicLibrary.available,
     tracks,
@@ -239,6 +318,8 @@ export function MusicProvider({ children }) {
     next,
     prev,
     setWorkoutContext: setWorkout,
+    holdLockScreen,
+    releaseLockScreen,
   };
 
   return <MusicContext.Provider value={value}>{children}</MusicContext.Provider>;

@@ -49,6 +49,9 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
   const [selectedQuickLimits, setSelectedQuickLimits] = usePersistentState("ai.quickLimits", new Set(["none"]));
   const [limitations, setLimitations] = usePersistentState("ai.limitations", "");
   const [weeks, setWeeks] = usePersistentState("ai.weeks", 4);
+  // "auto" überlässt dem Coach die Entscheidung anhand von Alter und Erfahrung.
+  const [warmup, setWarmup] = usePersistentState("ai.warmup", "auto");
+  const [diet, setDiet] = usePersistentState("ai.diet", "omnivore");
 
   const [plan, setPlan] = usePersistentState("ai.plan", null);
   const [busy, setBusy] = useState(false);
@@ -125,6 +128,8 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
         limitations: combinedLimits,
         weeks,
         language: lang,
+        warmup,
+        diet,
       });
       setPlan(normalizePlan(result));
     } catch (e) {
@@ -253,12 +258,92 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
                   </div>
                 </div>
                 <div className="tp-day-cycles">
+                  {dayObj.warmup?.length > 0 && (
+                    <div className="warmup-block">
+                      <div className="warmup-head">{t("ai.warmupLabel")}</div>
+                      {dayObj.warmup.map((w, wi) => (
+                        <div className="warmup-row" key={wi}>
+                          <span className="warmup-name">{w.name}</span>
+                          {w.duration && <span className="warmup-dur">{w.duration}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <CycleBlock slots={slots} />
                 </div>
               </div>
             );
           })}
         </div>
+
+        {plan.nutrition && (
+          <div className="nutrition-card">
+            <div className="nutrition-head">
+              <span className="nutrition-title">{t("ai.nutritionTitle")}</span>
+              <span className="nutrition-diet">{t(`ai.diet.${plan.nutrition.diet || "omnivore"}`)}</span>
+            </div>
+
+            <div className="nutrition-macros">
+              <div className="macro big">
+                <span className="macro-val">{plan.nutrition.dailyCalories}</span>
+                <span className="macro-lbl">kcal / {t("ai.perDay")}</span>
+              </div>
+              <div className="macro">
+                <span className="macro-val">{plan.nutrition.protein} g</span>
+                <span className="macro-lbl">{t("ai.protein")}</span>
+              </div>
+              <div className="macro">
+                <span className="macro-val">{plan.nutrition.carbs} g</span>
+                <span className="macro-lbl">{t("ai.carbs")}</span>
+              </div>
+              <div className="macro">
+                <span className="macro-val">{plan.nutrition.fat} g</span>
+                <span className="macro-lbl">{t("ai.fat")}</span>
+              </div>
+            </div>
+
+            {plan.nutrition.meals?.length > 0 && (
+              <div className="meal-list">
+                {plan.nutrition.meals.map((m, mi) => (
+                  <div className="meal-row" key={mi}>
+                    <div className="meal-when">
+                      <span className="meal-time">{m.time}</span>
+                      <span className="meal-name">{m.name}</span>
+                    </div>
+                    <div className="meal-body">
+                      <span className="meal-items">{m.items.join(" · ")}</span>
+                      {m.calories > 0 && <span className="meal-kcal">{m.calories} kcal</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {plan.nutrition.shakes?.length > 0 && (
+              <div className="shake-list">
+                <div className="shake-head">{t("ai.shakes")}</div>
+                {plan.nutrition.shakes.map((sh, si) => (
+                  <div className="shake-row" key={si}>
+                    <span className="shake-when">{sh.when}</span>
+                    <span className="shake-what">{sh.what}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {plan.nutrition.notes?.length > 0 && (
+              <ul className="ai-notes">
+                {plan.nutrition.notes.map((n, ni) => (
+                  <li key={ni}>{n}</li>
+                ))}
+              </ul>
+            )}
+
+            {/* Gesundheitsbezogene Zahlen ohne Einordnung stehen zu lassen wäre
+                falsch — das sind Rechenwerte, keine Beratung. */}
+            <div className="nutrition-disclaimer">{t("ai.nutritionDisclaimer")}</div>
+          </div>
+        )}
 
         {plan.notes.length > 0 && (
           <ul className="ai-notes" style={{ marginTop: "12px" }}>
@@ -557,6 +642,33 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
             value={limitations}
             onChange={(e) => setLimitations(e.target.value)}
           />
+
+          <div className="section-label">{t("ai.warmupTitle")}</div>
+          <div className="wizard-chip-grid">
+            {["auto", "yes", "no"].map((w) => (
+              <button
+                key={w}
+                className={`wizard-card-chip ${warmup === w ? "active" : ""}`}
+                onClick={() => setWarmup(w)}
+              >
+                <div className="chip-main-label">{t(`ai.warmup.${w}`)}</div>
+                <div className="chip-sub-label">{t(`ai.warmupHint.${w}`)}</div>
+              </button>
+            ))}
+          </div>
+
+          <div className="section-label">{t("ai.dietTitle")}</div>
+          <div className="wizard-chip-grid">
+            {["omnivore", "vegetarian", "vegan"].map((d) => (
+              <button
+                key={d}
+                className={`wizard-card-chip ${diet === d ? "active" : ""}`}
+                onClick={() => setDiet(d)}
+              >
+                <div className="chip-main-label">{t(`ai.diet.${d}`)}</div>
+              </button>
+            ))}
+          </div>
 
           <div className="wizard-btn-row">
             <button className="kw-btn-ghost wizard-back-btn" onClick={() => setStep(3)}>

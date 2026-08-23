@@ -70,6 +70,8 @@ function generateLocalAiPlan(answers) {
     limitations = "",
     weeks = 4,
     language = "de",
+    warmup = "auto",
+    diet = "omnivore",
   } = answers;
 
   const numDays = Math.max(1, days.length);
@@ -389,6 +391,103 @@ function generateLocalAiPlan(answers) {
     }
   }
 
+  /*
+    Kalorien nach Mifflin-St Jeor — die Formel, die auch Ernährungsberatungen
+    verwenden. Damit liefert die Vorlage denselben Umfang wie das Modell, nur
+    ohne dessen Feinabstimmung. Aktivitätsfaktor aus den Trainingstagen,
+    Zu-/Abschlag aus dem Ziel.
+  */
+  const bmr = isFemale
+    ? 10 * weight + 6.25 * height - 5 * age - 161
+    : 10 * weight + 6.25 * height - 5 * age + 5;
+  const activity = 1.2 + Math.min(numDays, 6) * 0.075;
+  let dailyCalories = Math.round((bmr * activity) / 10) * 10;
+  if (goal === "abnehmen" || goal === "definition") dailyCalories -= 400;
+  if (goal === "muscle" || goal === "strength") dailyCalories += 300;
+  dailyCalories = Math.max(1200, dailyCalories);
+
+  const proteinPerKg = goal === "abnehmen" || goal === "definition" ? 2.0 : 1.8;
+  const protein = Math.round(weight * proteinPerKg);
+  const fat = Math.round((dailyCalories * 0.27) / 9);
+  const carbs = Math.max(0, Math.round((dailyCalories - protein * 4 - fat * 9) / 4));
+
+  const vegan = diet === "vegan";
+  const vegetarian = diet === "vegetarian";
+  const proteinSource = vegan
+    ? "Tofu, Linsen, Kichererbsen"
+    : vegetarian
+      ? "Magerquark, Eier, Hüttenkäse"
+      : "Hähnchenbrust, Fisch, Magerquark";
+  const shakeBase = vegan ? "Erbsen-/Reisprotein mit Hafermilch" : "Whey mit Milch oder Wasser";
+
+  const meals = [
+    {
+      time: isEn ? "Morning" : "Morgens",
+      name: isEn ? "Breakfast" : "Frühstück",
+      calories: Math.round(dailyCalories * 0.25),
+      items: vegan
+        ? ["Haferflocken mit Sojamilch", "Beeren", "Walnüsse"]
+        : ["Haferflocken mit Milch", "Beeren", "Magerquark"],
+    },
+    {
+      time: isEn ? "Midday" : "Mittags",
+      name: isEn ? "Lunch" : "Mittagessen",
+      calories: Math.round(dailyCalories * 0.35),
+      items: [proteinSource, isEn ? "Rice or potatoes" : "Reis oder Kartoffeln", isEn ? "Vegetables" : "Gemüse"],
+    },
+    {
+      time: isEn ? "Afternoon" : "Nachmittags",
+      name: isEn ? "Snack" : "Zwischenmahlzeit",
+      calories: Math.round(dailyCalories * 0.15),
+      items: vegan ? ["Obst", "Mandeln"] : ["Obst", "Naturjoghurt"],
+    },
+    {
+      time: isEn ? "Evening" : "Abends",
+      name: isEn ? "Dinner" : "Abendessen",
+      calories: Math.round(dailyCalories * 0.25),
+      items: [proteinSource, isEn ? "Salad" : "Salat", isEn ? "Wholegrain bread" : "Vollkornbrot"],
+    },
+  ];
+
+  const shakes = [
+    {
+      when: isEn ? "Within 1h after training" : "Innerhalb 1 Std. nach dem Training",
+      what: `${shakeBase} — ${isEn ? "about 30 g protein" : "ca. 30 g Protein"}`,
+    },
+  ];
+
+  const nutrition = {
+    diet,
+    dailyCalories,
+    protein,
+    carbs,
+    fat,
+    meals,
+    shakes,
+    notes: isEn
+      ? ["These are estimates — adjust by how your weight actually moves.", "Drink 2-3 litres of water a day."]
+      : [
+          "Das sind Schätzwerte — pass sie an, wie sich dein Gewicht tatsächlich entwickelt.",
+          "Trinke 2-3 Liter Wasser am Tag.",
+        ],
+  };
+
+  const wantsWarmup = warmup !== "no";
+  const warmupFor = (focusName) =>
+    !wantsWarmup
+      ? []
+      : [
+          { name: isEn ? "5 min cardio" : "5 Min lockeres Cardio", duration: "5 min", note: "" },
+          {
+            name: /bein|leg|gesäß|glute/i.test(focusName)
+              ? isEn ? "Hip and ankle mobility" : "Hüft- und Sprunggelenksmobilisation"
+              : isEn ? "Shoulder circles and band pull-aparts" : "Schulterkreisen und Band-Pull-Aparts",
+            duration: "2 min",
+            note: "",
+          },
+          { name: isEn ? "2 light warm-up sets" : "2 leichte Aufwärmsätze", duration: "", note: isEn ? "of the first exercise" : "der ersten Übung" },
+        ];
+
   // Erzeuge die Tagespläne passend zu den gewählten Tagen
   const dayPlans = [];
 
@@ -414,6 +513,7 @@ function generateLocalAiPlan(answers) {
     dayPlans.push({
       day: dayName,
       focus: config.name,
+      warmup: warmupFor(config.name),
       exercises: generatedExercises,
     });
   });
@@ -430,6 +530,7 @@ function generateLocalAiPlan(answers) {
       ? `Personalized ${weeks}-week training plan created for ${athleteLabel} (${age} yrs, ${height}cm, ${weight}kg) with ${experience} experience.`
       : `Personalisierter ${weeks}-Wochen Trainingsplan für ${athleteLabel} (${age} Jahre, ${height} cm, ${weight} kg) auf Level ${experience}.`,
     weeks: weeks,
+    nutrition,
     periodization: isEn
       ? `Progressive Overload with weekly volume progression across ${weeks} weeks.`
       : `Progressive Überlastung mit wöchentlicher Steigerung der Gewichte über ${weeks} Wochen.`,
@@ -472,10 +573,12 @@ export function normalizePlan(plan) {
       : plan.periodization
         ? [plan.periodization]
         : [],
+    nutrition: plan.nutrition || null,
     days: days.map((d) => ({
       ...d,
       // Das Modell darf benennen; sonst greift die lokale Wortliste.
       name: (d.name || "").trim().split(/\s+/)[0] || fallbackNames[d.weekday],
+      warmup: Array.isArray(d.warmup) ? d.warmup : [],
     })),
   };
 }
