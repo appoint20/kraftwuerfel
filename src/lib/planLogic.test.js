@@ -130,3 +130,23 @@ describe("Datums-Mathematik", () => {
     expect(nextWeekdayOnOrAfter(wednesday, "So").getDate()).toBe(11);
   });
 });
+
+import { translateFocusString } from "./i18n.jsx";
+
+describe("translateFocusString i18n", () => {
+  it("translates German focus strings to English including umlauts", () => {
+    expect(translateFocusString("Brust Fokus", "en")).toBe("Chest Focus");
+    expect(translateFocusString("Rücken Fokus", "en")).toBe("Back Focus");
+    expect(translateFocusString("Beine Fokus", "en")).toBe("Legs Focus");
+    expect(translateFocusString("Schultern Fokus", "en")).toBe("Shoulders Focus");
+    expect(translateFocusString("Gesäß Fokus", "en")).toBe("Glutes Focus");
+    expect(translateFocusString("Oberkörper", "en")).toBe("Upper Body");
+    expect(translateFocusString("Unterkörper", "en")).toBe("Lower Body");
+  });
+
+  it("keeps German untouched when lang is de", () => {
+    expect(translateFocusString("Brust Fokus", "de")).toBe("Brust Fokus");
+    expect(translateFocusString("Rücken Fokus", "de")).toBe("Rücken Fokus");
+  });
+});
+

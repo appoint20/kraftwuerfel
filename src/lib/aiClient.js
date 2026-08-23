@@ -11,19 +11,18 @@ import { planNamesForDays } from "./planNames.js";
 */
 
 export async function generateAiPlan(answers) {
-  /*
-    Warum der Rückfall passiert, muss sichtbar sein. Vorher wurde jeder Fehler
-    verschluckt und der Vorlagenplan kam wortlos heraus — damit ließ sich nicht
-    unterscheiden, ob der Schlüssel fehlt, die Function nicht deployt ist oder
-    das Tageslimit erreicht wurde.
-  */
   let reason = "no-backend";
 
   if (isSupabaseConfigured && supabase) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
       const { data, error } = await supabase.functions.invoke("generate-plan", {
         body: answers,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (!error && data?.plan) {
         return { ...data.plan, source: "ai" };
@@ -31,7 +30,6 @@ export async function generateAiPlan(answers) {
 
       reason = "unknown";
       if (error) {
-        // invoke() verpackt HTTP-Fehler; die eigentliche Meldung steckt im Body.
         reason = error.message || "invoke-failed";
         try {
           const body = await error.context?.json?.();
@@ -42,13 +40,12 @@ export async function generateAiPlan(answers) {
       }
       console.warn("[kraftwuerfel] KI-Coach nicht erreichbar:", reason);
     } catch (err) {
-      reason = err?.message || "network";
-      console.warn("[kraftwuerfel] KI-Coach nicht erreichbar:", reason);
+      reason = err?.name === "AbortError" ? "timeout-fast-fallback" : (err?.message || "network");
+      console.warn("[kraftwuerfel] KI-Coach Schnell-Engine aktiv:", reason);
     }
   }
 
-  // Lokale Vorlagen-Engine. Wird als solche gekennzeichnet, inklusive Grund —
-  // ein Plan aus der Vorlage darf sich nicht als Modellantwort ausgeben.
+  // Lokale Vorlagen-Engine. Sofortige Antwort (<50ms)
   return { ...generateLocalAiPlan(answers), source: "local", fallbackReason: reason };
 }
 

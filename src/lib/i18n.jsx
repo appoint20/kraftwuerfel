@@ -207,10 +207,10 @@ const DE = {
   "live.restOverBody": "Pause vorbei — weiter geht's!",
   "music.title": "Gym-Musik",
   "music.close": "Schließen",
-  "music.offline": "Offline",
+  "music.offline": "Offline-Mediathek",
   "music.streaming": "Streaming",
-  "music.add": "Musik hinzufügen",
-  "music.importing": "Wird importiert…",
+  "music.add": "Titel aus Apple Music / Mediathek importieren",
+  "music.importing": "Titel werden importiert…",
   "music.remove": "Aus Playlist entfernen",
   "music.prev": "Vorheriger Titel",
   "music.next": "Nächster Titel",
@@ -505,10 +505,10 @@ const EN = {
   "live.restOverBody": "Rest is over — back to it!",
   "music.title": "Gym music",
   "music.close": "Close",
-  "music.offline": "Offline",
+  "music.offline": "Offline Library",
   "music.streaming": "Streaming",
-  "music.add": "Add music",
-  "music.importing": "Importing…",
+  "music.add": "Import tracks from Apple Music / Device",
+  "music.importing": "Importing tracks…",
   "music.remove": "Remove from playlist",
   "music.prev": "Previous track",
   "music.next": "Next track",
@@ -645,8 +645,10 @@ const SPLIT_EN = {
 const WEEKDAY_EN = { Mo: "Mon", Di: "Tue", Mi: "Wed", Do: "Thu", Fr: "Fri", Sa: "Sat", So: "Sun" };
 
 const FOCUS_MAP = {
+  // Single words
   brust: "Chest",
   rücken: "Back",
+  ruecken: "Back",
   nacken: "Neck",
   schultern: "Shoulders",
   schulter: "Shoulders",
@@ -655,31 +657,57 @@ const FOCUS_MAP = {
   beine: "Legs",
   bein: "Legs",
   gesäß: "Glutes",
+  gesaess: "Glutes",
+  po: "Glutes",
   waden: "Calves",
   wade: "Calves",
   bauch: "Core",
   core: "Core",
   ganzkörper: "Full Body",
+  ganzkoerper: "Full Body",
   oberkörper: "Upper Body",
+  oberkoerper: "Upper Body",
   unterkörper: "Lower Body",
+  unterkoerper: "Lower Body",
   push: "Push",
   pull: "Pull",
   frauen: "Women",
   fokus: "Focus",
+  focus: "Focus",
   kraft: "Strength",
   hypertrophie: "Hypertrophy",
+  muskelaufbau: "Muscle Building",
   haltung: "Posture",
   straffung: "Toning",
   definition: "Definition",
+  abnehmen: "Weight Loss",
   ausdauer: "Endurance",
   kondition: "Conditioning",
   und: "&",
+  tag: "Day",
+
+  // Common complete phrases
+  "brust fokus": "Chest Focus",
+  "rücken fokus": "Back Focus",
+  "beine fokus": "Legs Focus",
+  "schultern fokus": "Shoulders Focus",
+  "gesäß fokus": "Glutes Focus",
+  "bauch fokus": "Core Focus",
+  "arme fokus": "Arms Focus",
+  "oberkörper fokus": "Upper Body Focus",
+  "unterkörper fokus": "Lower Body Focus",
+  "ganzkörper fokus": "Full Body Focus",
 };
 
 export function translateFocusString(text, lang) {
   if (!text) return "";
   if (lang !== "en") return text;
-  return text.replace(/\b[a-zA-ZäöüÄÖÜß-]+\b/g, (token) => {
+  
+  const trimmed = String(text).trim();
+  const lowerTrim = trimmed.toLowerCase();
+  if (FOCUS_MAP[lowerTrim]) return FOCUS_MAP[lowerTrim];
+
+  return trimmed.replace(/[\p{L}\p{N}-]+/gu, (token) => {
     const lower = token.toLowerCase();
     if (FOCUS_MAP[lower]) return FOCUS_MAP[lower];
     if (token.includes("-")) {
