@@ -1,56 +1,5 @@
 import SwiftUI
 
-public enum SplitType: String, CaseIterable, Identifiable {
-    case fullBody = "Ganzkörper"
-    case pushPullLegs = "Push/Pull/Beine"
-    case upperLower = "Ober-/Unterkörper"
-    case custom = "Eigene"
-    
-    public var id: String { rawValue }
-    
-    public var localizedEn: String {
-        switch self {
-        case .fullBody: return "Full Body"
-        case .pushPullLegs: return "Push/Pull/Legs"
-        case .upperLower: return "Upper/Lower"
-        case .custom: return "Custom"
-        }
-    }
-}
-
-public enum TrainingMethod: String, CaseIterable, Identifiable {
-    case standard = "standard"
-    case fiveFourThree = "543"
-    case fourFourThree = "443"
-    case chestFocus = "brust-fokus"
-    case backFocus = "ruecken-fokus"
-    case legsFocus = "beine-fokus"
-    
-    public var id: String { rawValue }
-    
-    public var titleDe: String {
-        switch self {
-        case .standard: return "Standard"
-        case .fiveFourThree: return "5x4x3"
-        case .fourFourThree: return "4x4x3"
-        case .chestFocus: return "Brust-Fokus"
-        case .backFocus: return "Rücken-Fokus"
-        case .legsFocus: return "Beine-Fokus"
-        }
-    }
-    
-    public var titleEn: String {
-        switch self {
-        case .standard: return "Standard"
-        case .fiveFourThree: return "5×4×3"
-        case .fourFourThree: return "4×4×3"
-        case .chestFocus: return "Chest Focus"
-        case .backFocus: return "Back Focus"
-        case .legsFocus: return "Legs Focus"
-        }
-    }
-}
-
 public struct GeneratorView: View {
     @State private var selectedSplit: SplitType = .fullBody
     @State private var exerciseCount: Int = 6
@@ -68,303 +17,278 @@ public struct GeneratorView: View {
     }
     
     public var body: some View {
-        NavigationView {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 22) {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 20) {
+                
+                // SPLIT CHIPS
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("SPLIT")
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(1.2)
+                        .foregroundColor(Theme.muted)
+                        .padding(.horizontal, 20)
                     
-                    // Header Brand
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("KRAFTWÜRFEL")
-                                .font(.system(size: 26, weight: .black, design: .rounded))
-                                .foregroundColor(.white)
-                            Text("Trainingsplan Generator")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(.orange)
-                        }
-                        Spacer()
-                        Image(systemName: "dice.fill")
-                            .font(.system(size: 32))
-                            .foregroundColor(.orange)
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                    
-                    // SPLIT SELECTION
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("SPLIT")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.gray)
-                            .padding(.horizontal)
-                        
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(SplitType.allCases) { split in
-                                    Button(action: {
-                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                        selectedSplit = split
-                                    }) {
-                                        Text(split.rawValue)
-                                            .font(.system(size: 13, weight: .semibold))
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 10)
-                                            .background(selectedSplit == split ? Color.orange : Color(white: 0.16))
-                                            .foregroundColor(selectedSplit == split ? .black : .white)
-                                            .cornerRadius(12)
-                                    }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(SplitType.allCases) { split in
+                                let isSelected = selectedSplit == split
+                                Button(action: {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    selectedSplit = split
+                                    rollDice()
+                                }) {
+                                    Text(split.rawValue)
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 9)
+                                        .background(isSelected ? Theme.accent : Theme.surface)
+                                        .foregroundColor(isSelected ? Theme.bg : Theme.text)
+                                        .cornerRadius(20)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .stroke(isSelected ? Theme.accent : Theme.border, lineWidth: 1)
+                                        )
                                 }
                             }
-                            .padding(.horizontal)
                         }
+                        .padding(.horizontal, 20)
                     }
+                }
+                
+                // METHOD CHIPS
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("TRAININGSMETHODE")
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(1.2)
+                        .foregroundColor(Theme.muted)
+                        .padding(.horizontal, 20)
                     
-                    // CUSTOM MUSCLES (if selected)
-                    if selectedSplit == .custom {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("ZIELMUSKELN")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.gray)
-                                .padding(.horizontal)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(MuscleCategory.allCases) { muscle in
-                                        let isSelected = customMuscles.contains(muscle)
-                                        Button(action: {
-                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                            if isSelected {
-                                                customMuscles.remove(muscle)
-                                            } else {
-                                                customMuscles.insert(muscle)
-                                            }
-                                        }) {
-                                            Text(muscle.localized)
-                                                .font(.system(size: 13, weight: .semibold))
-                                                .padding(.horizontal, 14)
-                                                .padding(.vertical, 8)
-                                                .background(isSelected ? Color.orange : Color(white: 0.16))
-                                                .foregroundColor(isSelected ? .black : .white)
-                                                .cornerRadius(12)
-                                        }
-                                    }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(TrainingMethod.allCases) { method in
+                                let isSelected = selectedMethod == method
+                                Button(action: {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    selectedMethod = method
+                                    rollDice()
+                                }) {
+                                    Text(method.titleDe)
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 9)
+                                        .background(isSelected ? Theme.accent : Theme.surface)
+                                        .foregroundColor(isSelected ? Theme.bg : Theme.text)
+                                        .cornerRadius(20)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .stroke(isSelected ? Theme.accent : Theme.border, lineWidth: 1)
+                                        )
                                 }
-                                .padding(.horizontal)
                             }
                         }
+                        .padding(.horizontal, 20)
                     }
-                    
-                    // EXERCISE COUNT STEPPER
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("ANZAHL ÜBUNGEN")
+                }
+                
+                // EXERCISE COUNT & REST
+                HStack(spacing: 12) {
+                    // Count
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("ÜBUNGEN")
                             .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.gray)
-                            .padding(.horizontal)
+                            .tracking(1.2)
+                            .foregroundColor(Theme.muted)
                         
                         HStack {
                             Button(action: {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                exerciseCount = max(2, exerciseCount - 1)
+                                if exerciseCount > 3 {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    exerciseCount -= 1
+                                    rollDice()
+                                }
                             }) {
                                 Image(systemName: "minus")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .frame(width: 48, height: 48)
-                                    .background(Color(white: 0.18))
-                                    .cornerRadius(14)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(Theme.text)
+                                    .frame(width: 32, height: 32)
+                                    .background(Theme.surface2)
+                                    .cornerRadius(8)
                             }
                             
                             Spacer()
                             
                             Text("\(exerciseCount)")
-                                .font(.system(size: 28, weight: .heavy, design: .rounded))
-                                .foregroundColor(.white)
+                                .font(.system(size: 16, weight: .black, design: .rounded))
+                                .foregroundColor(Theme.accent)
                             
                             Spacer()
                             
                             Button(action: {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                exerciseCount = min(12, exerciseCount + 1)
+                                if exerciseCount < 10 {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    exerciseCount += 1
+                                    rollDice()
+                                }
                             }) {
                                 Image(systemName: "plus")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .frame(width: 48, height: 48)
-                                    .background(Color(white: 0.18))
-                                    .cornerRadius(14)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(Theme.text)
+                                    .frame(width: 32, height: 32)
+                                    .background(Theme.surface2)
+                                    .cornerRadius(8)
                             }
                         }
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 8)
-                        .background(Color(white: 0.12))
-                        .cornerRadius(18)
-                        .padding(.horizontal)
+                        .padding(8)
+                        .background(Theme.surface)
+                        .cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
                     }
                     
-                    // TRAINING METHOD
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("TRAININGSMETHODE")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.gray)
-                            .padding(.horizontal)
-                        
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(TrainingMethod.allCases) { m in
-                                    Button(action: {
-                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                        selectedMethod = m
-                                    }) {
-                                        Text(m.titleDe)
-                                            .font(.system(size: 13, weight: .semibold))
-                                            .padding(.horizontal, 14)
-                                            .padding(.vertical, 10)
-                                            .background(selectedMethod == m ? Color.orange : Color(white: 0.16))
-                                            .foregroundColor(selectedMethod == m ? .black : .white)
-                                            .cornerRadius(12)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                        }
-                    }
-                    
-                    // REST TIME CHIPS
-                    VStack(alignment: .leading, spacing: 8) {
+                    // Rest
+                    VStack(alignment: .leading, spacing: 6) {
                         Text("SATZPAUSE")
                             .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.gray)
-                            .padding(.horizontal)
+                            .tracking(1.2)
+                            .foregroundColor(Theme.muted)
                         
-                        HStack(spacing: 10) {
-                            ForEach([60, 90, 120, 180], id: \.self) { seconds in
+                        HStack {
+                            ForEach([60, 90, 120], id: \.self) { sec in
+                                let isSel = restSeconds == sec
                                 Button(action: {
                                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                    restSeconds = seconds
+                                    restSeconds = sec
                                 }) {
-                                    Text("\(seconds) s")
-                                        .font(.system(size: 14, weight: .bold))
+                                    Text("\(sec)s")
+                                        .font(.system(size: 12, weight: .bold))
                                         .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .background(restSeconds == seconds ? Color.orange : Color(white: 0.16))
-                                        .foregroundColor(restSeconds == seconds ? .black : .white)
-                                        .cornerRadius(12)
+                                        .padding(.vertical, 8)
+                                        .background(isSel ? Theme.accent : Theme.surface2)
+                                        .foregroundColor(isSel ? Theme.bg : Theme.text)
+                                        .cornerRadius(8)
                                 }
                             }
                         }
-                        .padding(.horizontal)
+                        .padding(4)
+                        .background(Theme.surface)
+                        .cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
                     }
-                    
-                    // ROLL BUTTON
-                    Button(action: rollPlan) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "dice.fill")
-                                .font(.system(size: 20, weight: .bold))
-                            Text("PLAN WÜRFELN")
-                                .font(.system(size: 17, weight: .heavy, design: .rounded))
-                        }
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.orange)
-                        .cornerRadius(18)
-                        .shadow(color: Color.orange.opacity(0.4), radius: 10, x: 0, y: 4)
+                }
+                .padding(.horizontal, 20)
+                
+                // ROLL BUTTON
+                Button(action: {
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                    rollDice()
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "dice.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .rotationEffect(.degrees(isRolling ? 360 : 0))
+                        
+                        Text(isRolling ? "WÜRFELN..." : "NEUER WORKOUT WÜRFELN")
+                            .font(.system(size: 15, weight: .black, design: .rounded))
+                            .tracking(1.0)
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 6)
-                    
-                    // GENERATED PLAN LIST
-                    if !generatedSlots.isEmpty {
-                        VStack(alignment: .leading, spacing: 14) {
-                            HStack {
-                                Text("DEIN TRAININGSPLAN")
-                                    .font(.system(size: 14, weight: .heavy, design: .rounded))
-                                    .foregroundColor(.white)
-                                Spacer()
-                                Text("\(generatedSlots.count) Übungen")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(.orange)
+                    .foregroundColor(Theme.bg)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Theme.accent)
+                    .cornerRadius(14)
+                    .shadow(color: Theme.accent.opacity(0.35), radius: 10, y: 3)
+                }
+                .padding(.horizontal, 20)
+                
+                // GENERATED PLAN CARD
+                if !generatedSlots.isEmpty {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(planName.uppercased())
+                                    .font(.system(size: 18, weight: .black, design: .rounded))
+                                    .foregroundColor(Theme.text)
+                                Text("\(selectedSplit.rawValue) · \(selectedMethod.titleDe)")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(Theme.muted)
                             }
-                            .padding(.horizontal)
+                            Spacer()
                             
+                            if let onStart = onStartLiveWorkout {
+                                Button(action: {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    onStart(generatedSlots, planName)
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "play.fill")
+                                            .font(.system(size: 11))
+                                        Text("START")
+                                            .font(.system(size: 13, weight: .black, design: .rounded))
+                                    }
+                                    .foregroundColor(Theme.bg)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(Theme.accent)
+                                    .cornerRadius(10)
+                                }
+                            }
+                        }
+                        
+                        Divider().background(Theme.border)
+                        
+                        VStack(spacing: 10) {
                             ForEach(Array(generatedSlots.enumerated()), id: \.offset) { index, slot in
-                                HStack(spacing: 14) {
+                                HStack(spacing: 12) {
                                     Text("\(index + 1)")
-                                        .font(.system(size: 16, weight: .heavy, design: .rounded))
-                                        .foregroundColor(.orange)
-                                        .frame(width: 28, height: 28)
-                                        .background(Color.orange.opacity(0.15))
+                                        .font(.system(size: 12, weight: .black))
+                                        .foregroundColor(Theme.accent)
+                                        .frame(width: 24, height: 24)
+                                        .background(Theme.accentDim)
                                         .clipShape(Circle())
                                     
-                                    VStack(alignment: .leading, spacing: 4) {
+                                    VStack(alignment: .leading, spacing: 2) {
                                         Text(slot.exercise.name)
-                                            .font(.system(size: 15, weight: .bold))
-                                            .foregroundColor(.white)
-                                        
-                                        HStack(spacing: 8) {
-                                            Text(slot.exercise.category.localized)
-                                                .font(.system(size: 11, weight: .semibold))
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 2)
-                                                .background(Color(white: 0.2))
-                                                .cornerRadius(6)
-                                                .foregroundColor(.gray)
-                                            
-                                            Text(slot.exercise.equipment.rawValue)
-                                                .font(.system(size: 11, weight: .semibold))
-                                                .foregroundColor(.gray)
-                                        }
+                                            .font(.system(size: 14, weight: .bold))
+                                            .foregroundColor(Theme.text)
+                                        Text("\(slot.exercise.category.localized) · \(slot.exercise.equipment.rawValue)")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(Theme.muted)
                                     }
                                     
                                     Spacer()
                                     
-                                    VStack(alignment: .trailing, spacing: 2) {
-                                        Text("\(slot.sets) × \(slot.reps)")
-                                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                                            .foregroundColor(.orange)
-                                        Text("\(slot.restSeconds)s Pause")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.gray)
-                                    }
+                                    Text("\(slot.sets) × \(slot.reps)")
+                                        .font(.system(size: 13, weight: .black, design: .rounded))
+                                        .foregroundColor(Theme.accent)
                                 }
-                                .padding()
-                                .background(Color(white: 0.12))
-                                .cornerRadius(16)
-                                .padding(.horizontal)
-                            }
-                            
-                            // START LIVE WORKOUT BUTTON
-                            if let onStartLiveWorkout = onStartLiveWorkout {
-                                Button(action: {
-                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                    onStartLiveWorkout(generatedSlots, "Gewürfelter Plan")
-                                }) {
-                                    HStack {
-                                        Image(systemName: "play.fill")
-                                        Text("LIVE WORKOUT STARTEN")
-                                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                                    }
-                                    .foregroundColor(.black)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 14)
-                                    .background(Color.green)
-                                    .cornerRadius(16)
-                                }
-                                .padding(.horizontal)
-                                .padding(.top, 8)
+                                .padding(10)
+                                .background(Theme.surface2)
+                                .cornerRadius(10)
                             }
                         }
                     }
-                    
-                    Spacer(minLength: 40)
+                    .padding(16)
+                    .background(Theme.surface)
+                    .cornerRadius(16)
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
+                    .padding(.horizontal, 20)
                 }
+                
+                Spacer(minLength: 40)
             }
-            .background(Color.black.ignoresSafeArea())
-            .navigationBarHidden(true)
+            .padding(.top, 12)
+        }
+        .background(Theme.bg.ignoresSafeArea())
+        .onAppear {
+            if generatedSlots.isEmpty {
+                rollDice()
+            }
         }
     }
     
-    private func rollPlan() {
-        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+    private func rollDice() {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+            isRolling = true
+        }
         
         let pool = ExerciseDatabase.all
         var targetMuscles: [MuscleCategory] = []
@@ -373,28 +297,43 @@ public struct GeneratorView: View {
         case .fullBody:
             targetMuscles = [.chest, .back, .legs, .shoulders, .biceps, .triceps, .core]
         case .pushPullLegs:
-            targetMuscles = [.chest, .shoulders, .triceps, .chest]
+            targetMuscles = [.chest, .shoulders, .triceps]
         case .upperLower:
             targetMuscles = [.chest, .back, .shoulders, .biceps, .triceps]
         case .custom:
             targetMuscles = Array(customMuscles)
-            if targetMuscles.isEmpty { targetMuscles = [.chest, .back, .legs] }
         }
         
-        var newSlots: [ExerciseSlot] = []
+        var slots: [ExerciseSlot] = []
+        let shuffledMuscles = targetMuscles.shuffled()
+        
         for i in 0..<exerciseCount {
-            let cat = targetMuscles[i % targetMuscles.count]
-            let candidates = pool.filter { $0.category == cat }
+            let m = shuffledMuscles[i % shuffledMuscles.count]
+            let candidates = pool.filter { $0.category == m }
             if let ex = candidates.randomElement() {
-                newSlots.append(ExerciseSlot(
+                var sets = 3
+                if selectedMethod == .fiveFourThree {
+                    if i == 0 { sets = 5 }
+                    else if i == 1 { sets = 4 }
+                } else if selectedMethod == .fourFourThree {
+                    if i == 0 || i == 1 { sets = 4 }
+                }
+                
+                slots.append(ExerciseSlot(
                     exercise: ex,
-                    sets: 3,
+                    sets: sets,
                     reps: "8-12",
                     restSeconds: restSeconds
                 ))
             }
         }
         
-        self.generatedSlots = newSlots
+        let names = ["Titan", "Vulkan", "Olymp", "Gipfel", "Atlas", "Komet", "Phönix"]
+        self.planName = "\(names.randomElement() ?? "Titan") Workout"
+        self.generatedSlots = slots
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            isRolling = false
+        }
     }
 }

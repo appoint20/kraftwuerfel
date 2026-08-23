@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C574314CB56D99032D0AE49 /* KraftwuerfelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B6E54371CF1BACD66F78AB /* KraftwuerfelApp.swift */; };
+		9A68E824F1F724BE2D9C4869 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = E814978C05C0511370ABC1C7 /* Theme.swift */; };
+		427A27640E1CECCEE0B10C6D /* WatchContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33AACBE3D59AFD6C9B1D44BF /* WatchContentView.swift */; };
+		63E610E2769D96626B04CB73 /* KraftHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8374F7A06A7803B9096713C4 /* KraftHeaderView.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
@@ -34,6 +38,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		08B6E54371CF1BACD66F78AB /* KraftwuerfelApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "KraftwuerfelApp.swift"; path = "KraftwuerfelApp.swift"; sourceTree = "<group>"; };
+		E814978C05C0511370ABC1C7 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Theme.swift"; path = "SwiftUI/Theme/Theme.swift"; sourceTree = "<group>"; };
+		33AACBE3D59AFD6C9B1D44BF /* WatchContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "WatchContentView.swift"; path = "SwiftUI/Watch/WatchContentView.swift"; sourceTree = "<group>"; };
+		8374F7A06A7803B9096713C4 /* KraftHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "KraftHeaderView.swift"; path = "SwiftUI/Views/Components/KraftHeaderView.swift"; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -105,6 +113,10 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				08B6E54371CF1BACD66F78AB /* KraftwuerfelApp.swift */,
+				E814978C05C0511370ABC1C7 /* Theme.swift */,
+				33AACBE3D59AFD6C9B1D44BF /* WatchContentView.swift */,
+				8374F7A06A7803B9096713C4 /* KraftHeaderView.swift */,
 				504EC7001FED796500000000 /* TrainingPlan.swift */,
 				504EC7001FED796500000001 /* Exercise.swift */,
 				504EC7001FED796500000002 /* NutritionPlan.swift */,
@@ -257,6 +269,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C574314CB56D99032D0AE49 /* KraftwuerfelApp.swift in Sources */,
+				9A68E824F1F724BE2D9C4869 /* Theme.swift in Sources */,
+				427A27640E1CECCEE0B10C6D /* WatchContentView.swift in Sources */,
+				63E610E2769D96626B04CB73 /* KraftHeaderView.swift in Sources */,
 				504EC8001FED796500000000 /* TrainingPlan.swift in Sources */,
 				504EC8001FED796500000001 /* Exercise.swift in Sources */,
 				504EC8001FED796500000002 /* NutritionPlan.swift in Sources */,

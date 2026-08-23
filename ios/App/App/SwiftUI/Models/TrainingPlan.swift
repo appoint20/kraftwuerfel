@@ -117,3 +117,54 @@ public struct LoggedSet: Identifiable, Codable, Hashable {
         self.timestamp = timestamp
     }
 }
+
+public enum SplitType: String, CaseIterable, Identifiable, Codable {
+    case fullBody = "Ganzkörper"
+    case pushPullLegs = "Push/Pull/Beine"
+    case upperLower = "Ober-/Unterkörper"
+    case custom = "Eigene"
+    
+    public var id: String { rawValue }
+    
+    public var localizedEn: String {
+        switch self {
+        case .fullBody: return "Full Body"
+        case .pushPullLegs: return "Push/Pull/Legs"
+        case .upperLower: return "Upper/Lower"
+        case .custom: return "Custom"
+        }
+    }
+}
+
+public enum TrainingMethod: String, CaseIterable, Identifiable, Codable {
+    case standard = "standard"
+    case fiveFourThree = "543"
+    case fourFourThree = "443"
+    case chestFocus = "brust-fokus"
+    case backFocus = "ruecken-fokus"
+    case legsFocus = "beine-fokus"
+    
+    public var id: String { rawValue }
+    
+    public var titleDe: String {
+        switch self {
+        case .standard: return "Standard"
+        case .fiveFourThree: return "5x4x3"
+        case .fourFourThree: return "4x4x3"
+        case .chestFocus: return "Brust-Fokus"
+        case .backFocus: return "Rücken-Fokus"
+        case .legsFocus: return "Beine-Fokus"
+        }
+    }
+    
+    public var titleEn: String {
+        switch self {
+        case .standard: return "Standard"
+        case .fiveFourThree: return "5×4×3"
+        case .fourFourThree: return "4×4×3"
+        case .chestFocus: return "Chest Focus"
+        case .backFocus: return "Back Focus"
+        case .legsFocus: return "Legs Focus"
+        }
+    }
+}

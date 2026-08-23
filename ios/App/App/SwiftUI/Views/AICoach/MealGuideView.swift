@@ -14,189 +14,189 @@ public struct MealGuideView: View {
     public var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 20) {
-                
-                // Diet Badge & Calories Header Card
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text(nutrition.diet.titleDe)
-                            .font(.system(size: 14, weight: .bold))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.green.opacity(0.2))
-                            .foregroundColor(.green)
-                            .cornerRadius(10)
-                        
-                        Spacer()
-                        
-                        Text("\(nutrition.dailyCalories) kcal / Tag")
-                            .font(.system(size: 18, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-                    
-                    Text(nutrition.diet.descriptionDe)
-                        .font(.system(size: 13))
-                        .foregroundColor(.gray)
-                }
-                .padding()
-                .background(Color(white: 0.12))
-                .cornerRadius(18)
-                .padding(.horizontal)
-                
-                // MACROS GRID (Donut Cards)
-                HStack(spacing: 12) {
-                    MacroCard(title: "Eiweiß", grams: nutrition.protein, color: .orange, icon: "flame.fill")
-                    MacroCard(title: "Carbs", grams: nutrition.carbs, color: .blue, icon: "bolt.fill")
-                    MacroCard(title: "Fett", grams: nutrition.fat, color: .yellow, icon: "drop.fill")
-                }
-                .padding(.horizontal)
-                
-                // MEALS LIST
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("TAGESPLAN & MAHLZEITEN")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.gray)
-                        .padding(.horizontal)
-                    
-                    ForEach(nutrition.meals) { meal in
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text(meal.time)
-                                    .font(.system(size: 12, weight: .bold, design: .monospaced))
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Color.white.opacity(0.1))
-                                    .cornerRadius(6)
-                                    .foregroundColor(.white)
-                                
-                                Text(meal.name)
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                                
-                                Text("\(meal.calories) kcal")
-                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.orange)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                ForEach(meal.items, id: \.self) { item in
-                                    HStack(spacing: 6) {
-                                        Circle()
-                                            .fill(Color.orange)
-                                            .frame(width: 4, height: 4)
-                                        Text(item)
-                                            .font(.system(size: 13))
-                                            .foregroundColor(.gray)
-                                    }
-                                }
-                            }
-                        }
-                        .padding()
-                        .background(Color(white: 0.12))
-                        .cornerRadius(16)
-                        .padding(.horizontal)
-                    }
-                }
-                
-                // SHAKES SECTION
+                headerCard
+                macrosGrid
+                mealScheduleList
                 if !nutrition.shakes.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("SHAKES & TIMING")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.gray)
-                            .padding(.horizontal)
-                        
-                        ForEach(nutrition.shakes) { shake in
-                            HStack(alignment: .top, spacing: 12) {
-                                Image(systemName: "cup.and.saucer.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(.green)
-                                    .frame(width: 36, height: 36)
-                                    .background(Color.green.opacity(0.15))
-                                    .clipShape(Circle())
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(shake.when)
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(.white)
-                                    Text(shake.what)
-                                        .font(.system(size: 13))
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(white: 0.12))
-                            .cornerRadius(16)
-                            .padding(.horizontal)
-                        }
-                    }
+                    shakesList
                 }
-                
-                // SAVE MEAL PLAN BUTTON
-                Button(action: {
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    onSaveMealPlan?()
-                    showSavedAlert = true
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "bookmark.fill")
-                        Text("ERNÄHRUNGSPLAN SPEICHERN")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                    }
-                    .foregroundColor(.black)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.green)
-                    .cornerRadius(16)
-                }
-                .padding(.horizontal)
-                .alert("Gespeichert!", isPresented: $showSavedAlert) {
-                    Button("OK", role: .cancel) { }
-                } message: {
-                    Text("Dein Ernährungsplan wurde erfolgreich in den gespeicherten Plänen gesichert.")
-                }
-                
-                // Disclaimer
-                Text(nutrition.disclaimer)
-                    .font(.system(size: 11))
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                    .padding(.top, 4)
-                
+                saveButton
                 Spacer(minLength: 40)
             }
-            .padding(.top, 12)
+            .padding(.top, 10)
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(Theme.bg.ignoresSafeArea())
+    }
+    
+    private var headerCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(nutrition.diet.titleDe)
+                    .font(.system(size: 13, weight: .bold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Theme.accentDim)
+                    .foregroundColor(Theme.accent)
+                    .cornerRadius(10)
+                
+                Spacer()
+                
+                Text("\(nutrition.dailyCalories) kcal / Tag")
+                    .font(.system(size: 18, weight: .black, design: .rounded))
+                    .foregroundColor(Theme.text)
+            }
+            
+            Text(nutrition.diet.descriptionDe)
+                .font(.system(size: 13))
+                .foregroundColor(Theme.muted)
+        }
+        .padding(16)
+        .background(Theme.surface)
+        .cornerRadius(18)
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.border, lineWidth: 1))
+        .padding(.horizontal, 20)
+    }
+    
+    private var macrosGrid: some View {
+        HStack(spacing: 12) {
+            MacroCard(title: "Eiweiß", grams: nutrition.protein, color: Theme.accent, icon: "flame.fill")
+            MacroCard(title: "Carbs", grams: nutrition.carbs, color: Color(hex: "3B82F6"), icon: "bolt.fill")
+            MacroCard(title: "Fett", grams: nutrition.fat, color: Color(hex: "F59E0B"), icon: "drop.fill")
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private var mealScheduleList: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("MAHLZEITEN-TIMING")
+                .font(.system(size: 11, weight: .bold))
+                .tracking(1.2)
+                .foregroundColor(Theme.muted)
+            
+            ForEach(nutrition.meals) { meal in
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(meal.time)
+                            .font(.system(size: 11, weight: .black))
+                            .foregroundColor(Theme.accent)
+                        Spacer()
+                        Text("\(meal.calories) kcal")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(Theme.muted)
+                    }
+                    
+                    Text(meal.name)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(Theme.text)
+                    
+                    if !meal.items.isEmpty {
+                        Text(meal.items.joined(separator: " · "))
+                            .font(.system(size: 13))
+                            .foregroundColor(Theme.muted)
+                    }
+                }
+                .padding(14)
+                .background(Theme.surface)
+                .cornerRadius(14)
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border, lineWidth: 1))
+            }
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private var shakesList: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("POWER-SHAKES & SUPPLEMENTE")
+                .font(.system(size: 11, weight: .bold))
+                .tracking(1.2)
+                .foregroundColor(Theme.muted)
+            
+            ForEach(nutrition.shakes) { shake in
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("SHAKE")
+                            .font(.system(size: 10, weight: .black))
+                            .foregroundColor(Theme.accent)
+                        Spacer()
+                        Text(shake.when)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(Theme.muted)
+                    }
+                    
+                    Text(shake.what)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(Theme.text)
+                }
+                .padding(14)
+                .background(Theme.surface)
+                .cornerRadius(14)
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border, lineWidth: 1))
+            }
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private var saveButton: some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            showSavedAlert = true
+            onSaveMealPlan?()
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: "bookmark.fill")
+                    .font(.system(size: 14))
+                Text("MEAL GUIDE SPEICHERN")
+                    .font(.system(size: 13, weight: .black, design: .rounded))
+                    .tracking(0.5)
+            }
+            .foregroundColor(Theme.bg)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Theme.accent)
+            .cornerRadius(12)
+        }
+        .padding(.horizontal, 20)
+        .alert(isPresented: $showSavedAlert) {
+            Alert(
+                title: Text("Gespeichert!"),
+                message: Text("Dein Ernährungsplan wurde erfolgreich gesichert."),
+                dismissButton: .default(Text("OK"))
+            )
+        }
     }
 }
 
-private struct MacroCard: View {
-    let title: String
-    let grams: Int
-    let color: Color
-    let icon: String
+public struct MacroCard: View {
+    public let title: String
+    public let grams: Int
+    public let color: Color
+    public let icon: String
     
-    var body: some View {
+    public init(title: String, grams: Int, color: Color, icon: String) {
+        self.title = title
+        self.grams = grams
+        self.color = color
+        self.icon = icon
+    }
+    
+    public var body: some View {
         VStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(.system(size: 16))
                 .foregroundColor(color)
             
-            Text("\(grams) g")
-                .font(.system(size: 17, weight: .heavy, design: .rounded))
-                .foregroundColor(.white)
+            Text("\(grams)g")
+                .font(.system(size: 18, weight: .black, design: .rounded))
+                .foregroundColor(Theme.text)
             
             Text(title)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.gray)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(Theme.muted)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
-        .background(Color(white: 0.12))
-        .cornerRadius(16)
+        .background(Theme.surface)
+        .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border, lineWidth: 1))
     }
 }

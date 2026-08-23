@@ -19,9 +19,8 @@ public struct LiveWorkoutView: View {
     @State private var totalRestSeconds: Int = 90
     @State private var timer: AnyCancellable?
     @State private var elapsedTime: Int = 0
-    @State private var globalTimer: AnyCancellable?
     
-    public init(slots: [ExerciseSlot], planTitle: String = "Live Workout", onFinish: (() -> Void)? = nil) {
+    public init(slots: [ExerciseSlot], planTitle: String, onFinish: (() -> Void)? = nil) {
         self.slots = slots
         self.planTitle = planTitle
         self.onFinish = onFinish
@@ -34,302 +33,434 @@ public struct LiveWorkoutView: View {
     
     public var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Theme.bg.ignoresSafeArea()
             
-            VStack(spacing: 20) {
-                
-                // TOP BAR: Elapsed Time & HealthKit BPM
+            VStack(spacing: 0) {
+                // TOP BAR
                 HStack {
-                    Button(action: { finishWorkout() }) {
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        stopTimer()
+                        onFinish?()
+                    }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Theme.text)
                             .padding(10)
-                            .background(Color(white: 0.18))
+                            .background(Theme.surface)
                             .clipShape(Circle())
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(planTitle)
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                        Text(formatDuration(elapsedTime))
-                            .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                            .foregroundColor(.orange)
+                            .overlay(Circle().stroke(Theme.border, lineWidth: 1))
                     }
                     
                     Spacer()
                     
-                    // Live BPM Indicator
-                    HStack(spacing: 6) {
+                    VStack(spacing: 2) {
+                        Text(planTitle.uppercased())
+                            .font(.system(size: 14, weight: .black, design: .rounded))
+                            .tracking(1.0)
+                            .foregroundColor(Theme.text)
+                        
+                        Text("LIVE WORKOUT SESSION")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(Theme.accent)
+                    }
+                    
+                    Spacer()
+                    
+                    // Live BPM Badge
+                    HStack(spacing: 4) {
                         Image(systemName: "heart.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.red)
-                        Text("\(Int(healthKit.currentHeartRate > 0 ? healthKit.currentHeartRate : 128)) BPM")
-                            .font(.system(size: 14, weight: .heavy, design: .rounded))
-                            .foregroundColor(.white)
+                            .font(.system(size: 12))
+                            .foregroundColor(Theme.red)
+                        Text(healthKit.currentHeartRate > 0 ? "\(Int(healthKit.currentHeartRate))" : "--")
+                            .font(.system(size: 13, weight: .black, design: .rounded))
+                            .foregroundColor(Theme.text)
                     }
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(Color.red.opacity(0.2))
+                    .background(Theme.surface)
                     .cornerRadius(12)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
                 }
-                .padding(.horizontal)
-                .padding(.top, 12)
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
                 
-                if let slot = currentSlot {
-                    
-                    // EXERCISE HEADER
-                    VStack(spacing: 6) {
-                        Text("ÜBUNG \(currentExerciseIndex + 1) VON \(slots.count)")
-                            .font(.system(size: 11, weight: .black))
-                            .foregroundColor(.orange)
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
                         
-                        Text(slot.exercise.name)
-                            .font(.system(size: 22, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
+                        // REST TIMER RING OR ACTIVE SET CARD
+                        if isResting {
+                            VStack(spacing: 16) {
+                                Text("SATZPAUSE")
+                                    .font(.system(size: 12, weight: .black))
+                                    .tracking(1.5)
+                                    .foregroundColor(Theme.accent)
+                                
+                                ZStack {
+                                    Circle()
+                                        .stroke(Theme.surface2, lineWidth: 12)
+                                        .frame(width: 170, height: 170)
+                                    
+                                    Circle()
+                                        .trim(from: 0, to: Double(restSecondsRemaining) / Double(max(1, totalRestSeconds)))
+                                        .stroke(Theme.accent, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                                        .frame(width: 170, height: 170)
+                                        .rotationEffect(.degrees(-90))
+                                        .animation(.linear(duration: 1.0), value: restSecondsRemaining)
+                                    
+                                    VStack(spacing: 4) {
+                                        Text("\(restSecondsRemaining)")
+                                            .font(.system(size: 48, weight: .black, design: .rounded))
+                                            .foregroundColor(Theme.text)
+                                        Text("SEKUNDEN")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(Theme.muted)
+                                    }
+                                }
+                                
+                                HStack(spacing: 12) {
+                                    Button(action: { restSecondsRemaining += 15 }) {
+                                        Text("+15s")
+                                            .font(.system(size: 12, weight: .bold))
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 8)
+                                            .background(Theme.surface2)
+                                            .foregroundColor(Theme.text)
+                                            .cornerRadius(10)
+                                    }
+                                    
+                                    Button(action: { endRest() }) {
+                                        Text("PAUSE BEENDEN")
+                                            .font(.system(size: 12, weight: .black))
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 8)
+                                            .background(Theme.accent)
+                                            .foregroundColor(Theme.bg)
+                                            .cornerRadius(10)
+                                    }
+                                }
+                            }
+                            .padding(24)
+                            .frame(maxWidth: .infinity)
+                            .background(Theme.surface)
+                            .cornerRadius(20)
+                            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Theme.border, lineWidth: 1))
+                            .padding(.horizontal, 20)
+                        } else if let slot = currentSlot {
+                            VStack(alignment: .leading, spacing: 14) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("ÜBUNG \(currentExerciseIndex + 1) VON \(slots.count)")
+                                            .font(.system(size: 11, weight: .black))
+                                            .foregroundColor(Theme.accent)
+                                            .tracking(1.0)
+                                        
+                                        Text(slot.exercise.name)
+                                            .font(.system(size: 22, weight: .black, design: .rounded))
+                                            .foregroundColor(Theme.text)
+                                    }
+                                    Spacer()
+                                    
+                                    Text("\(slot.exercise.category.localized)")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(Theme.text)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(Theme.surface2)
+                                        .cornerRadius(8)
+                                }
+                                
+                                Divider().background(Theme.border)
+                                
+                                // SET INDICATOR PILLS
+                                HStack(spacing: 8) {
+                                    ForEach(1...slot.sets, id: \.self) { s in
+                                        let isDone = s < currentSetIndex
+                                        let isCurrent = s == currentSetIndex
+                                        
+                                        HStack {
+                                            Text("Satz \(s)")
+                                                .font(.system(size: 12, weight: .bold))
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .background(isCurrent ? Theme.accent : (isDone ? Theme.accentDim : Theme.surface2))
+                                        .foregroundColor(isCurrent ? Theme.bg : (isDone ? Theme.accent : Theme.muted))
+                                        .cornerRadius(10)
+                                    }
+                                }
+                                
+                                // WEIGHT & REPS STEPPERS
+                                HStack(spacing: 12) {
+                                    // Weight
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text("GEWICHT (KG)")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(Theme.muted)
+                                        
+                                        HStack {
+                                            Button(action: {
+                                                if currentWeight > 2.5 { currentWeight -= 2.5 }
+                                            }) {
+                                                Image(systemName: "minus")
+                                                    .font(.system(size: 11, weight: .bold))
+                                                    .foregroundColor(Theme.text)
+                                                    .frame(width: 28, height: 28)
+                                                    .background(Theme.surface2)
+                                                    .cornerRadius(6)
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            Text(String(format: "%.1f", currentWeight))
+                                                .font(.system(size: 16, weight: .black, design: .rounded))
+                                                .foregroundColor(Theme.text)
+                                            
+                                            Spacer()
+                                            
+                                            Button(action: { currentWeight += 2.5 }) {
+                                                Image(systemName: "plus")
+                                                    .font(.system(size: 11, weight: .bold))
+                                                    .foregroundColor(Theme.text)
+                                                    .frame(width: 28, height: 28)
+                                                    .background(Theme.surface2)
+                                                    .cornerRadius(6)
+                                            }
+                                        }
+                                        .padding(6)
+                                        .background(Theme.surface2)
+                                        .cornerRadius(10)
+                                    }
+                                    
+                                    // Reps
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text("WIEDERHOLUNGEN")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(Theme.muted)
+                                        
+                                        HStack {
+                                            Button(action: {
+                                                if currentReps > 1 { currentReps -= 1 }
+                                            }) {
+                                                Image(systemName: "minus")
+                                                    .font(.system(size: 11, weight: .bold))
+                                                    .foregroundColor(Theme.text)
+                                                    .frame(width: 28, height: 28)
+                                                    .background(Theme.surface2)
+                                                    .cornerRadius(6)
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            Text("\(currentReps)")
+                                                .font(.system(size: 16, weight: .black, design: .rounded))
+                                                .foregroundColor(Theme.text)
+                                            
+                                            Spacer()
+                                            
+                                            Button(action: { currentReps += 1 }) {
+                                                Image(systemName: "plus")
+                                                    .font(.system(size: 11, weight: .bold))
+                                                    .foregroundColor(Theme.text)
+                                                    .frame(width: 28, height: 28)
+                                                    .background(Theme.surface2)
+                                                    .cornerRadius(6)
+                                            }
+                                        }
+                                        .padding(6)
+                                        .background(Theme.surface2)
+                                        .cornerRadius(10)
+                                    }
+                                }
+                                
+                                // COMPLETE SET BUTTON
+                                Button(action: {
+                                    completeSet()
+                                }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 14, weight: .bold))
+                                        Text("SATZ ABSCHLIESSEN")
+                                            .font(.system(size: 14, weight: .black, design: .rounded))
+                                            .tracking(0.5)
+                                    }
+                                    .foregroundColor(Theme.bg)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .background(Theme.accent)
+                                    .cornerRadius(12)
+                                    .shadow(color: Theme.accent.opacity(0.3), radius: 8, y: 2)
+                                }
+                                .padding(.top, 4)
+                            }
+                            .padding(20)
+                            .background(Theme.surface)
+                            .cornerRadius(20)
+                            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Theme.border, lineWidth: 1))
+                            .padding(.horizontal, 20)
+                        }
                         
-                        HStack(spacing: 8) {
-                            Text(slot.exercise.category.localized)
-                                .font(.system(size: 12, weight: .semibold))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color(white: 0.2))
-                                .cornerRadius(6)
-                                .foregroundColor(.gray)
+                        // WORKOUT PROGRESS LIST
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("ÜBUNGSÜBERSICHT")
+                                .font(.system(size: 11, weight: .bold))
+                                .tracking(1.0)
+                                .foregroundColor(Theme.muted)
+                                .padding(.horizontal, 20)
                             
-                            Text(slot.exercise.equipment.rawValue)
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.gray)
+                            VStack(spacing: 8) {
+                                ForEach(Array(slots.enumerated()), id: \.offset) { index, slot in
+                                    let isCurrent = index == currentExerciseIndex
+                                    let isDone = index < currentExerciseIndex
+                                    
+                                    HStack(spacing: 12) {
+                                        Image(systemName: isDone ? "checkmark.circle.fill" : (isCurrent ? "play.circle.fill" : "circle"))
+                                            .font(.system(size: 16))
+                                            .foregroundColor(isDone ? Theme.green : (isCurrent ? Theme.accent : Theme.muted))
+                                        
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(slot.exercise.name)
+                                                .font(.system(size: 14, weight: .bold))
+                                                .foregroundColor(isCurrent ? Theme.text : Theme.muted)
+                                            Text("\(slot.sets) Sätze · \(slot.reps) Wdh.")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(Theme.muted)
+                                        }
+                                        
+                                        Spacer()
+                                    }
+                                    .padding(12)
+                                    .background(isCurrent ? Theme.surface2 : Theme.surface)
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(isCurrent ? Theme.accent : Theme.border, lineWidth: 1)
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 20)
                         }
+                        
+                        Spacer(minLength: 40)
                     }
-                    .padding(.horizontal)
-                    
-                    if isResting {
-                        // REST TIMER RING ANIMATION
-                        VStack(spacing: 12) {
-                            ZStack {
-                                Circle()
-                                    .stroke(Color(white: 0.16), lineWidth: 12)
-                                    .frame(width: 180, height: 180)
-                                
-                                Circle()
-                                    .trim(from: 0, to: CGFloat(restSecondsRemaining) / CGFloat(max(1, totalRestSeconds)))
-                                    .stroke(Color.orange, style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                                    .frame(width: 180, height: 180)
-                                    .rotationEffect(.degrees(-90))
-                                    .animation(.linear, value: restSecondsRemaining)
-                                
-                                VStack(spacing: 4) {
-                                    Text("\(restSecondsRemaining)")
-                                        .font(.system(size: 52, weight: .black, design: .rounded))
-                                        .foregroundColor(.white)
-                                    Text("SEKUNDEN PAUSE")
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                            
-                            Button(action: { skipRest() }) {
-                                Text("Pause überspringen")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(.orange)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .background(Color.orange.opacity(0.15))
-                                    .cornerRadius(10)
-                            }
-                        }
-                        .frame(maxHeight: .infinity)
-                    } else {
-                        // WEIGHT & REPS CONTROLS
-                        VStack(spacing: 20) {
-                            
-                            // SET INDICATOR
-                            Text("SATZ \(currentSetIndex) VON \(slot.sets)")
-                                .font(.system(size: 16, weight: .heavy, design: .rounded))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 6)
-                                .background(Color(white: 0.15))
-                                .cornerRadius(10)
-                            
-                            // WEIGHT STEPPER
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("GEWICHT")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.gray)
-                                    Text("\(String(format: "%.1f", currentWeight)) kg")
-                                        .font(.system(size: 26, weight: .black, design: .rounded))
-                                        .foregroundColor(.white)
-                                }
-                                Spacer()
-                                HStack(spacing: 8) {
-                                    Button(action: { currentWeight = max(0, currentWeight - 2.5) }) {
-                                        Text("-2.5")
-                                            .font(.system(size: 14, weight: .bold))
-                                            .foregroundColor(.white)
-                                            .frame(width: 44, height: 44)
-                                            .background(Color(white: 0.18))
-                                            .cornerRadius(12)
-                                    }
-                                    Button(action: { currentWeight += 2.5 }) {
-                                        Text("+2.5")
-                                            .font(.system(size: 14, weight: .bold))
-                                            .foregroundColor(.white)
-                                            .frame(width: 44, height: 44)
-                                            .background(Color(white: 0.18))
-                                            .cornerRadius(12)
-                                    }
-                                }
-                            }
-                            .padding()
-                            .background(Color(white: 0.12))
-                            .cornerRadius(18)
-                            .padding(.horizontal)
-                            
-                            // REPS STEPPER
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("WIEDERHOLUNGEN")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.gray)
-                                    Text("\(currentReps)")
-                                        .font(.system(size: 26, weight: .black, design: .rounded))
-                                        .foregroundColor(.white)
-                                }
-                                Spacer()
-                                HStack(spacing: 8) {
-                                    Button(action: { currentReps = max(1, currentReps - 1) }) {
-                                        Image(systemName: "minus")
-                                            .font(.system(size: 16, weight: .bold))
-                                            .foregroundColor(.white)
-                                            .frame(width: 44, height: 44)
-                                            .background(Color(white: 0.18))
-                                            .cornerRadius(12)
-                                    }
-                                    Button(action: { currentReps += 1 }) {
-                                        Image(systemName: "plus")
-                                            .font(.system(size: 16, weight: .bold))
-                                            .foregroundColor(.white)
-                                            .frame(width: 44, height: 44)
-                                            .background(Color(white: 0.18))
-                                            .cornerRadius(12)
-                                    }
-                                }
-                            }
-                            .padding()
-                            .background(Color(white: 0.12))
-                            .cornerRadius(18)
-                            .padding(.horizontal)
-                        }
-                        .frame(maxHeight: .infinity)
-                    }
-                    
-                    // BOTTOM ACTION BUTTON (COMPLETE SET / NEXT)
-                    Button(action: { completeSet() }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 18))
-                            Text(isResting ? "NÄCHSTER SATZ" : "SATZ ABSCHLIESSEN")
-                                .font(.system(size: 16, weight: .heavy, design: .rounded))
-                        }
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.orange)
-                        .cornerRadius(18)
-                        .shadow(color: Color.orange.opacity(0.4), radius: 10, x: 0, y: 4)
-                    }
-                    .padding(.horizontal)
-                    .padding(.bottom, 20)
+                    .padding(.top, 16)
                 }
             }
         }
         .onAppear {
-            startWorkout()
-        }
-        .onDisappear {
-            endWorkout()
+            startLiveWorkout()
         }
     }
     
-    private func startWorkout() {
-        healthKit.startWorkoutSession()
-        globalTimer = Timer.publish(every: 1.0, on: .main, in: .common)
-            .autoconnect()
-            .sink { _ in
-                self.elapsedTime += 1
-            }
+    private func startLiveWorkout() {
+        Task {
+            _ = await healthKit.requestAuthorization()
+            healthKit.startWorkoutSession()
+        }
+        
+        startTimer()
+        syncWithWatch()
+        
+        // Start Lock Screen Live Activity
+        if let slot = currentSlot {
+            ActivityKitManager.shared.startWorkoutActivity(
+                exerciseName: slot.exercise.name,
+                setNumber: currentSetIndex,
+                totalSets: slot.sets,
+                planTitle: planTitle
+            )
+        }
     }
     
     private func completeSet() {
-        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        
         guard let slot = currentSlot else { return }
         
         if currentSetIndex < slot.sets {
-            // Start rest timer
-            totalRestSeconds = slot.restSeconds
-            restSecondsRemaining = slot.restSeconds
-            isResting = true
+            // Next set in same exercise -> start rest timer
             currentSetIndex += 1
-            
-            // Sync to Apple Watch
-            watchSync.sendLiveWorkoutState(
-                exerciseName: slot.exercise.name,
-                setIndex: currentSetIndex,
-                totalSets: slot.sets,
-                restRemaining: restSecondsRemaining
-            )
-            
-            timer = Timer.publish(every: 1.0, on: .main, in: .common)
-                .autoconnect()
-                .sink { _ in
-                    if self.restSecondsRemaining > 0 {
-                        self.restSecondsRemaining -= 1
-                    } else {
-                        self.skipRest()
-                    }
-                }
+            startRest(seconds: slot.restSeconds)
         } else {
-            // Next Exercise
-            if currentExerciseIndex + 1 < slots.count {
+            // Exercise finished -> move to next exercise
+            if currentExerciseIndex < slots.count - 1 {
                 currentExerciseIndex += 1
                 currentSetIndex = 1
-                isResting = false
-                timer?.cancel()
+                startRest(seconds: slot.restSeconds)
             } else {
+                // Whole workout completed!
                 finishWorkout()
             }
         }
+        
+        syncWithWatch()
     }
     
-    private func skipRest() {
+    private func startRest(seconds: Int) {
+        isResting = true
+        totalRestSeconds = seconds
+        restSecondsRemaining = seconds
+        
+        if let slot = currentSlot {
+            ActivityKitManager.shared.updateRestTimer(
+                exerciseName: slot.exercise.name,
+                setNumber: currentSetIndex,
+                restTargetDate: Date().addingTimeInterval(TimeInterval(seconds))
+            )
+        }
+    }
+    
+    private func endRest() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        timer?.cancel()
-        timer = nil
         isResting = false
+        
+        if let slot = currentSlot {
+            ActivityKitManager.shared.updateActiveSet(
+                exerciseName: slot.exercise.name,
+                setNumber: currentSetIndex,
+                totalSets: slot.sets
+            )
+        }
     }
     
     private func finishWorkout() {
-        endWorkout()
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        stopTimer()
+        ActivityKitManager.shared.endWorkoutActivity()
+        healthKit.endWorkoutSession()
         onFinish?()
     }
     
-    private func endWorkout() {
-        timer?.cancel()
-        timer = nil
-        globalTimer?.cancel()
-        globalTimer = nil
-        healthKit.endWorkoutSession()
+    private func startTimer() {
+        timer = Timer.publish(every: 1.0, on: .main, in: .common)
+            .autoconnect()
+            .sink { _ in
+                elapsedTime += 1
+                if isResting {
+                    if restSecondsRemaining > 1 {
+                        restSecondsRemaining -= 1
+                    } else {
+                        // Rest ended
+                        UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                        endRest()
+                    }
+                }
+            }
     }
     
-    private func formatDuration(_ seconds: Int) -> String {
-        let mins = seconds / 60
-        let secs = seconds % 60
-        return String(format: "%02d:%02d", mins, secs)
+    private func stopTimer() {
+        timer?.cancel()
+        timer = nil
+    }
+    
+    private func syncWithWatch() {
+        guard let slot = currentSlot else { return }
+        watchSync.sendWorkoutUpdate(
+            exercise: slot.exercise.name,
+            set: currentSetIndex,
+            totalSets: slot.sets,
+            isRest: isResting,
+            restSecondsRemaining: restSecondsRemaining
+        )
     }
 }
