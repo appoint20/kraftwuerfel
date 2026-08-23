@@ -319,6 +319,7 @@ export default function App() {
           <AiCoachTab
             active={{ ...active, end: endActivePlan }}
             favorites={favorites}
+            saved={saved}
             onGetPro={openPro}
             onStartLiveTraining={startLiveTraining}
           />

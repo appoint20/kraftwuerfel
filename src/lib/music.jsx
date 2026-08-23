@@ -274,20 +274,25 @@ export function MusicProvider({ children }) {
         silentUrlRef.current = silentTrackUrl();
         silentRef.current = new Audio(silentUrlRef.current);
         silentRef.current.loop = true;
-        silentRef.current.volume = 0;
+        silentRef.current.volume = 0.05; // WebKit erfordert > 0 damit Audio-Routing aktiv bleibt
         silentRef.current.setAttribute("playsinline", "");
       }
       await silentRef.current.play();
+      if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+        navigator.mediaSession.playbackState = "playing";
+      }
     } catch {
-      // Ohne Nutzergeste verweigert der Browser die Wiedergabe — dann eben
-      // keine Karte, statt eines Fehlers.
+      // Ohne Nutzergeste verweigert der Browser die Wiedergabe
     }
   }, [isPlaying]);
 
   const releaseLockScreen = useCallback(() => {
     if (!silentRef.current) return;
     silentRef.current.pause();
-  }, []);
+    if (typeof navigator !== "undefined" && "mediaSession" in navigator && !isPlaying) {
+      navigator.mediaSession.playbackState = "none";
+    }
+  }, [isPlaying]);
 
   // Sobald echte Musik läuft, wird die Stille überflüssig.
   useEffect(() => {

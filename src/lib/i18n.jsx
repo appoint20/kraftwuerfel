@@ -118,6 +118,12 @@ const DE = {
   "saved.exercises": "{n} Übungen",
   "saved.load": "Laden",
   "saved.delete": "Löschen",
+  "saved.workouts": "Trainingspläne",
+  "saved.mealPlans": "Ernährungspläne",
+  "saved.noMealPlans": "Noch keine Ernährungspläne gespeichert.",
+  "ai.saveMealPlan": "Ernährungsplan speichern",
+  "ai.mealPlanSaved": "Ernährungsplan gespeichert!",
+  "common.all": "Alles",
 
   "fav.title": "Favorisierte Tagespläne",
   "fav.empty": "Noch keine Favoriten.",
@@ -416,6 +422,12 @@ const EN = {
   "saved.exercises": "{n} exercises",
   "saved.load": "Load",
   "saved.delete": "Delete",
+  "saved.workouts": "Workouts",
+  "saved.mealPlans": "Meal Guides",
+  "saved.noMealPlans": "No meal guides saved yet.",
+  "ai.saveMealPlan": "Save Meal Guide",
+  "ai.mealPlanSaved": "Meal guide saved!",
+  "common.all": "All",
 
   "fav.title": "Favourite day plans",
   "fav.empty": "No favourites yet.",
@@ -720,6 +732,19 @@ export function translateFocusString(text, lang) {
   });
 }
 
+const METHOD_EN = {
+  standard: "Standard",
+  "543": "5×4×3",
+  "443": "4×4×3",
+  "brust-fokus": "Chest Focus",
+  "ruecken-fokus": "Back Focus",
+  "rücken-fokus": "Back Focus",
+  "beine-fokus": "Legs Focus",
+  "Brust-Fokus": "Chest Focus",
+  "Rücken-Fokus": "Back Focus",
+  "Beine-Fokus": "Legs Focus",
+};
+
 const DICTS = { de: DE, en: EN };
 
 function interpolate(str, vars) {
@@ -747,6 +772,7 @@ export function I18nProvider({ children }) {
     category: (name) => (lang === "en" ? CATEGORY_EN[name] || name : name),
     equipment: (name) => (lang === "en" ? EQUIPMENT_EN[name] || name : name),
     split: (name) => (lang === "en" ? SPLIT_EN[name] || name : name),
+    method: (name) => (lang === "en" ? METHOD_EN[name] || translateFocusString(name, "en") || name : name),
     weekday: (name) => (lang === "en" ? WEEKDAY_EN[name] || name : name),
     focusText: (text) => translateFocusString(text, lang),
     exerciseName: (ex) => {

@@ -196,7 +196,32 @@ const localRepo = {
       readList(LS_FAVS).filter((f) => f.id !== id)
     );
   },
+  async listNutrition() {
+    return readList("kraftwuerfel:saved-nutrition").sort((a, b) => (b.savedAt || "").localeCompare(a.savedAt || ""));
+  },
+  async saveNutrition(plan) {
+    const entry = {
+      id: newId(),
+      ...plan,
+      savedAt: new Date().toISOString(),
+    };
+    writeList("kraftwuerfel:saved-nutrition", [entry, ...readList("kraftwuerfel:saved-nutrition")]);
+    return entry;
+  },
+  async deleteNutrition(id) {
+    writeList(
+      "kraftwuerfel:saved-nutrition",
+      readList("kraftwuerfel:saved-nutrition").filter((n) => n.id !== id)
+    );
+  },
 };
 
-export const repository = isSupabaseConfigured ? supabaseRepo : localRepo;
+export const repository = isSupabaseConfigured
+  ? {
+      ...supabaseRepo,
+      listNutrition: localRepo.listNutrition,
+      saveNutrition: localRepo.saveNutrition,
+      deleteNutrition: localRepo.deleteNutrition,
+    }
+  : localRepo;
 export const isLocalMode = !isSupabaseConfigured;

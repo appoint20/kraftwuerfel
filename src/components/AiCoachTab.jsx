@@ -24,7 +24,7 @@ const QUICK_LIMITATIONS = [
   { id: "wrists", key: "ai.limitWrists", text: "Handgelenke schonen" },
 ];
 
-export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTraining }) {
+export default function AiCoachTab({ active, favorites, saved, onGetPro, onStartLiveTraining }) {
   const { t, category, equipment: equipmentLabel, weekday, focusText, lang } = useI18n();
   const { isPremium } = useAuth();
   const [planView, setPlanView] = useState("workout"); // "workout" | "nutrition"
@@ -362,6 +362,20 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
             {/* Gesundheitsbezogene Zahlen ohne Einordnung stehen zu lassen wäre
                 falsch — das sind Rechenwerte, keine Beratung. */}
             <div className="nutrition-disclaimer">{t("ai.nutritionDisclaimer")}</div>
+
+            <button
+              className="kw-btn"
+              style={{ width: "100%", marginTop: "14px" }}
+              onClick={() => {
+                if (saved?.saveNutrition) {
+                  saved.saveNutrition(plan.nutrition, plan.title);
+                  setStatus(t("ai.mealPlanSaved"));
+                  setTimeout(() => setStatus(""), 2500);
+                }
+              }}
+            >
+              <Sparkles size={16} /> {t("ai.saveMealPlan")}
+            </button>
           </div>
         )}
 
@@ -628,6 +642,13 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
           <div className="wizard-headline">{t("ai.equipment")}</div>
 
           <div className="filter-chips">
+            <button
+              type="button"
+              className={`chip ${equipment.size === 0 ? "active" : ""}`}
+              onClick={() => setEquipment(new Set())}
+            >
+              {t("common.all")}
+            </button>
             {EQUIPMENT.map((eq) => (
               <button
                 key={eq}

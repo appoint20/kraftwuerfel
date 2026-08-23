@@ -20,7 +20,7 @@ export default function GeneratorTab({
   onStartLiveTraining,
 }) {
   const { isPremium } = useAuth();
-  const { t, category, equipment, split: splitLabel, locale, exerciseName } = useI18n();
+  const { t, category, equipment, split: splitLabel, method: methodLabel, locale, exerciseName } = useI18n();
   const { split, setSplit, customCats, toggleCustomCat, count, setCount, method, setMethod, restTime, setRestTime } =
     settings;
   const { rollingIdx, scramble } = reel;
@@ -78,7 +78,7 @@ export default function GeneratorTab({
       <div className="chip-row">
         {METHODS.map((m) => (
           <button key={m.id} className={`chip ${method === m.id ? "active" : ""}`} onClick={() => setMethod(m.id)}>
-            {m.label}
+            {methodLabel(m.id || m.label)}
           </button>
         ))}
       </div>

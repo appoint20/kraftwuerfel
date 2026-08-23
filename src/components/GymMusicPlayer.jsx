@@ -127,6 +127,9 @@ export default function GymMusicPlayer({ onClose }) {
           <button className="music-add" onClick={() => fileRef.current?.click()} disabled={importing}>
             <Plus size={16} /> {importing ? t("music.importing") : t("music.add")}
           </button>
+          <div style={{ fontSize: "11px", color: "var(--muted)", textAlign: "center", marginTop: "6px" }}>
+            {t("music.fileHint") || "📁 Wähle „Dateien auswählen“ für MP3/M4A aus iCloud Drive, Dateien oder Downloads"}
+          </div>
 
           {music.tracks.length > 0 && (
             <div className="music-usage">{t("music.usage", { size: formatBytes(totalBytes), n: music.tracks.length })}</div>
