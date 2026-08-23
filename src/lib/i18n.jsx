@@ -193,7 +193,9 @@ const DE = {
   "ai.diet.omnivore": "Ich esse alles",
   "ai.diet.vegetarian": "Vegetarisch",
   "ai.diet.vegan": "Vegan",
-  "ai.nutritionTitle": "Ernährungsplan",
+  "ai.workoutTab": "Trainingsplan",
+  "ai.mealGuideTab": "Meal Guide",
+  "ai.nutritionTitle": "Ernährungsplan & Meal Guide",
   "ai.perDay": "Tag",
   "ai.protein": "Eiweiß",
   "ai.carbs": "Kohlenhydrate",
@@ -488,7 +490,9 @@ const EN = {
   "ai.diet.omnivore": "I eat everything",
   "ai.diet.vegetarian": "Vegetarian",
   "ai.diet.vegan": "Vegan",
-  "ai.nutritionTitle": "Nutrition plan",
+  "ai.workoutTab": "Workout Plan",
+  "ai.mealGuideTab": "Meal Guide",
+  "ai.nutritionTitle": "Nutrition Plan & Meal Guide",
   "ai.perDay": "day",
   "ai.protein": "Protein",
   "ai.carbs": "Carbs",
@@ -638,13 +642,52 @@ const SPLIT_EN = {
 
 const WEEKDAY_EN = { Mo: "Mon", Di: "Tue", Mi: "Wed", Do: "Thu", Fr: "Fri", Sa: "Sat", So: "Sun" };
 
-const DICTS = { de: DE, en: EN };
+const FOCUS_MAP = {
+  brust: "Chest",
+  rücken: "Back",
+  nacken: "Neck",
+  schultern: "Shoulders",
+  schulter: "Shoulders",
+  bizeps: "Biceps",
+  trizeps: "Triceps",
+  beine: "Legs",
+  bein: "Legs",
+  gesäß: "Glutes",
+  waden: "Calves",
+  wade: "Calves",
+  bauch: "Core",
+  core: "Core",
+  ganzkörper: "Full Body",
+  oberkörper: "Upper Body",
+  unterkörper: "Lower Body",
+  push: "Push",
+  pull: "Pull",
+  frauen: "Women",
+  fokus: "Focus",
+  kraft: "Strength",
+  hypertrophie: "Hypertrophy",
+  haltung: "Posture",
+  straffung: "Toning",
+  definition: "Definition",
+  ausdauer: "Endurance",
+  kondition: "Conditioning",
+  und: "&",
+};
 
-const I18nContext = createContext(null);
-
-function interpolate(template, vars) {
-  if (!vars) return template;
-  return template.replace(/\{(\w+)\}/g, (match, key) => (key in vars ? String(vars[key]) : match));
+export function translateFocusString(text, lang) {
+  if (!text) return "";
+  if (lang !== "en") return text;
+  return text.replace(/\b[a-zA-ZäöüÄÖÜß-]+\b/g, (token) => {
+    const lower = token.toLowerCase();
+    if (FOCUS_MAP[lower]) return FOCUS_MAP[lower];
+    if (token.includes("-")) {
+      return token
+        .split("-")
+        .map((p) => FOCUS_MAP[p.toLowerCase()] || p)
+        .join(" ");
+    }
+    return token;
+  });
 }
 
 export function I18nProvider({ children }) {
@@ -666,6 +709,7 @@ export function I18nProvider({ children }) {
     equipment: (name) => (lang === "en" ? EQUIPMENT_EN[name] || name : name),
     split: (name) => (lang === "en" ? SPLIT_EN[name] || name : name),
     weekday: (name) => (lang === "en" ? WEEKDAY_EN[name] || name : name),
+    focusText: (text) => translateFocusString(text, lang),
     exerciseName: (ex) => {
       if (!ex) return "";
       const deName = typeof ex === "string" ? ex : ex.name;

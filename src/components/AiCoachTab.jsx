@@ -25,8 +25,9 @@ const QUICK_LIMITATIONS = [
 ];
 
 export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTraining }) {
-  const { t, category, equipment: equipmentLabel, weekday, lang } = useI18n();
+  const { t, category, equipment: equipmentLabel, weekday, focusText, lang } = useI18n();
   const { isPremium } = useAuth();
+  const [planView, setPlanView] = useState("workout"); // "workout" | "nutrition"
 
   // Wizard step (1 to 5)
   const [step, setStep] = usePersistentState("ai.step", 1);
@@ -209,74 +210,93 @@ export default function AiCoachTab({ active, favorites, onGetPro, onStartLiveTra
           )}
         </div>
 
-        <div className="tp-day-list">
-          {plan.days.map((dayObj, idx) => {
-            const dayName = dayObj.weekday;
-            const slots = aiDayToSlots(dayObj);
-            return (
-              <div className="tp-day-block" key={`${dayName}-${idx}`}>
-                <div className="tp-day-toggle-row">
-                  <div className="tp-day-toggle as-header">
-                    <span className="tp-day-toggle-label">{weekday(dayName)}</span>
-                    <span className="plan-name-badge">{dayObj.name}</span>
-                    <span className="tp-day-toggle-count">{dayObj.focus}</span>
-                  </div>
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    <button
-                      className="tp-fav-btn reorder"
-                      onClick={() => moveDay(idx, -1)}
-                      disabled={idx === 0}
-                      title={t("tp.moveUp")}
-                    >
-                      <ChevronUp size={15} />
-                    </button>
-                    <button
-                      className="tp-fav-btn reorder"
-                      onClick={() => moveDay(idx, 1)}
-                      disabled={idx === plan.days.length - 1}
-                      title={t("tp.moveDown")}
-                    >
-                      <ChevronDown size={15} />
-                    </button>
-                    {onStartLiveTraining && (
+        {plan.nutrition && (
+          <div className="live-mode-switch" style={{ margin: "14px 0" }}>
+            <button
+              className={`live-mode-btn ${planView === "workout" ? "active" : ""}`}
+              onClick={() => setPlanView("workout")}
+            >
+              🏋️ {t("ai.workoutTab")}
+            </button>
+            <button
+              className={`live-mode-btn ${planView === "nutrition" ? "active" : ""}`}
+              onClick={() => setPlanView("nutrition")}
+            >
+              🥗 {t("ai.mealGuideTab")}
+            </button>
+          </div>
+        )}
+
+        {planView === "workout" && (
+          <div className="tp-day-list">
+            {plan.days.map((dayObj, idx) => {
+              const dayName = dayObj.weekday;
+              const slots = aiDayToSlots(dayObj);
+              return (
+                <div className="tp-day-block" key={`${dayName}-${idx}`}>
+                  <div className="tp-day-toggle-row">
+                    <div className="tp-day-toggle as-header">
+                      <span className="tp-day-toggle-label">{weekday(dayName)}</span>
+                      <span className="plan-name-badge">{focusText(dayObj.name)}</span>
+                      <span className="tp-day-toggle-count">{focusText(dayObj.focus)}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <button
+                        className="tp-fav-btn reorder"
+                        onClick={() => moveDay(idx, -1)}
+                        disabled={idx === 0}
+                        title={t("tp.moveUp")}
+                      >
+                        <ChevronUp size={15} />
+                      </button>
+                      <button
+                        className="tp-fav-btn reorder"
+                        onClick={() => moveDay(idx, 1)}
+                        disabled={idx === plan.days.length - 1}
+                        title={t("tp.moveDown")}
+                      >
+                        <ChevronDown size={15} />
+                      </button>
+                      {onStartLiveTraining && (
+                        <button
+                          className="tp-fav-btn"
+                          onClick={() => onStartLiveTraining(slots, `${focusText(dayObj.name)} · ${weekday(dayName)}`)}
+                          title={t("live.startTraining")}
+                          style={{ color: "var(--accent)" }}
+                        >
+                          <Play size={15} fill="currentColor" />
+                        </button>
+                      )}
                       <button
                         className="tp-fav-btn"
-                        onClick={() => onStartLiveTraining(slots, `${dayObj.name} · ${weekday(dayName)}`)}
-                        title={t("live.startTraining")}
-                        style={{ color: "var(--accent)" }}
+                        onClick={() => favorites.add(dayName, [slots], "KI", "standard")}
+                        title={t("tp.favorite")}
                       >
-                        <Play size={15} fill="currentColor" />
+                        <Heart size={15} />
                       </button>
+                    </div>
+                  </div>
+                  <div className="tp-day-cycles">
+                    {dayObj.warmup?.length > 0 && (
+                      <div className="warmup-block">
+                        <div className="warmup-head">{t("ai.warmupLabel")}</div>
+                        {dayObj.warmup.map((w, wi) => (
+                          <div className="warmup-row" key={wi}>
+                            <span className="warmup-name">{w.name}</span>
+                            {w.duration && <span className="warmup-dur">{w.duration}</span>}
+                          </div>
+                        ))}
+                      </div>
                     )}
-                    <button
-                      className="tp-fav-btn"
-                      onClick={() => favorites.add(dayName, [slots], "KI", "standard")}
-                      title={t("tp.favorite")}
-                    >
-                      <Heart size={15} />
-                    </button>
+                    <CycleBlock slots={slots} />
                   </div>
                 </div>
-                <div className="tp-day-cycles">
-                  {dayObj.warmup?.length > 0 && (
-                    <div className="warmup-block">
-                      <div className="warmup-head">{t("ai.warmupLabel")}</div>
-                      {dayObj.warmup.map((w, wi) => (
-                        <div className="warmup-row" key={wi}>
-                          <span className="warmup-name">{w.name}</span>
-                          {w.duration && <span className="warmup-dur">{w.duration}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <CycleBlock slots={slots} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
-        {plan.nutrition && (
+        {planView === "nutrition" && plan.nutrition && (
           <div className="nutrition-card">
             <div className="nutrition-head">
               <span className="nutrition-title">{t("ai.nutritionTitle")}</span>
