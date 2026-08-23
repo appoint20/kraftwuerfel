@@ -694,6 +694,11 @@ export function translateFocusString(text, lang) {
 
 const DICTS = { de: DE, en: EN };
 
+function interpolate(str, vars) {
+  if (!vars || typeof str !== "string") return str;
+  return str.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? vars[k] : `{${k}}`));
+}
+
 const I18nContext = createContext(null);
 
 export function I18nProvider({ children }) {
