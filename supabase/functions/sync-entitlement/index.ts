@@ -15,19 +15,15 @@
   Zahlungsanbieters setzt is_premium, niemals der Browser.
 */
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
 
 const env = (name: string, fallback = "") => Deno.env.get(name)?.trim() || fallback;
 
-const CORS = {
-  "Access-Control-Allow-Origin": env("ALLOWED_ORIGIN", "*"),
-  "Access-Control-Allow-Headers": "authorization, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
 
-const json = (body: unknown, status = 200) =>
+const json = (body: unknown, status: number, req: Request) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, "Content-Type": "application/json" },
+    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 
 const allowlist = () =>
@@ -37,8 +33,8 @@ const allowlist = () =>
     .filter(Boolean);
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(req) });
+  if (req.method !== "POST") return json({ error: "method not allowed" }, 405, req);
 
   const authHeader = req.headers.get("Authorization") ?? "";
 
@@ -49,7 +45,7 @@ Deno.serve(async (req) => {
 
   const { data: userData } = await asUser.auth.getUser();
   const user = userData?.user;
-  if (!user) return json({ error: "unauthorized" }, 401);
+  if (!user) return json({ error: "unauthorized" }, 401, req);
 
   const email = (user.email || "").toLowerCase();
   const isTester = email.length > 0 && allowlist().includes(email);
@@ -64,7 +60,7 @@ Deno.serve(async (req) => {
 
   // Nichts zu tun: entweder kein Tester, oder längst freigeschaltet.
   if (!isTester || alreadyPro) {
-    return json({ isPremium: alreadyPro, isAdmin: !!profile?.is_admin, source: alreadyPro ? "profile" : "none" });
+    return json({ isPremium: alreadyPro, isAdmin: !!profile?.is_admin, source: alreadyPro ? "profile" : "none" }, 200, req);
   }
 
   // Nur für die Rollenspalte die Service-Role verwenden — der Trigger in
@@ -72,7 +68,7 @@ Deno.serve(async (req) => {
   const serviceKey = env("SUPABASE_SERVICE_ROLE_KEY");
   if (!serviceKey) {
     console.error("SUPABASE_SERVICE_ROLE_KEY fehlt — Testfreischaltung nicht möglich");
-    return json({ isPremium: false, isAdmin: false, source: "none" });
+    return json({ isPremium: false, isAdmin: false, source: "none" }, 200, req);
   }
 
   const asService = createClient(env("SUPABASE_URL"), serviceKey);
@@ -80,9 +76,9 @@ Deno.serve(async (req) => {
 
   if (error) {
     console.error("entitlement update failed", error.message);
-    return json({ isPremium: false, isAdmin: false, source: "none" });
+    return json({ isPremium: false, isAdmin: false, source: "none" }, 200, req);
   }
 
   console.log("test entitlement granted", email);
-  return json({ isPremium: true, isAdmin: !!profile?.is_admin, source: "tester" });
+  return json({ isPremium: true, isAdmin: !!profile?.is_admin, source: "tester" }, 200, req);
 });

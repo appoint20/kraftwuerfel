@@ -9,8 +9,18 @@
   --accent-dim:rgba(38,225,190,0.12);
 }
 *{box-sizing:border-box;}
-html,body{ margin:0; padding:0; background:var(--bg); }
+html,body{
+  margin:0; padding:0; background:var(--bg);
+  width:100%; max-width:100%;
+  /* Seitwärts soll nichts scrollen. clip statt hidden, weil hidden aus dem
+     Body einen Scroll-Container macht und damit den sticky Header bricht. */
+  overflow-x:hidden;
+  overflow-x:clip;
+}
 body{ -webkit-font-smoothing:antialiased; }
+*{ max-width:100%; }
+
+
 .app{
   background:var(--bg);
   color:var(--text);
@@ -1433,4 +1443,18 @@ body{ -webkit-font-smoothing:antialiased; }
 .ai-plan-reason{
   display:block; margin-top:4px;
   font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--muted);
+}
+
+/*
+  iOS zoomt beim Antippen jedes Eingabefelds, dessen Schrift kleiner als 16px
+  ist — und zoomt danach nicht von allein zurück. Genau das passierte beim
+  Anmelden: E-Mail-Feld antippen, Ansicht vergrößert, ab da scrollt alles auch
+  seitwärts. 16px verhindert das, ohne manuelles Zoomen zu unterbinden.
+
+  Bewusst ohne (pointer: coarse): so gilt die Regel überall und lässt sich auch
+  am Rechner nachprüfen, statt nur auf dem Gerät zu greifen.
+*/
+input:not([type]), input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="search"], textarea, select{
+  font-size:16px;
 }

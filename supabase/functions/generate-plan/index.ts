@@ -19,6 +19,7 @@
 */
 import { OpenRouter } from "npm:@openrouter/sdk@1.2.54";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
 import { sanitize, buildPrompt, validatePlan, extractJson } from "../_shared/planPrompt.ts";
 
 const env = (name: string, fallback = "") => Deno.env.get(name)?.trim() || fallback;
@@ -26,19 +27,15 @@ const env = (name: string, fallback = "") => Deno.env.get(name)?.trim() || fallb
 const MODEL = env("OPENROUTER_MODEL", "anthropic/claude-sonnet-4.5");
 const TEMPERATURE = Number(env("OPENROUTER_TEMPERATURE", "0.7"));
 const MAX_TOKENS = Number(env("OPENROUTER_MAX_TOKENS", "4000"));
-const APP_URL = env("ALLOWED_ORIGIN", "https://kraftwuerfel.app");
+// ALLOWED_ORIGIN darf eine Liste sein — für den Referer reicht der erste Eintrag.
+const APP_URL = env("ALLOWED_ORIGIN", "https://kraftwuerfel.app").split(",")[0].trim();
 const DAILY_LIMIT = Number(env("AI_DAILY_LIMIT", "20"));
 
-const CORS = {
-  "Access-Control-Allow-Origin": env("ALLOWED_ORIGIN", "*"),
-  "Access-Control-Allow-Headers": "authorization, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
 
-const json = (body: unknown, status = 200) =>
+const json = (body: unknown, status: number, req: Request) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, "Content-Type": "application/json" },
+    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 
 /* Der Antwortinhalt kann laut Typ auch eine Liste von Content-Blöcken sein. */
@@ -54,11 +51,11 @@ function readContent(content: unknown): string | undefined {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(req) });
+  if (req.method !== "POST") return json({ error: "method not allowed" }, 405, req);
 
   const apiKey = env("OPENROUTER_API_KEY");
-  if (!apiKey) return json({ error: "OPENROUTER_API_KEY is not configured" }, 500);
+  if (!apiKey) return json({ error: "OPENROUTER_API_KEY is not configured" }, 500, req);
 
   const authHeader = req.headers.get("Authorization") ?? "";
   const supabase = createClient(env("SUPABASE_URL"), env("SUPABASE_ANON_KEY"), {
@@ -67,7 +64,7 @@ Deno.serve(async (req) => {
 
   const { data: userData } = await supabase.auth.getUser();
   const user = userData?.user;
-  if (!user) return json({ error: "unauthorized" }, 401);
+  if (!user) return json({ error: "unauthorized" }, 401, req);
 
   // Pro-Prüfung gehört hierher, nicht ins Frontend.
   const { data: profile } = await supabase
@@ -76,7 +73,7 @@ Deno.serve(async (req) => {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile?.is_premium && !profile?.is_admin) return json({ error: "premium required" }, 403);
+  if (!profile?.is_premium && !profile?.is_admin) return json({ error: "premium required" }, 403, req);
 
   // Jeder Aufruf kostet Geld — deshalb ein Limit pro Tag und Konto.
   const since = new Date();
@@ -86,17 +83,17 @@ Deno.serve(async (req) => {
     .select("id", { count: "exact", head: true })
     .gte("created_at", since.toISOString());
 
-  if ((count ?? 0) >= DAILY_LIMIT) return json({ error: "daily limit reached" }, 429);
+  if ((count ?? 0) >= DAILY_LIMIT) return json({ error: "daily limit reached" }, 429, req);
 
   let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
-    return json({ error: "invalid body" }, 400);
+    return json({ error: "invalid body" }, 400, req);
   }
 
   const answers = sanitize(body);
-  if ("error" in answers) return json(answers, 400);
+  if ("error" in answers) return json(answers, 400, req);
 
   const { system, user: userPrompt } = buildPrompt(answers);
 
@@ -129,7 +126,7 @@ Deno.serve(async (req) => {
     // Bei stream:false kommt das Ergebnis — hier wird das auch tatsächlich geprüft.
     if (!("choices" in result)) {
       console.error("unexpected streaming response", MODEL);
-      return json({ error: "model request failed" }, 502);
+      return json({ error: "model request failed" }, 502, req);
     }
 
     content = readContent(result.choices?.[0]?.message?.content);
@@ -138,20 +135,20 @@ Deno.serve(async (req) => {
     // Modellfehler und Netzprobleme landen beide hier. Details nur ins Log —
     // der Client bekommt keine Schlüssel oder Anbieter-Interna zu sehen.
     console.error("openrouter request failed", MODEL, (err as Error).message);
-    return json({ error: "model request failed" }, 502);
+    return json({ error: "model request failed" }, 502, req);
   }
 
-  if (!content) return json({ error: "empty model response" }, 502);
+  if (!content) return json({ error: "empty model response" }, 502, req);
 
   let plan;
   try {
     plan = validatePlan(extractJson(content), answers);
   } catch (err) {
     console.error("parse error", (err as Error).message, content.slice(0, 500));
-    return json({ error: "could not read the model response" }, 502);
+    return json({ error: "could not read the model response" }, 502, req);
   }
 
-  if (!plan) return json({ error: "model returned no usable exercises" }, 502);
+  if (!plan) return json({ error: "model returned no usable exercises" }, 502, req);
 
   console.log("plan generated", MODEL, "tokens", usage?.promptTokens, usage?.completionTokens);
 
@@ -162,5 +159,5 @@ Deno.serve(async (req) => {
     days: answers.days.length,
   });
 
-  return json({ plan, model: MODEL });
+  return json({ plan, model: MODEL }, 200, req);
 });
