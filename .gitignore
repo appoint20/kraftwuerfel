@@ -1,24 +1,14 @@
-node_modules
-dist
-.env
-.env.local
 .DS_Store
 *.log
 
-# Supabase CLI scratch state (project ref, pooler URL) — not source
-supabase/.temp/
+# Xcode
+build/
+DerivedData/
+*.xcuserdatastate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
 
-# Native build output (the projects themselves are committed, their builds are not)
-ios/App/build/
-ios/App/Pods/
-ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
-ios/App/App.xcworkspace/xcuserdata/
-android/.gradle/
-android/build/
-android/app/build/
-android/local.properties
-android/.idea/
-android/app/src/main/assets/public/
-ios/App/App/public/
-ios/App/Pods/
-ios/App/App.xcworkspace/xcuserdata/
+# Swift Package Manager
+.swiftpm/
+.build/

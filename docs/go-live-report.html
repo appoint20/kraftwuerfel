@@ -1,0 +1,1022 @@
+<title>Kraftwürfel Go-Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+
+<style>
+  /* ---------------------------------------------------------------
+     Palette: die Tokens der App selbst (Theme.swift) — Mint auf
+     Anthrazit. Für den hellen Grund ist das Mint abgedunkelt, sonst
+     bricht der Kontrast ein; das Anthrazit weicht einem warmen
+     Off-White, das die Textfarbe der App aufnimmt statt Reinweiß.
+     --------------------------------------------------------------- */
+  :root {
+    --ground:      #FAFAF7;
+    --surface:     #FFFFFF;
+    --surface-2:   #F1F1EC;
+    --border:      #E0E0D9;
+    --border-firm: #C9C9C0;
+    --text:        #16171A;
+    --text-2:      #3F4147;
+    --muted:       #6D6F76;
+    --accent:      #0B8F77;
+    --accent-soft: rgba(11, 143, 119, 0.10);
+    --critical:    #C22E2E;
+    --critical-soft: rgba(194, 46, 46, 0.10);
+    --warn:        #9A6205;
+    --warn-soft:   rgba(154, 98, 5, 0.10);
+    --done:        #157F3C;
+    --done-soft:   rgba(21, 127, 60, 0.10);
+    --shadow:      0 1px 2px rgba(16, 17, 20, 0.05), 0 8px 24px rgba(16, 17, 20, 0.04);
+
+    --display: "Bebas Neue", "Haettenschweiler", "Arial Narrow", sans-serif;
+    --body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0D0E10;
+      --surface:     #17181B;
+      --surface-2:   #1F2023;
+      --border:      #2B2D31;
+      --border-firm: #3C3F45;
+      --text:        #F2F2EF;
+      --text-2:      #C9CACE;
+      --muted:       #8B8D93;
+      --accent:      #26E1BE;
+      --accent-soft: rgba(38, 225, 190, 0.13);
+      --critical:    #FF7B7B;
+      --critical-soft: rgba(255, 123, 123, 0.13);
+      --warn:        #F6AD55;
+      --warn-soft:   rgba(246, 173, 85, 0.13);
+      --done:        #4ADE80;
+      --done-soft:   rgba(74, 222, 128, 0.13);
+      --shadow:      0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0D0E10;
+    --surface:     #17181B;
+    --surface-2:   #1F2023;
+    --border:      #2B2D31;
+    --border-firm: #3C3F45;
+    --text:        #F2F2EF;
+    --text-2:      #C9CACE;
+    --muted:       #8B8D93;
+    --accent:      #26E1BE;
+    --accent-soft: rgba(38, 225, 190, 0.13);
+    --critical:    #FF7B7B;
+    --critical-soft: rgba(255, 123, 123, 0.13);
+    --warn:        #F6AD55;
+    --warn-soft:   rgba(246, 173, 85, 0.13);
+    --done:        #4ADE80;
+    --done-soft:   rgba(74, 222, 128, 0.13);
+    --shadow:      0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 28px 96px;
+  }
+
+  .prose { max-width: 68ch; }
+
+  /* ---- Typografie ---- */
+
+  h1, h2, h3 {
+    font-family: var(--display);
+    font-weight: 400;
+    text-wrap: balance;
+    margin: 0;
+    line-height: 1.04;
+  }
+  h1 { font-size: clamp(44px, 7vw, 76px); letter-spacing: 0.02em; }
+  h2 { font-size: clamp(28px, 4vw, 38px); letter-spacing: 0.03em; }
+  h3 { font-size: 21px; letter-spacing: 0.03em; }
+
+  p { margin: 0 0 1em; color: var(--text-2); }
+  p:last-child { margin-bottom: 0; }
+
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  code, .mono { font-family: var(--mono); font-size: 0.86em; }
+  code {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.1em 0.36em;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .eyebrow {
+    font-family: var(--body);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ---- Kopf ---- */
+
+  header.masthead {
+    padding: 72px 0 44px;
+    border-bottom: 1px solid var(--border);
+  }
+  .masthead h1 { margin: 14px 0 0; }
+  .masthead .lede {
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--text-2);
+    max-width: 60ch;
+    margin: 20px 0 0;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    margin-top: 26px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ---- Kennzahlen ---- */
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 40px 0 0;
+  }
+  .tile { background: var(--surface); padding: 20px 22px 22px; }
+  .tile .k {
+    font-family: var(--mono);
+    font-size: 30px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .tile .k .sub { font-size: 15px; color: var(--muted); }
+  .tile .k.pos { color: var(--accent); }
+  .tile .k.neg { color: var(--critical); }
+  .tile .l { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+
+  /* ---- Abschnitte ---- */
+
+  section { padding-top: 68px; }
+  section > .eyebrow { display: block; margin-bottom: 10px; }
+  section > h2 + p, section > h2 + .prose { margin-top: 18px; }
+
+  /* ---- Karten ---- */
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+  }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+  .stack-lg { display: flex; flex-direction: column; gap: 22px; }
+
+  .card-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    margin-bottom: 14px;
+  }
+  .card-head h3 { flex: 1 1 auto; }
+
+  /* Status wird als Form UND Farbe kodiert, nicht nur als Farbe. */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--body);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 2px;
+    background: currentColor;
+  }
+  .badge.done     { color: var(--done);     background: var(--done-soft); }
+  .badge.critical { color: var(--critical); background: var(--critical-soft); }
+  .badge.warn     { color: var(--warn);     background: var(--warn-soft); }
+  .badge.info     { color: var(--accent);   background: var(--accent-soft); }
+
+  .what {
+    display: grid;
+    grid-template-columns: 108px 1fr;
+    gap: 10px 18px;
+    margin-top: 4px;
+  }
+  .what dt {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 4px;
+  }
+  .what dd { margin: 0; color: var(--text-2); }
+  @media (max-width: 560px) {
+    .what { grid-template-columns: 1fr; gap: 4px 0; }
+    .what dd { margin-bottom: 12px; }
+  }
+
+  /* ---- Vorher / Nachher ---- */
+
+  .compare {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 18px;
+    margin-top: 26px;
+  }
+  .tree {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.72;
+    white-space: pre;
+    overflow-x: auto;
+    margin: 0;
+    color: var(--text-2);
+  }
+  .tree .dim { color: var(--muted); }
+  .tree .hit { color: var(--critical); }
+  .tree .new { color: var(--accent); }
+
+  /* ---- Befundliste ---- */
+
+  ol.findings { list-style: none; counter-reset: f; margin: 26px 0 0; padding: 0; }
+  ol.findings > li {
+    counter-increment: f;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 4px 16px;
+    padding: 18px 0;
+    border-top: 1px solid var(--border);
+  }
+  ol.findings > li::before {
+    content: counter(f, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    padding-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  ol.findings h3 { font-size: 19px; }
+  ol.findings p { margin: 6px 0 0; font-size: 15px; }
+
+  /* ---- Tabelle ---- */
+
+  .table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-top: 26px;
+    background: var(--surface);
+  }
+  table { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 14.5px; }
+  th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--text);
+  }
+  td strong { color: var(--text); font-weight: 600; }
+  td .why { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; }
+
+  /* ---- Zeitplan ----
+     Die Nummerierung ist hier echte Information: die Phasen hängen
+     voneinander ab. Ohne Umgebung kein Gerätetest, ohne Kaufweg keine
+     Einreichung. --------------------------------------------------- */
+
+  .timeline { margin-top: 30px; position: relative; padding-left: 34px; }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 11px; top: 8px; bottom: 8px;
+    width: 2px;
+    background: var(--border-firm);
+  }
+  .phase { position: relative; padding-bottom: 30px; }
+  .phase:last-child { padding-bottom: 0; }
+  .phase::before {
+    content: "";
+    position: absolute;
+    left: -29px; top: 7px;
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    background: var(--ground);
+    border: 2px solid var(--border-firm);
+  }
+  .phase.is-done::before { background: var(--done); border-color: var(--done); }
+  .phase.is-blocked::before { background: var(--critical); border-color: var(--critical); }
+  .phase-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+  }
+  .phase-head h3 { font-size: 22px; }
+  .phase-when {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .phase ul { margin: 10px 0 0; padding-left: 18px; color: var(--text-2); font-size: 15px; }
+  .phase li { margin-bottom: 3px; }
+  .phase li::marker { color: var(--muted); }
+
+  /* ---- Kastenhinweis ---- */
+
+  .note {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-2);
+    padding: 20px 22px;
+    margin-top: 26px;
+  }
+  .note .eyebrow { display: block; margin-bottom: 8px; }
+  .note p { font-size: 15px; }
+
+  ul.plain { list-style: none; padding: 0; margin: 14px 0 0; }
+  ul.plain li {
+    padding: 9px 0 9px 22px;
+    border-top: 1px solid var(--border);
+    position: relative;
+    font-size: 15px;
+    color: var(--text-2);
+  }
+  ul.plain li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 18px;
+    width: 7px; height: 2px;
+    background: var(--muted);
+  }
+
+  footer {
+    margin-top: 76px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    a { transition: color 120ms ease; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <span class="eyebrow">Kraftwürfel · Technischer Bericht</span>
+    <h1>Weg in den App&nbsp;Store</h1>
+    <p class="lede">
+      Die drei gemeldeten Punkte sind behoben und im Build nachgewiesen. Der Grund für zwei
+      davon war derselbe: Das Projekt hatte genau ein Ziel. Sechs weitere Punkte stehen noch
+      zwischen dem heutigen Stand und einer Einreichung — der schwerste ist, dass niemand Pro
+      kaufen kann.
+    </p>
+    <div class="meta">
+      <span>25.08.2026</span>
+      <span>Xcode 16.1</span>
+      <span>iOS 16.2 · watchOS 10.0</span>
+      <span>9.211 Zeilen Swift</span>
+    </div>
+  </header>
+
+  <div class="tiles">
+    <div class="tile">
+      <div class="k pos">1&nbsp;<span class="sub">→</span>&nbsp;3</div>
+      <div class="l">Ziele im Projekt</div>
+    </div>
+    <div class="tile">
+      <div class="k">174</div>
+      <div class="l">Web-Dateien entfernt</div>
+    </div>
+    <div class="tile">
+      <div class="k pos">3<span class="sub">/3</span></div>
+      <div class="l">Gemeldete Punkte behoben</div>
+    </div>
+    <div class="tile">
+      <div class="k neg">6</div>
+      <div class="l">Blocker offen</div>
+    </div>
+    <div class="tile">
+      <div class="k">~12<span class="sub"> Tage</span></div>
+      <div class="l">Bis einreichungsbereit</div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <section>
+    <span class="eyebrow">Ausgangslage</span>
+    <h2>Was hier eigentlich lag</h2>
+    <div class="prose">
+      <p>
+        Das Repository enthielt zwei Apps, die sich gegenseitig im Weg standen: eine React-App
+        mit Vite, Supabase und Capacitor — und darin verschachtelt, unter
+        <code>ios/App/App/SwiftUI/</code>, die eigentliche SwiftUI-App. Das Xcode-Projekt war
+        weiterhin das Capacitor-Gerüst von 2018: <code>objectVersion&nbsp;48</code>, CocoaPods
+        für sechs Capacitor-Plugins, die keine einzige Swift-Datei benutzte, ein Aufbau, der nur
+        über <code>App.xcworkspace</code> baute, ein <code>AppDelegate</code>, das auf eine
+        leere Klasse zusammengeschrumpft war, dazu <code>Main.storyboard</code>,
+        <code>config.xml</code> und ein komplettes kompiliertes Web-Bundle, das bei jedem Build
+        mit in die <code>.app</code> kopiert wurde.
+      </p>
+      <p>
+        Alles davon ist raus. Die SwiftUI-App liegt jetzt flach im Stammverzeichnis, mit drei
+        Zielen statt einem.
+      </p>
+    </div>
+
+    <div class="compare">
+      <div class="card">
+        <div class="card-head"><h3>Vorher</h3><span class="badge critical">Entfernt</span></div>
+<pre class="tree"><span class="dim">kraft/</span>
+├── <span class="hit">src/</span>            <span class="dim">React + Vite</span>
+├── <span class="hit">dist/  public/</span>  <span class="dim">Web-Build</span>
+├── <span class="hit">android/</span>        <span class="dim">Capacitor</span>
+├── <span class="hit">supabase/</span>       <span class="dim">Edge Functions</span>
+├── <span class="hit">docker/</span>  <span class="hit">Dockerfile</span>
+├── <span class="hit">node_modules/</span>   <span class="dim">220 MB</span>
+└── ios/App/
+    ├── <span class="hit">Podfile  Pods/</span>
+    ├── <span class="hit">App.xcworkspace</span>
+    └── App/
+        ├── <span class="hit">AppDelegate.swift</span>
+        ├── <span class="hit">config.xml</span>
+        ├── <span class="hit">public/</span>   <span class="dim">Web im Bündel</span>
+        └── <span class="dim">SwiftUI/</span>  <span class="dim">← die App</span></pre>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Jetzt</h3><span class="badge done">Baut</span></div>
+<pre class="tree"><span class="dim">kraft/</span>
+├── <span class="new">Kraftwuerfel.xcodeproj</span>
+├── <span class="new">Kraftwuerfel/</span>          <span class="dim">iOS-App</span>
+│   ├── Models/  Services/
+│   ├── Theme/   Views/
+│   ├── <span class="new">Shared/</span>            <span class="dim">App + Widget</span>
+│   └── Fonts/  Assets.xcassets
+├── <span class="new">KraftwuerfelWidget/</span>    <span class="dim">Live Activity</span>
+├── <span class="new">KraftwuerfelWatch/</span>     <span class="dim">watchOS</span>
+├── Tools/                <span class="dim">pbxproj-Generator</span>
+└── docs/</pre>
+      </div>
+    </div>
+
+    <div class="note">
+      <span class="eyebrow">Zum Backend</span>
+      <p>
+        <code>supabase/</code> ist mitentfernt, wie abgestimmt — die Aufrufe laufen über den
+        eigenen Dienst <code>kraftwuerfel-api.onrender.com</code>, der in einem anderen
+        Repository liegt. Alles Gelöschte steckt weiterhin in der Git-Historie und ist mit
+        <code>git checkout HEAD~1 -- &lt;pfad&gt;</code> wiederherstellbar. Der Stand ist noch
+        <strong>nicht committet</strong>, damit die Löschung vor dem Festschreiben prüfbar bleibt.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <span class="eyebrow">Die drei gemeldeten Punkte</span>
+    <h2>Behoben</h2>
+
+    <div class="stack-lg" style="margin-top:26px">
+
+      <article class="card">
+        <div class="card-head">
+          <h3>Sperrbildschirm-Karte</h3>
+          <span class="badge done">Behoben</span>
+          <span class="badge info">im Build nachgewiesen</span>
+        </div>
+        <dl class="what">
+          <dt>Befund</dt>
+          <dd>
+            Bestätigt, und zusätzlich eine zweite Ursache: Es fehlte nicht nur die
+            Widget-Erweiterung, sondern <code>WorkoutActivityAttributes</code> lag ausschließlich
+            im App-Ziel. ActivityKit gleicht Attribute über den Typnamen ab — selbst mit
+            Erweiterung hätte eine Kopie dort beim ersten Feldwechsel auseinandergelaufen.
+          </dd>
+          <dt>Geändert</dt>
+          <dd>
+            Neues Ziel <code>KraftwuerfelWidget</code> mit <code>ActivityConfiguration</code>,
+            Sperrbildschirm-Karte und Dynamic Island in allen drei Zuständen. Der Attributtyp
+            liegt in <code>Kraftwuerfel/Shared/</code> und wird in beide Ziele übersetzt.
+            <code>ActivityKitManager</code> arbeitet jetzt mit <code>ActivityContent</code>
+            statt der veralteten <code>contentState</code>-API, hält den Zustand fest und sendet
+            Teil-Updates, statt bei jedem Aufruf einen frischen Zustand zu bauen — vorher hat
+            <code>updateRestTimer</code> stillschweigend alle Felder außer Pause und Satzzahl auf
+            Vorgabewerte zurückgesetzt.
+          </dd>
+          <dt>Nachweis</dt>
+          <dd class="mono">
+            KraftwuerfelWidget.appex in App.app/PlugIns/ · NSExtensionPointIdentifier =
+            com.apple.widgetkit-extension · Attributtyp in beiden Binaries · ActivityConfiguration
+            nur in der Erweiterung
+          </dd>
+        </dl>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h3>Apple Watch</h3>
+          <span class="badge done">Behoben</span>
+          <span class="badge warn">Gerätetest offen</span>
+        </div>
+        <dl class="what">
+          <dt>Befund</dt>
+          <dd>
+            Bestätigt. <code>WatchContentView.swift</code> stand hinter
+            <code>#if os(watchOS) || canImport(WatchKit)</code> — und WatchKit lässt sich auch auf
+            iOS importieren, die Bedingung war also wahr. Die Ansicht wurde in die iPhone-App
+            übersetzt, wo sie niemand sehen konnte. Zwei weitere Fehler hätten auch mit Uhr
+            zugeschlagen: Jedes Senden stand hinter <code>guard isReachable</code> ohne Rückfall,
+            und die Pause ging als <em>Restsekunden</em> raus, obwohl Nachrichten nur bei
+            Zustandswechseln fließen — der Zähler auf der Uhr hätte stillgestanden.
+          </dd>
+          <dt>Geändert</dt>
+          <dd>
+            Neues Ziel <code>KraftwuerfelWatch</code> (watchOS 10, Einzel-Ziel-App), eingebettet
+            in die iPhone-App. <code>WatchWorkoutManager</code> führt eine echte
+            <code>HKWorkoutSession</code> mit <code>traditionalStrengthTraining</code> — das ist
+            genau der „Krafttraining“-Eintrag, den die Fitness-App anzeigt, solange die Einheit
+            läuft. <code>WatchSyncManager</code> läuft jetzt in beiden Zielen, sendet Zustand über
+            den Anwendungskontext (wird auch zugestellt, wenn die Gegenstelle schläft) und die
+            Pause als <em>Zeitpunkt</em>, aus dem die Uhr selbst herunterzählt.
+          </dd>
+          <dt>Nachweis</dt>
+          <dd class="mono">
+            watchOS-Quellen typgeprüft gegen WatchOS11.1.sdk, arm64_32-apple-watchos10.0 — 0
+            Fehler, 0 Warnungen. Vollständiger Build steht aus, siehe unten.
+          </dd>
+        </dl>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h3>Erfundene Gesundheitsdaten</h3>
+          <span class="badge done">Behoben</span>
+          <span class="badge info">Ablehnungsrisiko entfernt</span>
+        </div>
+        <dl class="what">
+          <dt>Befund</dt>
+          <dd>
+            Schlimmer als gemeldet. Es liefen <em>zwei</em> Simulationen nebeneinander.
+            <code>HealthKitManager.startWorkoutSession()</code> — Start bei 125&nbsp;bpm plus
+            <code>Double.random(in: -2...2)</code> — wurde nie aufgerufen und war toter Code, aber
+            die Klasse forderte trotzdem <strong>Schreibrechte</strong> für aktive Energie und
+            Workouts an, ohne je etwas zu schreiben. Angezeigt hat tatsächlich
+            <code>LiveWorkoutView.simulateTick()</code>. Ungenutzte Health-Schreibrechte sind für
+            sich schon ein Prüfbefund.
+          </dd>
+          <dt>Geändert</dt>
+          <dd>
+            Die Simulation im Manager ist weg; <code>HealthKitManager</code> liest nur noch, und
+            nur die Herzfrequenz. Das iPhone schreibt gar nichts mehr — deshalb ist
+            <code>NSHealthUpdateUsageDescription</code> aus der iPhone-Info.plist entfernt.
+            Geschrieben wird auf der Uhr, wo gemessen wird. In der Live-Session haben echte Werte
+            Vorrang; liegt keiner vor, rechnet das Modell weiter und das Etikett steht sichtbar auf
+            „geschätzt“ — auf der Karte und auf dem Sperrbildschirm. Sobald die Uhr misst,
+            wechselt es auf „Apple Watch“.
+          </dd>
+          <dt>Nebenbei</dt>
+          <dd>
+            <code>UIBackgroundModes</code> enthielt <code>workout-processing</code>. Das ist ein
+            watchOS-Modus und heißt dort <code>WKBackgroundModes</code> — auf iOS war er
+            wirkungslos. Er steht jetzt im Uhren-Ziel. Und die HealthKit-Berechtigung
+            (<code>com.apple.developer.healthkit</code>) fehlte komplett: Ohne sie hätte HealthKit
+            auf dem Gerät ohnehin nichts geliefert, der Info.plist-Text allein reicht nicht.
+          </dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <span class="eyebrow">Reverse Engineering</span>
+    <h2>Architektur-Befunde</h2>
+    <p class="prose">
+      Nach Auswirkung sortiert. Die ersten vier sind mit dem Umbau erledigt; der Rest ist
+      benannt, aber nicht angefasst — das lag außerhalb des Auftrags.
+    </p>
+
+    <ol class="findings">
+      <li>
+        <div>
+          <h3>Ein Ziel für drei Plattformen <span class="badge done">erledigt</span></h3>
+          <p>
+            Die gemeinsame Ursache von zwei der drei gemeldeten Punkte. Eine Live Activity und
+            eine Uhren-App sind keine Codefrage, sondern eine Projektfrage: Beide brauchen ein
+            eigenes Bundle. Ohne das nimmt das System die Aufrufe entgegen und tut nichts —
+            ohne Fehlermeldung, was die Fehlersuche so teuer gemacht hat.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Capacitor-Gerüst als Fundament <span class="badge done">erledigt</span></h3>
+          <p>
+            Eine reine SwiftUI-App baute über CocoaPods und ein Workspace, weil sechs
+            Capacitor-Plugins verlinkt waren, die kein Swift-Code je aufrief. Jeder Build kopierte
+            zusätzlich ein Web-Bundle ins Programmpaket.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Handgepflegte Projektdatei mit erfundenen IDs <span class="badge done">erledigt</span></h3>
+          <p>
+            Objekt-IDs wie <code>504EC8001FED796500000001</code> sahen aus wie Xcode-IDs, waren
+            aber durchgezählt. Eine Datei einem Ziel zuzuordnen hieß, sechs Stellen konsistent zu
+            editieren — genau die Mechanik, durch die <code>WatchContentView.swift</code> in den
+            Sources des iPhone-Ziels landete. Ersetzt durch
+            <code>Tools/generate_xcodeproj.py</code>: Die Zielstruktur steht einmal als Daten, die
+            IDs kommen deterministisch aus dem Pfad.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Fehler werden verschluckt <span class="badge warn">teilweise</span></h3>
+          <p>
+            <code>refreshFromAPI()</code> nutzt <code>try?</code> und kehrt bei jedem Fehler
+            wortlos zurück; <code>sendMessage</code> wurde durchweg mit
+            <code>errorHandler: nil</code> aufgerufen. Nichts davon erreicht je einen Nutzer oder
+            ein Protokoll. Beim Sync ist das jetzt behoben, beim Katalog nicht.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Alles ist ein Singleton</h3>
+          <p>
+            Zwölf Dienste als <code>.shared</code>, auf die Ansichten direkt zugreifen. Nichts
+            davon lässt sich in einem Test ersetzen — was zusammen mit dem fehlenden Testziel
+            bedeutet, dass die Periodisierungslogik ungeprüft ausgeliefert wird. Es hat auch schon
+            einmal konkret geschadet: Ein <code>@ObservedObject</code> auf dem HealthKit-Manager
+            baute die gesamte Tab-Hülle im Sekundentakt neu auf.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Zwei Übersetzungssysteme, keins davon Apples</h3>
+          <p>
+            <code>I18n.swift</code> ist ein handgeschriebenes Wörterbuch mit 663 Zeilen; daneben
+            tragen die Aufzählungen in <code>AICoachService</code> ihre eigenen
+            <code>titleDe</code>/<code>titleEn</code>. Ohne String Catalog sieht Apples Werkzeugkette
+            nichts davon: keine Pluralregeln, keine Systemsprache, kein Export für Übersetzer.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Fünf Stores, fünfmal dieselbe Mechanik</h3>
+          <p>
+            <code>SavedPlansStore</code>, <code>FavoritesStore</code>, <code>ActivePlanStore</code>,
+            <code>GeneratorSettings</code> und <code>AICoachSession</code> bauen jeweils von Hand
+            dieselbe Kette aus <code>UserDefaults</code>, <code>JSONEncoder</code> und einem
+            Schlüssel als Zeichenkette. Ein Tippfehler im Schlüssel fällt erst beim Nutzer auf.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3><code>LiveWorkoutView</code>: 732 Zeilen in einer Struktur</h3>
+          <p>
+            Timer, Puls, Uhr-Sync, Live Activity, zwei Layoutmodi und das Satzprotokoll in einer
+            Ansicht. Sie ist der Ort, an dem alle drei gemeldeten Fehler zusammenliefen — kein
+            Zufall.
+          </p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <span class="eyebrow">Vor der Einreichung</span>
+    <h2>Was den Store noch verhindert</h2>
+    <p class="prose">
+      Der erste Eintrag ist der teuerste und wiegt schwerer als alle drei gemeldeten Punkte
+      zusammen: Im Release-Build gibt es keinen Weg, Pro zu bekommen.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Schwere</th>
+            <th>Punkt</th>
+            <th>Aufwand</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge critical">Ablehnung</span></td>
+            <td>
+              <strong>Kein Kaufweg vorhanden</strong>
+              <span class="why">
+                Der „PRO holen“-Knopf in <code>KraftHeaderView</code> hat
+                <code>Button(action: {})</code> — eine leere Aktion. <code>purchasePro()</code> und
+                <code>restorePurchases()</code> werden aus keiner Ansicht aufgerufen, es gibt keinen
+                Kaufbildschirm und keinen „Käufe wiederherstellen“-Knopf. Der
+                <code>premiumGate</code> ist reiner Text. Im Debug-Build ist Pro über
+                <code>debugProOverride</code> standardmäßig an — deshalb ist es nie aufgefallen; im
+                Release-Build ist Pro dauerhaft aus. Richtlinien 3.1.1 und 3.1.2.
+              </span>
+            </td>
+            <td class="num">4 T</td>
+          </tr>
+          <tr>
+            <td><span class="badge critical">Ablehnung</span></td>
+            <td>
+              <strong><code>PrivacyInfo.xcprivacy</code> fehlt</strong>
+              <span class="why">
+                Seit Mai 2024 Pflicht. Die App nutzt <code>UserDefaults</code> durchgehend — eine
+                API mit Begründungspflicht (CA92.1). Ohne das Manifest weist App&nbsp;Store Connect
+                den Upload zurück.
+              </span>
+            </td>
+            <td class="num">0,5 T</td>
+          </tr>
+          <tr>
+            <td><span class="badge critical">Blocker</span></td>
+            <td>
+              <strong>Der KI-Coach ist nicht gesperrt</strong>
+              <span class="why">
+                Der PRO-Punkt am Tab ist Dekoration: <code>AICoachWizardView</code> prüft
+                <code>isProUnlocked</code> an keiner Stelle. Jeder kostenlose Nutzer bekommt die
+                bezahlte Funktion vollständig.
+              </span>
+            </td>
+            <td class="num">0,5 T</td>
+          </tr>
+          <tr>
+            <td><span class="badge warn">Blocker</span></td>
+            <td>
+              <strong><code>ITSAppUsesNonExemptEncryption</code> fehlt</strong>
+              <span class="why">
+                Ohne den Schlüssel bleibt jeder Upload an der Exportfrage hängen, statt in
+                TestFlight anzukommen.
+              </span>
+            </td>
+            <td class="num">10 min</td>
+          </tr>
+          <tr>
+            <td><span class="badge warn">Blocker</span></td>
+            <td>
+              <strong>Der „KI-Coach“ läuft nie über die KI</strong>
+              <span class="why">
+                <code>KraftAPI.accessToken</code> wird nirgends in der App gesetzt — es gibt keine
+                Anmeldung. <code>generatePlan</code> wirft deshalb <em>immer</em>
+                <code>.unauthorized</code> und fällt auf <code>AICoachService</code> zurück, einen
+                regelbasierten lokalen Generator. Was als KI verkauft wird, ist im Auslieferungsstand
+                keine. Entweder Anmeldung nachrüsten oder den Text ändern; als bezahlte Funktion
+                beworben ist das sonst Richtlinie 2.3.1.
+              </span>
+            </td>
+            <td class="num">5 T <span style="color:var(--muted)">/ 0,5 T</span></td>
+          </tr>
+          <tr>
+            <td><span class="badge warn">Risiko</span></td>
+            <td>
+              <strong>Kein einziger Test</strong>
+              <span class="why">
+                Die gelöschte Web-App hatte Vitest-Tests für <code>planLogic</code> und die
+                Planreihenfolge. Die Swift-Portierung hat kein Testziel und keine Testdatei — die
+                Zyklus-Progression, die den Kern des Produkts ausmacht, ist ungeprüft.
+              </span>
+            </td>
+            <td class="num">3 T</td>
+          </tr>
+          <tr>
+            <td><span class="badge info">Klärung</span></td>
+            <td>
+              <strong>iPad im Zielgerätesatz, ohne iPad</strong>
+              <span class="why">
+                <code>TARGETED_DEVICE_FAMILY = 1,2</code>, dabei nur Hochformat, kein iPad-Layout,
+                und HealthKit gibt es auf dem iPad gar nicht. Entweder iPad streichen oder gestalten
+                — unverändert lassen ist die schlechteste der drei Möglichkeiten.
+              </span>
+            </td>
+            <td class="num">0,5 T</td>
+          </tr>
+          <tr>
+            <td><span class="badge info">Risiko</span></td>
+            <td>
+              <strong>Übungskatalog am freien Render-Plan</strong>
+              <span class="why">
+                Der Dienst schläft ein; der erste Aufruf hat im Code-Kommentar 13,9&nbsp;s gebraucht.
+                Der Aufwärm-Ping mildert das, aber ein Ausfall bleibt für den Nutzer unsichtbar.
+              </span>
+            </td>
+            <td class="num">1 T</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <span class="eyebrow">Reihenfolge</span>
+    <h2>Zeitplan</h2>
+    <p class="prose">
+      Die Phasen sind nummeriert, weil sie voneinander abhängen: ohne eingerichtete Umgebung kein
+      Gerätetest, ohne Kaufweg keine sinnvolle Einreichung. Angaben in Personentagen, ein
+      Entwickler.
+    </p>
+
+    <div class="timeline">
+
+      <div class="phase is-done">
+        <div class="phase-head">
+          <h3>01 — Umbau und die drei Punkte</h3>
+          <span class="phase-when">erledigt</span>
+        </div>
+        <ul>
+          <li>Web-App, Capacitor und Android entfernt; SwiftUI flach im Stammverzeichnis</li>
+          <li>Projekt neu erzeugt: App, Widget-Erweiterung, watchOS-App</li>
+          <li>Live Activity, Uhren-Anbindung und Gesundheitsdaten wie oben beschrieben</li>
+          <li>Build ohne Fehler und ohne Warnungen, App startet im Simulator</li>
+        </ul>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <h3>02 — Umgebung herstellen</h3>
+          <span class="phase-when">0,5 T</span>
+        </div>
+        <ul>
+          <li><code>sudo xcode-select -s /Applications/Xcode.app/Contents/Developer</code></li>
+          <li>watchOS-Plattform in Xcode nachinstallieren (Settings → Components)</li>
+          <li>Erster vollständiger Build aller drei Ziele mit Signierung</li>
+        </ul>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <h3>03 — Gerätetests</h3>
+          <span class="phase-when">3 T</span>
+        </div>
+        <ul>
+          <li>Sperrbildschirm und Dynamic Island am echten Gerät, inklusive Pausenzähler</li>
+          <li>Kopplung iPhone ↔ Uhr, Erreichbarkeit, Anwendungskontext bei schlafender Uhr</li>
+          <li><code>HKWorkoutSession</code>: erscheint „Krafttraining“ in der Fitness-App, füllen sich die Ringe, kommt die Einheit in Apple Health an</li>
+          <li>Puls-Etikett wechselt tatsächlich von „geschätzt“ auf „Apple Watch“</li>
+        </ul>
+      </div>
+
+      <div class="phase is-blocked">
+        <div class="phase-head">
+          <h3>04 — Kauf und Freischaltung</h3>
+          <span class="phase-when">4,5 T</span>
+          <span class="badge critical">Blocker</span>
+        </div>
+        <ul>
+          <li>Kaufbildschirm bauen, <code>purchasePro()</code> und <code>restorePurchases()</code> anbinden</li>
+          <li>Produkt in App Store Connect anlegen, im Sandkasten durchspielen</li>
+          <li>KI-Coach hinter das Pro-Gate legen</li>
+          <li>Gesperrten Zustand durchtesten — er lief bisher nie</li>
+        </ul>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <h3>05 — Einreichungspflichten</h3>
+          <span class="phase-when">1,5 T</span>
+        </div>
+        <ul>
+          <li><code>PrivacyInfo.xcprivacy</code> mit Begründung für <code>UserDefaults</code></li>
+          <li><code>ITSAppUsesNonExemptEncryption</code> setzen</li>
+          <li>Datenschutzangaben in App Store Connect, Bildmaterial, iPad-Entscheidung</li>
+        </ul>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <h3>06 — Absicherung</h3>
+          <span class="phase-when">3 T</span>
+        </div>
+        <ul>
+          <li>Testziel anlegen; <code>PlanGenerator</code>, <code>PlanProgress</code> und die Zyklus-Progression abdecken</li>
+          <li>Katalogfehler sichtbar machen statt zu verschlucken</li>
+          <li>TestFlight-Durchlauf</li>
+        </ul>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <h3>07 — Einreichung</h3>
+          <span class="phase-when">~12,5 T ab heute</span>
+        </div>
+        <ul>
+          <li>Ohne die Anmeldung für den Server-KI-Coach; mit ihr kommen 5 Tage dazu</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <span class="eyebrow">Offenlegung</span>
+    <h2>Was ich nicht prüfen konnte</h2>
+    <p class="prose">
+      Damit klar ist, wo der Nachweis endet und die Erwartung anfängt:
+    </p>
+    <ul class="plain">
+      <li>
+        <strong>Die watchOS-Plattform ist auf diesem Rechner nicht installiert</strong> — nur das
+        SDK, keine Laufzeit. <code>actool</code> bricht deshalb schon beim Bildmaterial des
+        Uhren-Ziels ab, auch beim Bauen fürs Gerät. Die Uhren-Quellen sind gegen
+        <code>WatchOS11.1.sdk</code> typgeprüft (0 Fehler, 0 Warnungen), ein vollständiger Build
+        des Uhren-Ziels steht aus.
+      </li>
+      <li>
+        <strong>Die Live Activity ist nicht zur Laufzeit gesehen worden.</strong> Nachgewiesen sind
+        Aufbau und Verdrahtung: Die Erweiterung liegt im Programmpaket, der Erweiterungspunkt
+        stimmt, der Attributtyp steckt in beiden Binaries, die
+        <code>ActivityConfiguration</code>-Symbole nur in der Erweiterung. Ob die Karte auf einem
+        echten Sperrbildschirm richtig aussieht, sagt erst Phase&nbsp;03.
+      </li>
+      <li>
+        <strong>Herzfrequenz und Kalorien der Uhr sind nicht mit echter Hardware gelaufen.</strong>
+        <code>HKWorkoutSession</code> braucht eine Uhr; der Simulator liefert keine Sensorwerte.
+      </li>
+      <li>
+        <strong>Der Simulator ließ sich nicht fernsteuern.</strong> Xcode ist installiert, aber
+        nicht ausgewählt — dafür wird <code>sudo xcode-select</code> gebraucht, was ein Passwort
+        verlangt. Installieren, Starten und Bildschirmfotos liefen über
+        <code>xcrun simctl</code>; Tippen war damit nicht möglich, weshalb die Live-Session nicht
+        durchgeklickt wurde.
+      </li>
+      <li>
+        <strong>Der Umbau ist nicht committet.</strong> 174 gelöschte und 35 verschobene Dateien
+        stehen im Arbeitsverzeichnis, damit die Löschung vor dem Festschreiben prüfbar bleibt.
+      </li>
+    </ul>
+  </section>
+
+  <footer>
+    Kraftwürfel · Bericht vom 25.08.2026 · Xcode 16.1 · Build ohne Fehler und Warnungen
+  </footer>
+
+</div>

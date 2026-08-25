@@ -1,0 +1,1147 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		28F95534B7013295F47353FF /* KraftwuerfelApp.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 7738FB42F495477E17868B6C; };
+		9DC5ED8C3752723D8316D29B /* ActivePlan.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = E2E8626FE3B2FFF19B959883; };
+		CE0AFB0F14060E182AFD18E2 /* Exercise.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 2F0CE66B5B6AD6C6360AA8AD; };
+		BB3BCBB24877A14705D76A91 /* NutritionPlan.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 0FC64C241430E4E8850639C9; };
+		707CE6D5D7DEC6B4839FACFB /* PlanGenerator.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 6ACD914D305578CBCD228707; };
+		3EE30B4D3CAF10ADCA20ADA7 /* PlanNames.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 922A9D24DAD9D5E9BB2C2E7B; };
+		E42ABEFCFB88DC2E0BD9E4AF /* SavedItems.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 1CD021657C1A1309D38F8CB1; };
+		673A961D5AD58572FC6DD12E /* TrainingPlan.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 1650B3D3ECC653B2E5F8C3A6; };
+		907CC5E70606ADFAAD3C0314 /* AICoachService.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = B242F77CD447EBA8F2C1826C; };
+		32EB802AD16AFAFD11A01EED /* AICoachSession.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = A3439344959F7B91B1E319F2; };
+		7816E9151DEF589A671673C4 /* ActivePlanStore.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 6AB5B72EFC66E2A97D698FCB; };
+		EC0616005660237177DAAEF7 /* ActivityKitManager.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 3BFD82DEB5FAB45B4AFE5E2F; };
+		0720976ECC6DBD85E15DDC28 /* AuthService.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = CD025517398B53CC99AFC955; };
+		7A8A227A85B7F05282F2A648 /* BackendStatus.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = D5D59444305CF41724CD8A71; };
+		DD00911E4B4FB681B7045883 /* CodableListStore.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = D61E012EB8CE07634644C173; };
+		C169AAFCAB7EF4699347D63C /* FavoritesStore.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 43ACD2D987A7F679E9972D40; };
+		F441D7DF04BE90FF88DE6DA6 /* GeneratorSettings.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = D350BC2E8BCAB7F73F153DE6; };
+		0B03B68C07DDE19DAF5FA8A6 /* HealthKitManager.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = DEC1C987A9B8B96159EF8F08; };
+		6816E0AC454D8A08508EEBE0 /* Keychain.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 6A932516C25EFC8CB6613B44; };
+		D11BB61CEB1770EC646530C4 /* KraftAPI.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = F4A975003A431FEB0F392944; };
+		B751AB416BB89117147A367F /* MusicLibraryPlayer.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 7FCF0723B7CE3D9F1312A43F; };
+		7259663EF00859E1F5A6AD11 /* PlanMapper.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = AF797AAD5F67D14575C67365; };
+		3A5172CACA52E1C356FDB69C /* SavedAIPlansStore.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 79E73CC9BF0453528DAE1466; };
+		385F0BB2E0F6A05CFB0CC969 /* SavedMealGuidesStore.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = F78A5977634320A8F210CDE4; };
+		98E2FD836525540814CCF532 /* SavedPlansStore.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 2626232B9A92869E5B7294D0; };
+		9B23AF3F45E73AB7934A978C /* StoreKitManager.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = C7D8268CBD4C2ACC7F18D32E; };
+		6F097DADBD1610ECD572CC7B /* WatchSyncManager.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 6485158FFFF82410CC3324D0; };
+		6FDE4AC8C01F34582D453E9D /* Strings.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 6B695DCB56CD168F29819869; };
+		D4417134B4E4351651BB6184 /* WorkoutActivityAttributes.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = D3DC348A43020326DDAAAF85; };
+		A2A8ECF43C04C2EC1E363C6B /* I18n.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 4B35B6B5727BE34EF88A507D; };
+		C04112646BE0E8CB5F25CA75 /* KraftFont.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 21BD8215D99364C3C9F2512B; };
+		9AFB769E61834E43F39A8220 /* Theme.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = F35A5BEAF0CE1BADC972717D; };
+		F32298EE0FCC248AF02976B2 /* AICoachWizardView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = C93911EB762F44CEE77EB5CB; };
+		6515DA6D8BACC061FFA7E31C /* AIPlanView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = EBA2AA15C6BFD8F77ADBECB6; };
+		CD75F6F0B7852433C98F905C /* MealGuideView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = A12E005756F63AB71A275035; };
+		21677913B84B19B6B80CA146 /* CycleBlockView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 445B4D5EAEBCCD7D00534C53; };
+		4B20F56303D854E24CEDE65C /* DayBlockView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = BCFC48B1608491954E1279B7; };
+		1CED78126FA304CA9C061A23 /* ExerciseVisual.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = C49FB041E11744EAFA6801C2; };
+		45825E7A6FEDCBD5961700AC /* KraftComponents.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 5F74258BB946068214963909; };
+		26C4E53BC18F66D4EB4538D5 /* KraftHeaderView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 73F919B097B7E99B340B297E; };
+		AC66FC48C53BAB6019B5A601 /* MuscleAnatomyView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 259BF98A6D5D5B6E1ED0EA7A; };
+		C2A6D11B5743EE5DA3BDC7E9 /* PlanListCard.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 40107C43E2FF81ACC2C5DDF0; };
+		FCCECF767FED634ABF3C3BC2 /* FavoritenView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = EDA5A96514E3E9653899BE99; };
+		B85DCE883DAF5D25C6D6B4BC /* GeneratorView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 54DCF9268471639C1C2FD0AC; };
+		1EDF72C6D05CAA3BEDAA135A /* LiveWorkoutView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 339D8036B725942B3AB380EA; };
+		83A03D8F8F4A71640F2804D2 /* MusicPlayerSheet.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 822CDBC73ED2939F133C40F5; };
+		F575955966F006B1DE478E2A /* MainTabView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 3BBDF6F4E11E33E5A2F39EB2; };
+		8158545992B2889817D46159 /* SavedPlansView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 390CA2BC4CBDDCB760B430A8; };
+		1C1F77D2D5C7CB2BBEA2D564 /* AuthView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = C83519F6314EDC5DA3E3A35E; };
+		BA41DAAA7050DA281F34D988 /* LegalView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 6C58441199BCAD7454B760F0; };
+		4EA39DFAD0B90A25D3BFECD1 /* SettingsView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = B77B0D6352D433A8EBA41D57; };
+		94404B4687DCF9F8E3B281B4 /* TrainingsplanView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 1C5FD57CBE3B5A0F5188F7C7; };
+		38FE3E0BDD512CD2F5F44A71 /* Assets.xcassets in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 0D66AB689A786CE37ECA1873; };
+		2256FCCD5B067D4430315F8B /* BebasNeue-Regular.ttf in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = A2A2BABD226753284FE829CA; };
+		7B7D62CFC678EFA5B48DE590 /* Inter-Bold.ttf in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 386850CEA363B50DC57661CE; };
+		A7551E23C28D2B9F2A22F236 /* Inter-Medium.ttf in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = F22280081E6526DEA4F9B82D; };
+		9351BFB019CA1253D0CE3BF2 /* Inter-Regular.ttf in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = A958D714EEC71FF924AFDD7B; };
+		6E2AC8CA7BEA17171C2AD7E1 /* Inter-SemiBold.ttf in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 93B804FB9E649891041AE157; };
+		FB2AC04B070165C7BF96757D /* JetBrainsMono-Bold.ttf in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = D2AA0C494F4A0497D979C2AC; };
+		68BE3F07C63623EA3B9FF7A8 /* JetBrainsMono-Medium.ttf in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = F56F1C481D89EFE8047A4AC1; };
+		2A8770F6A5EA17296A7D4747 /* PrivacyInfo.xcprivacy in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 0208870F82968768B5DA7116; };
+		728B74C4EC5C6464A7194957 /* Strings.swift in KraftwuerfelWidget */ = {isa = PBXBuildFile; fileRef = 6B695DCB56CD168F29819869; };
+		FFF9591E9B5A8951CDBEBDF1 /* WorkoutActivityAttributes.swift in KraftwuerfelWidget */ = {isa = PBXBuildFile; fileRef = D3DC348A43020326DDAAAF85; };
+		0F4D0851FD4BD218B176DA96 /* KraftFont.swift in KraftwuerfelWidget */ = {isa = PBXBuildFile; fileRef = 21BD8215D99364C3C9F2512B; };
+		BBE7C0B91A58FAB87A8B4768 /* Theme.swift in KraftwuerfelWidget */ = {isa = PBXBuildFile; fileRef = F35A5BEAF0CE1BADC972717D; };
+		B8661630F292BAE67473FEDB /* KraftwuerfelWidgetBundle.swift in KraftwuerfelWidget */ = {isa = PBXBuildFile; fileRef = 5F80E73D7E3E120489DD290F; };
+		92F04F22CC9A7D15CA8A7B1A /* WorkoutLiveActivity.swift in KraftwuerfelWidget */ = {isa = PBXBuildFile; fileRef = 8535D68429A5D891055E0FED; };
+		87881BC8CFDDD0D894B40397 /* BebasNeue-Regular.ttf in KraftwuerfelWidget */ = {isa = PBXBuildFile; fileRef = A2A2BABD226753284FE829CA; };
+		724F234E70A139AE173D95EA /* Inter-Bold.ttf in KraftwuerfelWidget */ = {isa = PBXBuildFile; fileRef = 386850CEA363B50DC57661CE; };
+		A13D13E83D164A9E1139FF97 /* Inter-Medium.ttf in KraftwuerfelWidget */ = {isa = PBXBuildFile; fileRef = F22280081E6526DEA4F9B82D; };
+		BFBA0536190970C988CC14B8 /* Inter-Regular.ttf in KraftwuerfelWidget */ = {isa = PBXBuildFile; fileRef = A958D714EEC71FF924AFDD7B; };
+		1D844E5832801C050C9EEBD5 /* Inter-SemiBold.ttf in KraftwuerfelWidget */ = {isa = PBXBuildFile; fileRef = 93B804FB9E649891041AE157; };
+		6219FC04E0A529F3DF27F2E6 /* JetBrainsMono-Bold.ttf in KraftwuerfelWidget */ = {isa = PBXBuildFile; fileRef = D2AA0C494F4A0497D979C2AC; };
+		53D36041108876A3AB6492A4 /* JetBrainsMono-Medium.ttf in KraftwuerfelWidget */ = {isa = PBXBuildFile; fileRef = F56F1C481D89EFE8047A4AC1; };
+		3E26F5DA9941CF772975F44E /* WatchSyncManager.swift in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = 6485158FFFF82410CC3324D0; };
+		F62BC0190C589DD09D5B46E7 /* KraftFont.swift in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = 21BD8215D99364C3C9F2512B; };
+		86FC9CB6D82B4B2D5EC89850 /* Theme.swift in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = F35A5BEAF0CE1BADC972717D; };
+		964C39249B75982118F1CAC7 /* KraftwuerfelWatchApp.swift in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = F9AF0604BFACC7429FACAB62; };
+		376C03CC6022BAAC98F70A3C /* WatchContentView.swift in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = 1314C382CEAF84DE98FFB62F; };
+		1BF705330AFCE7B0D8480A36 /* WatchWorkoutManager.swift in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = 65B5CC76815369C6DB653475; };
+		E1D1F8DECEC19F4174CB50B8 /* BebasNeue-Regular.ttf in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = A2A2BABD226753284FE829CA; };
+		D3ACD38AA9D3BDA3D176F9CD /* Inter-Bold.ttf in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = 386850CEA363B50DC57661CE; };
+		CD8549921E13B1A599F1E559 /* Inter-Medium.ttf in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = F22280081E6526DEA4F9B82D; };
+		FFFA08214104EF6AB6CB2CD6 /* Inter-Regular.ttf in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = A958D714EEC71FF924AFDD7B; };
+		FE463CF43D5AA2AC282FF0D5 /* Inter-SemiBold.ttf in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = 93B804FB9E649891041AE157; };
+		217290FE0FDD4B20A03C1F7F /* JetBrainsMono-Bold.ttf in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = D2AA0C494F4A0497D979C2AC; };
+		7A22324C2B9B1613844A17AE /* JetBrainsMono-Medium.ttf in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = F56F1C481D89EFE8047A4AC1; };
+		1C91C60CDFCE917481285CCF /* Assets.xcassets in KraftwuerfelWatch */ = {isa = PBXBuildFile; fileRef = 261515175B55628B4F2AAC61; };
+		3E6CCA80CFB32CD6D9D60951 /* AICoachInputTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = BA91DD6658DA833719DA388D; };
+		5CDCE6CC2973EF369942D117 /* ExerciseCatalogTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = 2D2C463747D9868AAF21AD8D; };
+		54B6722AF2F5997B980B110E /* LiveBackendTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = 8B2BB2548697B66DE170BEAD; };
+		0D8623F2E2CDCCE96533BA91 /* LocalizationTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = 50CE0F5F02F11BB40C7A2AAD; };
+		7E6145B34A4C02E286691935 /* PlanEditingTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = 79F782138A3333E199C9DFBC; };
+		C802204F145A02252CE7140C /* PlanGeneratorTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = EE4D6EDA3EB153EC711846E0; };
+		F5DF175A508FD77D2CA4F850 /* PlanNamesTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = 8C3A0F30411497A2760AC764; };
+		9909B9BC519B2ADB348E838F /* PlanProgressTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = 7DE7F9D49D616EFDFD80DD0A; };
+		51B9C4874DEE88709AEF7B72 /* SavedStoresTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = B8DB5418027F4C7396382644; };
+		CC7E15704306A85D0A5B4937 /* SerializationTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = 2F95A6C960BFDC9CDD4F20A0; };
+		16736D7CBFFE68D2C98B29A8 /* WeekdayOrderTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = 61519F843B0F319BD839B3C7; };
+		6CE3360A7682961CC0DE9210 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D507BA12DA360B6936CA1DD9; };
+		ABCDB4BB515BC514D167E03B /* KraftwuerfelWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6104AD744B804C53DAD395D5; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		979FE6DF5A4264332CF77E2E /* KraftwuerfelWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = EE0911BAC1EFE74CAB082F7D; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		3D2FC704FBCC73BB765870BD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6EA288500E672DD6AC6BF0D6;
+			remoteInfo = KraftwuerfelWidget;
+		};
+		00F8BFE9E6802F9D4B65E562 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AF20332F178776969FD70CDE;
+			remoteInfo = KraftwuerfelWatch;
+		};
+		D76296086A6F5BA532A9BD70 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7DF4BA67D084C718F5E787AF;
+			remoteInfo = Kraftwuerfel;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		FDE70336EDA70578FC0FDDA2 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				ABCDB4BB515BC514D167E03B /* KraftwuerfelWidget.appex */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E2F5A3463AF2BDBE3CB52B6C /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				979FE6DF5A4264332CF77E2E /* KraftwuerfelWatch.app */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		0D66AB689A786CE37ECA1873 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A2A2BABD226753284FE829CA /* BebasNeue-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "BebasNeue-Regular.ttf"; sourceTree = "<group>"; };
+		B1F906A6868ECA4EC40A5091 /* FONT-LICENSES.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = "FONT-LICENSES.md"; sourceTree = "<group>"; };
+		386850CEA363B50DC57661CE /* Inter-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Bold.ttf"; sourceTree = "<group>"; };
+		F22280081E6526DEA4F9B82D /* Inter-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Medium.ttf"; sourceTree = "<group>"; };
+		A958D714EEC71FF924AFDD7B /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
+		93B804FB9E649891041AE157 /* Inter-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-SemiBold.ttf"; sourceTree = "<group>"; };
+		D2AA0C494F4A0497D979C2AC /* JetBrainsMono-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "JetBrainsMono-Bold.ttf"; sourceTree = "<group>"; };
+		F56F1C481D89EFE8047A4AC1 /* JetBrainsMono-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "JetBrainsMono-Medium.ttf"; sourceTree = "<group>"; };
+		E2E8626FE3B2FFF19B959883 /* ActivePlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivePlan.swift; sourceTree = "<group>"; };
+		2F0CE66B5B6AD6C6360AA8AD /* Exercise.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Exercise.swift; sourceTree = "<group>"; };
+		0FC64C241430E4E8850639C9 /* NutritionPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPlan.swift; sourceTree = "<group>"; };
+		6ACD914D305578CBCD228707 /* PlanGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanGenerator.swift; sourceTree = "<group>"; };
+		922A9D24DAD9D5E9BB2C2E7B /* PlanNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanNames.swift; sourceTree = "<group>"; };
+		1CD021657C1A1309D38F8CB1 /* SavedItems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedItems.swift; sourceTree = "<group>"; };
+		1650B3D3ECC653B2E5F8C3A6 /* TrainingPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlan.swift; sourceTree = "<group>"; };
+		6AB5B72EFC66E2A97D698FCB /* ActivePlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivePlanStore.swift; sourceTree = "<group>"; };
+		3BFD82DEB5FAB45B4AFE5E2F /* ActivityKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityKitManager.swift; sourceTree = "<group>"; };
+		B242F77CD447EBA8F2C1826C /* AICoachService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoachService.swift; sourceTree = "<group>"; };
+		A3439344959F7B91B1E319F2 /* AICoachSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoachSession.swift; sourceTree = "<group>"; };
+		CD025517398B53CC99AFC955 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		D5D59444305CF41724CD8A71 /* BackendStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendStatus.swift; sourceTree = "<group>"; };
+		D61E012EB8CE07634644C173 /* CodableListStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableListStore.swift; sourceTree = "<group>"; };
+		43ACD2D987A7F679E9972D40 /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
+		D350BC2E8BCAB7F73F153DE6 /* GeneratorSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratorSettings.swift; sourceTree = "<group>"; };
+		DEC1C987A9B8B96159EF8F08 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
+		6A932516C25EFC8CB6613B44 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
+		F4A975003A431FEB0F392944 /* KraftAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KraftAPI.swift; sourceTree = "<group>"; };
+		7FCF0723B7CE3D9F1312A43F /* MusicLibraryPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLibraryPlayer.swift; sourceTree = "<group>"; };
+		AF797AAD5F67D14575C67365 /* PlanMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanMapper.swift; sourceTree = "<group>"; };
+		79E73CC9BF0453528DAE1466 /* SavedAIPlansStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedAIPlansStore.swift; sourceTree = "<group>"; };
+		F78A5977634320A8F210CDE4 /* SavedMealGuidesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMealGuidesStore.swift; sourceTree = "<group>"; };
+		2626232B9A92869E5B7294D0 /* SavedPlansStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedPlansStore.swift; sourceTree = "<group>"; };
+		C7D8268CBD4C2ACC7F18D32E /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
+		6485158FFFF82410CC3324D0 /* WatchSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSyncManager.swift; sourceTree = "<group>"; };
+		6B695DCB56CD168F29819869 /* Strings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
+		D3DC348A43020326DDAAAF85 /* WorkoutActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutActivityAttributes.swift; sourceTree = "<group>"; };
+		4B35B6B5727BE34EF88A507D /* I18n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = I18n.swift; sourceTree = "<group>"; };
+		21BD8215D99364C3C9F2512B /* KraftFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KraftFont.swift; sourceTree = "<group>"; };
+		F35A5BEAF0CE1BADC972717D /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		C93911EB762F44CEE77EB5CB /* AICoachWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoachWizardView.swift; sourceTree = "<group>"; };
+		EBA2AA15C6BFD8F77ADBECB6 /* AIPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIPlanView.swift; sourceTree = "<group>"; };
+		A12E005756F63AB71A275035 /* MealGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealGuideView.swift; sourceTree = "<group>"; };
+		445B4D5EAEBCCD7D00534C53 /* CycleBlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CycleBlockView.swift; sourceTree = "<group>"; };
+		BCFC48B1608491954E1279B7 /* DayBlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayBlockView.swift; sourceTree = "<group>"; };
+		C49FB041E11744EAFA6801C2 /* ExerciseVisual.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseVisual.swift; sourceTree = "<group>"; };
+		5F74258BB946068214963909 /* KraftComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KraftComponents.swift; sourceTree = "<group>"; };
+		73F919B097B7E99B340B297E /* KraftHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KraftHeaderView.swift; sourceTree = "<group>"; };
+		259BF98A6D5D5B6E1ED0EA7A /* MuscleAnatomyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleAnatomyView.swift; sourceTree = "<group>"; };
+		40107C43E2FF81ACC2C5DDF0 /* PlanListCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanListCard.swift; sourceTree = "<group>"; };
+		EDA5A96514E3E9653899BE99 /* FavoritenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritenView.swift; sourceTree = "<group>"; };
+		54DCF9268471639C1C2FD0AC /* GeneratorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratorView.swift; sourceTree = "<group>"; };
+		339D8036B725942B3AB380EA /* LiveWorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveWorkoutView.swift; sourceTree = "<group>"; };
+		822CDBC73ED2939F133C40F5 /* MusicPlayerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPlayerSheet.swift; sourceTree = "<group>"; };
+		390CA2BC4CBDDCB760B430A8 /* SavedPlansView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedPlansView.swift; sourceTree = "<group>"; };
+		C83519F6314EDC5DA3E3A35E /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		6C58441199BCAD7454B760F0 /* LegalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalView.swift; sourceTree = "<group>"; };
+		B77B0D6352D433A8EBA41D57 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		1C5FD57CBE3B5A0F5188F7C7 /* TrainingsplanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingsplanView.swift; sourceTree = "<group>"; };
+		3BBDF6F4E11E33E5A2F39EB2 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		54094D53617F07FFC4C6A8DF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		42C6B8C90A1CD388CCFAFFDD /* Kraftwuerfel.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Kraftwuerfel.entitlements; sourceTree = "<group>"; };
+		7738FB42F495477E17868B6C /* KraftwuerfelApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KraftwuerfelApp.swift; sourceTree = "<group>"; };
+		0208870F82968768B5DA7116 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		26BEF9C75F2CC69BC357D795 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		5F80E73D7E3E120489DD290F /* KraftwuerfelWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KraftwuerfelWidgetBundle.swift; sourceTree = "<group>"; };
+		8535D68429A5D891055E0FED /* WorkoutLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLiveActivity.swift; sourceTree = "<group>"; };
+		261515175B55628B4F2AAC61 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F6291082B5FA51D1D8DA41C7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		195B8CE593DB57DBE6E8232F /* KraftwuerfelWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KraftwuerfelWatch.entitlements; sourceTree = "<group>"; };
+		F9AF0604BFACC7429FACAB62 /* KraftwuerfelWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KraftwuerfelWatchApp.swift; sourceTree = "<group>"; };
+		1314C382CEAF84DE98FFB62F /* WatchContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchContentView.swift; sourceTree = "<group>"; };
+		65B5CC76815369C6DB653475 /* WatchWorkoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutManager.swift; sourceTree = "<group>"; };
+		BA91DD6658DA833719DA388D /* AICoachInputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoachInputTests.swift; sourceTree = "<group>"; };
+		2D2C463747D9868AAF21AD8D /* ExerciseCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseCatalogTests.swift; sourceTree = "<group>"; };
+		8B2BB2548697B66DE170BEAD /* LiveBackendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveBackendTests.swift; sourceTree = "<group>"; };
+		50CE0F5F02F11BB40C7A2AAD /* LocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationTests.swift; sourceTree = "<group>"; };
+		79F782138A3333E199C9DFBC /* PlanEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanEditingTests.swift; sourceTree = "<group>"; };
+		EE4D6EDA3EB153EC711846E0 /* PlanGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanGeneratorTests.swift; sourceTree = "<group>"; };
+		8C3A0F30411497A2760AC764 /* PlanNamesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanNamesTests.swift; sourceTree = "<group>"; };
+		7DE7F9D49D616EFDFD80DD0A /* PlanProgressTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanProgressTests.swift; sourceTree = "<group>"; };
+		B8DB5418027F4C7396382644 /* SavedStoresTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedStoresTests.swift; sourceTree = "<group>"; };
+		2F95A6C960BFDC9CDD4F20A0 /* SerializationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SerializationTests.swift; sourceTree = "<group>"; };
+		61519F843B0F319BD839B3C7 /* WeekdayOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayOrderTests.swift; sourceTree = "<group>"; };
+		E8926494CC96D26C58F69370 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		4ED5F5CA262931A7040BA961 /* Kraftwuerfel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kraftwuerfel.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6104AD744B804C53DAD395D5 /* KraftwuerfelWidget.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = KraftwuerfelWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		EE0911BAC1EFE74CAB082F7D /* KraftwuerfelWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KraftwuerfelWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		421E7F20F7F03135B48A7A6A /* KraftwuerfelTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = KraftwuerfelTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		FB149528F73E19C3EDD6C4ED /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA42DD9B86C82D01DB106C1E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA0EA149E802528C3FC0067E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6848211D203309D85CDAD436 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		398AC4DB3E63216EDC83A3DC /* Kraftwuerfel */ = {
+			isa = PBXGroup;
+			children = (
+				0D66AB689A786CE37ECA1873 /* Assets.xcassets */,
+				A12CB918E2DB088DDE3E06B5 /* Fonts */,
+				1001E67EE00C1B83606F0A36 /* Models */,
+				E13D0EBA57DBE712A1461872 /* Services */,
+				2F711564A89E2BC83DFD0215 /* Shared */,
+				9E075724B5FF68F991DD6009 /* Theme */,
+				C545B923F150DA07D81A8DC8 /* Views */,
+				54094D53617F07FFC4C6A8DF /* Info.plist */,
+				42C6B8C90A1CD388CCFAFFDD /* Kraftwuerfel.entitlements */,
+				7738FB42F495477E17868B6C /* KraftwuerfelApp.swift */,
+				0208870F82968768B5DA7116 /* PrivacyInfo.xcprivacy */,
+				D507BA12DA360B6936CA1DD9 /* LaunchScreen.storyboard */,
+			);
+			path = Kraftwuerfel;
+			sourceTree = "<group>";
+		};
+		A12CB918E2DB088DDE3E06B5 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				A2A2BABD226753284FE829CA /* BebasNeue-Regular.ttf */,
+				B1F906A6868ECA4EC40A5091 /* FONT-LICENSES.md */,
+				386850CEA363B50DC57661CE /* Inter-Bold.ttf */,
+				F22280081E6526DEA4F9B82D /* Inter-Medium.ttf */,
+				A958D714EEC71FF924AFDD7B /* Inter-Regular.ttf */,
+				93B804FB9E649891041AE157 /* Inter-SemiBold.ttf */,
+				D2AA0C494F4A0497D979C2AC /* JetBrainsMono-Bold.ttf */,
+				F56F1C481D89EFE8047A4AC1 /* JetBrainsMono-Medium.ttf */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
+		1001E67EE00C1B83606F0A36 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				E2E8626FE3B2FFF19B959883 /* ActivePlan.swift */,
+				2F0CE66B5B6AD6C6360AA8AD /* Exercise.swift */,
+				0FC64C241430E4E8850639C9 /* NutritionPlan.swift */,
+				6ACD914D305578CBCD228707 /* PlanGenerator.swift */,
+				922A9D24DAD9D5E9BB2C2E7B /* PlanNames.swift */,
+				1CD021657C1A1309D38F8CB1 /* SavedItems.swift */,
+				1650B3D3ECC653B2E5F8C3A6 /* TrainingPlan.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		E13D0EBA57DBE712A1461872 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				6AB5B72EFC66E2A97D698FCB /* ActivePlanStore.swift */,
+				3BFD82DEB5FAB45B4AFE5E2F /* ActivityKitManager.swift */,
+				B242F77CD447EBA8F2C1826C /* AICoachService.swift */,
+				A3439344959F7B91B1E319F2 /* AICoachSession.swift */,
+				CD025517398B53CC99AFC955 /* AuthService.swift */,
+				D5D59444305CF41724CD8A71 /* BackendStatus.swift */,
+				D61E012EB8CE07634644C173 /* CodableListStore.swift */,
+				43ACD2D987A7F679E9972D40 /* FavoritesStore.swift */,
+				D350BC2E8BCAB7F73F153DE6 /* GeneratorSettings.swift */,
+				DEC1C987A9B8B96159EF8F08 /* HealthKitManager.swift */,
+				6A932516C25EFC8CB6613B44 /* Keychain.swift */,
+				F4A975003A431FEB0F392944 /* KraftAPI.swift */,
+				7FCF0723B7CE3D9F1312A43F /* MusicLibraryPlayer.swift */,
+				AF797AAD5F67D14575C67365 /* PlanMapper.swift */,
+				79E73CC9BF0453528DAE1466 /* SavedAIPlansStore.swift */,
+				F78A5977634320A8F210CDE4 /* SavedMealGuidesStore.swift */,
+				2626232B9A92869E5B7294D0 /* SavedPlansStore.swift */,
+				C7D8268CBD4C2ACC7F18D32E /* StoreKitManager.swift */,
+				6485158FFFF82410CC3324D0 /* WatchSyncManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		2F711564A89E2BC83DFD0215 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				6B695DCB56CD168F29819869 /* Strings.swift */,
+				D3DC348A43020326DDAAAF85 /* WorkoutActivityAttributes.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		9E075724B5FF68F991DD6009 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				4B35B6B5727BE34EF88A507D /* I18n.swift */,
+				21BD8215D99364C3C9F2512B /* KraftFont.swift */,
+				F35A5BEAF0CE1BADC972717D /* Theme.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		C545B923F150DA07D81A8DC8 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				BD691BC6C215465E05E4E718 /* AICoach */,
+				C94160012CACEA412BBA3590 /* Components */,
+				BD9093D27C09E2DEC2470A17 /* Favoriten */,
+				35770CFA011963468206DAD7 /* Generator */,
+				46D106454E843FFA599B0252 /* LiveSession */,
+				B66032F2E4A77F55E6E5639F /* Saved */,
+				ED77F7C79541BFB3AA64C484 /* Settings */,
+				F82A997C1F2BF7E6897C1236 /* Trainingsplan */,
+				3BBDF6F4E11E33E5A2F39EB2 /* MainTabView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		BD691BC6C215465E05E4E718 /* AICoach */ = {
+			isa = PBXGroup;
+			children = (
+				C93911EB762F44CEE77EB5CB /* AICoachWizardView.swift */,
+				EBA2AA15C6BFD8F77ADBECB6 /* AIPlanView.swift */,
+				A12E005756F63AB71A275035 /* MealGuideView.swift */,
+			);
+			path = AICoach;
+			sourceTree = "<group>";
+		};
+		C94160012CACEA412BBA3590 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				445B4D5EAEBCCD7D00534C53 /* CycleBlockView.swift */,
+				BCFC48B1608491954E1279B7 /* DayBlockView.swift */,
+				C49FB041E11744EAFA6801C2 /* ExerciseVisual.swift */,
+				5F74258BB946068214963909 /* KraftComponents.swift */,
+				73F919B097B7E99B340B297E /* KraftHeaderView.swift */,
+				259BF98A6D5D5B6E1ED0EA7A /* MuscleAnatomyView.swift */,
+				40107C43E2FF81ACC2C5DDF0 /* PlanListCard.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		BD9093D27C09E2DEC2470A17 /* Favoriten */ = {
+			isa = PBXGroup;
+			children = (
+				EDA5A96514E3E9653899BE99 /* FavoritenView.swift */,
+			);
+			path = Favoriten;
+			sourceTree = "<group>";
+		};
+		35770CFA011963468206DAD7 /* Generator */ = {
+			isa = PBXGroup;
+			children = (
+				54DCF9268471639C1C2FD0AC /* GeneratorView.swift */,
+			);
+			path = Generator;
+			sourceTree = "<group>";
+		};
+		46D106454E843FFA599B0252 /* LiveSession */ = {
+			isa = PBXGroup;
+			children = (
+				339D8036B725942B3AB380EA /* LiveWorkoutView.swift */,
+				822CDBC73ED2939F133C40F5 /* MusicPlayerSheet.swift */,
+			);
+			path = LiveSession;
+			sourceTree = "<group>";
+		};
+		B66032F2E4A77F55E6E5639F /* Saved */ = {
+			isa = PBXGroup;
+			children = (
+				390CA2BC4CBDDCB760B430A8 /* SavedPlansView.swift */,
+			);
+			path = Saved;
+			sourceTree = "<group>";
+		};
+		ED77F7C79541BFB3AA64C484 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				C83519F6314EDC5DA3E3A35E /* AuthView.swift */,
+				6C58441199BCAD7454B760F0 /* LegalView.swift */,
+				B77B0D6352D433A8EBA41D57 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		F82A997C1F2BF7E6897C1236 /* Trainingsplan */ = {
+			isa = PBXGroup;
+			children = (
+				1C5FD57CBE3B5A0F5188F7C7 /* TrainingsplanView.swift */,
+			);
+			path = Trainingsplan;
+			sourceTree = "<group>";
+		};
+		0F7F21BFEEBC3F25747970D3 /* KraftwuerfelWidget */ = {
+			isa = PBXGroup;
+			children = (
+				26BEF9C75F2CC69BC357D795 /* Info.plist */,
+				5F80E73D7E3E120489DD290F /* KraftwuerfelWidgetBundle.swift */,
+				8535D68429A5D891055E0FED /* WorkoutLiveActivity.swift */,
+			);
+			path = KraftwuerfelWidget;
+			sourceTree = "<group>";
+		};
+		4E6FDC822AC5DD3ED50419E4 /* KraftwuerfelWatch */ = {
+			isa = PBXGroup;
+			children = (
+				261515175B55628B4F2AAC61 /* Assets.xcassets */,
+				F6291082B5FA51D1D8DA41C7 /* Info.plist */,
+				195B8CE593DB57DBE6E8232F /* KraftwuerfelWatch.entitlements */,
+				F9AF0604BFACC7429FACAB62 /* KraftwuerfelWatchApp.swift */,
+				1314C382CEAF84DE98FFB62F /* WatchContentView.swift */,
+				65B5CC76815369C6DB653475 /* WatchWorkoutManager.swift */,
+			);
+			path = KraftwuerfelWatch;
+			sourceTree = "<group>";
+		};
+		1514FFE5B69811C3DE27E11E /* KraftwuerfelTests */ = {
+			isa = PBXGroup;
+			children = (
+				BA91DD6658DA833719DA388D /* AICoachInputTests.swift */,
+				2D2C463747D9868AAF21AD8D /* ExerciseCatalogTests.swift */,
+				8B2BB2548697B66DE170BEAD /* LiveBackendTests.swift */,
+				50CE0F5F02F11BB40C7A2AAD /* LocalizationTests.swift */,
+				79F782138A3333E199C9DFBC /* PlanEditingTests.swift */,
+				EE4D6EDA3EB153EC711846E0 /* PlanGeneratorTests.swift */,
+				8C3A0F30411497A2760AC764 /* PlanNamesTests.swift */,
+				7DE7F9D49D616EFDFD80DD0A /* PlanProgressTests.swift */,
+				B8DB5418027F4C7396382644 /* SavedStoresTests.swift */,
+				2F95A6C960BFDC9CDD4F20A0 /* SerializationTests.swift */,
+				61519F843B0F319BD839B3C7 /* WeekdayOrderTests.swift */,
+			);
+			path = KraftwuerfelTests;
+			sourceTree = "<group>";
+		};
+		C863DA5204F95EC573510473 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4ED5F5CA262931A7040BA961 /* Kraftwuerfel.app */,
+				6104AD744B804C53DAD395D5 /* KraftwuerfelWidget.appex */,
+				EE0911BAC1EFE74CAB082F7D /* KraftwuerfelWatch.app */,
+				421E7F20F7F03135B48A7A6A /* KraftwuerfelTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2A44C54E23411059C3A1A1E1 = {
+			isa = PBXGroup;
+			children = (
+				398AC4DB3E63216EDC83A3DC /* Kraftwuerfel */,
+				0F7F21BFEEBC3F25747970D3 /* KraftwuerfelWidget */,
+				4E6FDC822AC5DD3ED50419E4 /* KraftwuerfelWatch */,
+				1514FFE5B69811C3DE27E11E /* KraftwuerfelTests */,
+				C863DA5204F95EC573510473 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		7DF4BA67D084C718F5E787AF /* Kraftwuerfel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E611D97C909007D96005B5D4 /* Build configuration list for PBXNativeTarget "Kraftwuerfel" */;
+			buildPhases = (
+				B1C217FF1F500480A7A7F5BE /* Sources */,
+				FB149528F73E19C3EDD6C4ED /* Frameworks */,
+				359A44CA553AD624767FAE9D /* Resources */,
+				FDE70336EDA70578FC0FDDA2 /* Embed Foundation Extensions */,
+				E2F5A3463AF2BDBE3CB52B6C /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B06A3731E22318D4D404460D /* PBXTargetDependency */,
+				FEFA0808CCA1214D61C00242 /* PBXTargetDependency */,
+			);
+			name = Kraftwuerfel;
+			productName = Kraftwuerfel;
+			productReference = 4ED5F5CA262931A7040BA961 /* Kraftwuerfel.app */;
+			productType = "com.apple.product-type.application";
+		};
+		6EA288500E672DD6AC6BF0D6 /* KraftwuerfelWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4F09751E623A53EE4C614D0C /* Build configuration list for PBXNativeTarget "KraftwuerfelWidget" */;
+			buildPhases = (
+				56B0E2B8079A8A486774B8AB /* Sources */,
+				EA42DD9B86C82D01DB106C1E /* Frameworks */,
+				5FC33033FEABE9603CE857AE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KraftwuerfelWidget;
+			productName = KraftwuerfelWidget;
+			productReference = 6104AD744B804C53DAD395D5 /* KraftwuerfelWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		AF20332F178776969FD70CDE /* KraftwuerfelWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D9666D044651A38B38C78C1 /* Build configuration list for PBXNativeTarget "KraftwuerfelWatch" */;
+			buildPhases = (
+				B79B6951DD0C1D42931F38B9 /* Sources */,
+				EA0EA149E802528C3FC0067E /* Frameworks */,
+				FAE7DDF4183A16F49592F1FD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KraftwuerfelWatch;
+			productName = KraftwuerfelWatch;
+			productReference = EE0911BAC1EFE74CAB082F7D /* KraftwuerfelWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E306C4790F7654B06F2B66FD /* KraftwuerfelTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 15D726BCF36383048CC0A893 /* Build configuration list for PBXNativeTarget "KraftwuerfelTests" */;
+			buildPhases = (
+				C4F69FE3082E4069D377BD93 /* Sources */,
+				6848211D203309D85CDAD436 /* Frameworks */,
+				B137CADE2A7D02ADD45157EE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D7F593ACDA1C1626CBAD7A3 /* PBXTargetDependency */,
+			);
+			name = KraftwuerfelTests;
+			productName = KraftwuerfelTests;
+			productReference = 421E7F20F7F03135B48A7A6A /* KraftwuerfelTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		46F86FAA6BBF9AC94A7E4595 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1610;
+				LastUpgradeCheck = 1610;
+				TargetAttributes = {
+					7DF4BA67D084C718F5E787AF = {
+						CreatedOnToolsVersion = 16.1;
+					};
+					6EA288500E672DD6AC6BF0D6 = {
+						CreatedOnToolsVersion = 16.1;
+					};
+					AF20332F178776969FD70CDE = {
+						CreatedOnToolsVersion = 16.1;
+					};
+					E306C4790F7654B06F2B66FD = {
+						CreatedOnToolsVersion = 16.1;
+					};
+				};
+			};
+			buildConfigurationList = 887D4B5F61EA6AAAF609F3AC /* Build configuration list for PBXProject "Kraftwuerfel" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = de;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				de,
+				en,
+				Base,
+			);
+			mainGroup = 2A44C54E23411059C3A1A1E1;
+			productRefGroup = C863DA5204F95EC573510473 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				7DF4BA67D084C718F5E787AF /* Kraftwuerfel */,
+				6EA288500E672DD6AC6BF0D6 /* KraftwuerfelWidget */,
+				AF20332F178776969FD70CDE /* KraftwuerfelWatch */,
+				E306C4790F7654B06F2B66FD /* KraftwuerfelTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		359A44CA553AD624767FAE9D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				38FE3E0BDD512CD2F5F44A71 /* Assets.xcassets */,
+				2256FCCD5B067D4430315F8B /* BebasNeue-Regular.ttf */,
+				7B7D62CFC678EFA5B48DE590 /* Inter-Bold.ttf */,
+				A7551E23C28D2B9F2A22F236 /* Inter-Medium.ttf */,
+				9351BFB019CA1253D0CE3BF2 /* Inter-Regular.ttf */,
+				6E2AC8CA7BEA17171C2AD7E1 /* Inter-SemiBold.ttf */,
+				FB2AC04B070165C7BF96757D /* JetBrainsMono-Bold.ttf */,
+				68BE3F07C63623EA3B9FF7A8 /* JetBrainsMono-Medium.ttf */,
+				2A8770F6A5EA17296A7D4747 /* PrivacyInfo.xcprivacy */,
+				6CE3360A7682961CC0DE9210 /* LaunchScreen.storyboard */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5FC33033FEABE9603CE857AE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				87881BC8CFDDD0D894B40397 /* BebasNeue-Regular.ttf */,
+				724F234E70A139AE173D95EA /* Inter-Bold.ttf */,
+				A13D13E83D164A9E1139FF97 /* Inter-Medium.ttf */,
+				BFBA0536190970C988CC14B8 /* Inter-Regular.ttf */,
+				1D844E5832801C050C9EEBD5 /* Inter-SemiBold.ttf */,
+				6219FC04E0A529F3DF27F2E6 /* JetBrainsMono-Bold.ttf */,
+				53D36041108876A3AB6492A4 /* JetBrainsMono-Medium.ttf */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FAE7DDF4183A16F49592F1FD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E1D1F8DECEC19F4174CB50B8 /* BebasNeue-Regular.ttf */,
+				D3ACD38AA9D3BDA3D176F9CD /* Inter-Bold.ttf */,
+				CD8549921E13B1A599F1E559 /* Inter-Medium.ttf */,
+				FFFA08214104EF6AB6CB2CD6 /* Inter-Regular.ttf */,
+				FE463CF43D5AA2AC282FF0D5 /* Inter-SemiBold.ttf */,
+				217290FE0FDD4B20A03C1F7F /* JetBrainsMono-Bold.ttf */,
+				7A22324C2B9B1613844A17AE /* JetBrainsMono-Medium.ttf */,
+				1C91C60CDFCE917481285CCF /* Assets.xcassets */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B137CADE2A7D02ADD45157EE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B1C217FF1F500480A7A7F5BE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				28F95534B7013295F47353FF /* KraftwuerfelApp.swift */,
+				9DC5ED8C3752723D8316D29B /* ActivePlan.swift */,
+				CE0AFB0F14060E182AFD18E2 /* Exercise.swift */,
+				BB3BCBB24877A14705D76A91 /* NutritionPlan.swift */,
+				707CE6D5D7DEC6B4839FACFB /* PlanGenerator.swift */,
+				3EE30B4D3CAF10ADCA20ADA7 /* PlanNames.swift */,
+				E42ABEFCFB88DC2E0BD9E4AF /* SavedItems.swift */,
+				673A961D5AD58572FC6DD12E /* TrainingPlan.swift */,
+				907CC5E70606ADFAAD3C0314 /* AICoachService.swift */,
+				32EB802AD16AFAFD11A01EED /* AICoachSession.swift */,
+				7816E9151DEF589A671673C4 /* ActivePlanStore.swift */,
+				EC0616005660237177DAAEF7 /* ActivityKitManager.swift */,
+				0720976ECC6DBD85E15DDC28 /* AuthService.swift */,
+				7A8A227A85B7F05282F2A648 /* BackendStatus.swift */,
+				DD00911E4B4FB681B7045883 /* CodableListStore.swift */,
+				C169AAFCAB7EF4699347D63C /* FavoritesStore.swift */,
+				F441D7DF04BE90FF88DE6DA6 /* GeneratorSettings.swift */,
+				0B03B68C07DDE19DAF5FA8A6 /* HealthKitManager.swift */,
+				6816E0AC454D8A08508EEBE0 /* Keychain.swift */,
+				D11BB61CEB1770EC646530C4 /* KraftAPI.swift */,
+				B751AB416BB89117147A367F /* MusicLibraryPlayer.swift */,
+				7259663EF00859E1F5A6AD11 /* PlanMapper.swift */,
+				3A5172CACA52E1C356FDB69C /* SavedAIPlansStore.swift */,
+				385F0BB2E0F6A05CFB0CC969 /* SavedMealGuidesStore.swift */,
+				98E2FD836525540814CCF532 /* SavedPlansStore.swift */,
+				9B23AF3F45E73AB7934A978C /* StoreKitManager.swift */,
+				6F097DADBD1610ECD572CC7B /* WatchSyncManager.swift */,
+				6FDE4AC8C01F34582D453E9D /* Strings.swift */,
+				D4417134B4E4351651BB6184 /* WorkoutActivityAttributes.swift */,
+				A2A8ECF43C04C2EC1E363C6B /* I18n.swift */,
+				C04112646BE0E8CB5F25CA75 /* KraftFont.swift */,
+				9AFB769E61834E43F39A8220 /* Theme.swift */,
+				F32298EE0FCC248AF02976B2 /* AICoachWizardView.swift */,
+				6515DA6D8BACC061FFA7E31C /* AIPlanView.swift */,
+				CD75F6F0B7852433C98F905C /* MealGuideView.swift */,
+				21677913B84B19B6B80CA146 /* CycleBlockView.swift */,
+				4B20F56303D854E24CEDE65C /* DayBlockView.swift */,
+				1CED78126FA304CA9C061A23 /* ExerciseVisual.swift */,
+				45825E7A6FEDCBD5961700AC /* KraftComponents.swift */,
+				26C4E53BC18F66D4EB4538D5 /* KraftHeaderView.swift */,
+				AC66FC48C53BAB6019B5A601 /* MuscleAnatomyView.swift */,
+				C2A6D11B5743EE5DA3BDC7E9 /* PlanListCard.swift */,
+				FCCECF767FED634ABF3C3BC2 /* FavoritenView.swift */,
+				B85DCE883DAF5D25C6D6B4BC /* GeneratorView.swift */,
+				1EDF72C6D05CAA3BEDAA135A /* LiveWorkoutView.swift */,
+				83A03D8F8F4A71640F2804D2 /* MusicPlayerSheet.swift */,
+				F575955966F006B1DE478E2A /* MainTabView.swift */,
+				8158545992B2889817D46159 /* SavedPlansView.swift */,
+				1C1F77D2D5C7CB2BBEA2D564 /* AuthView.swift */,
+				BA41DAAA7050DA281F34D988 /* LegalView.swift */,
+				4EA39DFAD0B90A25D3BFECD1 /* SettingsView.swift */,
+				94404B4687DCF9F8E3B281B4 /* TrainingsplanView.swift */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		56B0E2B8079A8A486774B8AB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				728B74C4EC5C6464A7194957 /* Strings.swift */,
+				FFF9591E9B5A8951CDBEBDF1 /* WorkoutActivityAttributes.swift */,
+				0F4D0851FD4BD218B176DA96 /* KraftFont.swift */,
+				BBE7C0B91A58FAB87A8B4768 /* Theme.swift */,
+				B8661630F292BAE67473FEDB /* KraftwuerfelWidgetBundle.swift */,
+				92F04F22CC9A7D15CA8A7B1A /* WorkoutLiveActivity.swift */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B79B6951DD0C1D42931F38B9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3E26F5DA9941CF772975F44E /* WatchSyncManager.swift */,
+				F62BC0190C589DD09D5B46E7 /* KraftFont.swift */,
+				86FC9CB6D82B4B2D5EC89850 /* Theme.swift */,
+				964C39249B75982118F1CAC7 /* KraftwuerfelWatchApp.swift */,
+				376C03CC6022BAAC98F70A3C /* WatchContentView.swift */,
+				1BF705330AFCE7B0D8480A36 /* WatchWorkoutManager.swift */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C4F69FE3082E4069D377BD93 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3E6CCA80CFB32CD6D9D60951 /* AICoachInputTests.swift */,
+				5CDCE6CC2973EF369942D117 /* ExerciseCatalogTests.swift */,
+				54B6722AF2F5997B980B110E /* LiveBackendTests.swift */,
+				0D8623F2E2CDCCE96533BA91 /* LocalizationTests.swift */,
+				7E6145B34A4C02E286691935 /* PlanEditingTests.swift */,
+				C802204F145A02252CE7140C /* PlanGeneratorTests.swift */,
+				F5DF175A508FD77D2CA4F850 /* PlanNamesTests.swift */,
+				9909B9BC519B2ADB348E838F /* PlanProgressTests.swift */,
+				51B9C4874DEE88709AEF7B72 /* SavedStoresTests.swift */,
+				CC7E15704306A85D0A5B4937 /* SerializationTests.swift */,
+				16736D7CBFFE68D2C98B29A8 /* WeekdayOrderTests.swift */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B06A3731E22318D4D404460D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6EA288500E672DD6AC6BF0D6 /* KraftwuerfelWidget */;
+			targetProxy = 3D2FC704FBCC73BB765870BD /* PBXContainerItemProxy */;
+		};
+		FEFA0808CCA1214D61C00242 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AF20332F178776969FD70CDE /* KraftwuerfelWatch */;
+			targetProxy = 00F8BFE9E6802F9D4B65E562 /* PBXContainerItemProxy */;
+		};
+		9D7F593ACDA1C1626CBAD7A3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7DF4BA67D084C718F5E787AF /* Kraftwuerfel */;
+			targetProxy = D76296086A6F5BA532A9BD70 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		D507BA12DA360B6936CA1DD9 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				E8926494CC96D26C58F69370 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		A1FEF218C4C57CE118AD5A8A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		D49EF4AC7029FD1A8C1140E0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		4B0EAC48F0CB3551BAD11958 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Kraftwuerfel/Kraftwuerfel.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NDK6BWT4SW;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = Kraftwuerfel/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		3462D8F1BDC684332A0E6202 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Kraftwuerfel/Kraftwuerfel.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NDK6BWT4SW;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = Kraftwuerfel/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		84D6B8308D037A0A498580BA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NDK6BWT4SW;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = KraftwuerfelWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel.LiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C808D1382932B49B7BA9D42F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NDK6BWT4SW;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = KraftwuerfelWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel.LiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		ECF02180162E827CD64EC80C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = KraftwuerfelWatch/KraftwuerfelWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NDK6BWT4SW;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = KraftwuerfelWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+			};
+			name = Debug;
+		};
+		D09C892ECA0B3691C3A98159 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = KraftwuerfelWatch/KraftwuerfelWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NDK6BWT4SW;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = KraftwuerfelWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+			};
+			name = Release;
+		};
+		391BCB87645D53E5876AA6A2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NDK6BWT4SW;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kraftwuerfel.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Kraftwuerfel";
+			};
+			name = Debug;
+		};
+		B6796EF953E2BFE80A9460CE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NDK6BWT4SW;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kraftwuerfel.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Kraftwuerfel";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		887D4B5F61EA6AAAF609F3AC /* Build configuration list for PBXProject "Kraftwuerfel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1FEF218C4C57CE118AD5A8A /* Debug */,
+				D49EF4AC7029FD1A8C1140E0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E611D97C909007D96005B5D4 /* Build configuration list for PBXNativeTarget "Kraftwuerfel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4B0EAC48F0CB3551BAD11958 /* Debug */,
+				3462D8F1BDC684332A0E6202 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4F09751E623A53EE4C614D0C /* Build configuration list for PBXNativeTarget "KraftwuerfelWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				84D6B8308D037A0A498580BA /* Debug */,
+				C808D1382932B49B7BA9D42F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D9666D044651A38B38C78C1 /* Build configuration list for PBXNativeTarget "KraftwuerfelWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ECF02180162E827CD64EC80C /* Debug */,
+				D09C892ECA0B3691C3A98159 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		15D726BCF36383048CC0A893 /* Build configuration list for PBXNativeTarget "KraftwuerfelTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				391BCB87645D53E5876AA6A2 /* Debug */,
+				B6796EF953E2BFE80A9460CE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+}

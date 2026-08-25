@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Datenschutzmanifest. Seit Mai 2024 Pflicht; ohne die Datei weist App Store
+	  Connect den Upload zurück.
+
+	  Stand heute verlässt kein personenbezogenes Datum das Gerät:
+
+	    - Pläne, Favoriten und der Assistenten-Zustand liegen in UserDefaults.
+	    - Die Herzfrequenz wird nur gelesen und nur angezeigt.
+	    - Die einzigen Netzaufrufe sind GET /health und GET /exercises. Beide
+	      tragen keine Nutzerdaten.
+
+	  ACHTUNG beim Nachrüsten der Anmeldung: Sobald POST /generate-plan
+	  tatsächlich läuft, gehen Geschlecht, Alter, Größe und Gewicht an den
+	  Server. Dann müssen hier NSPrivacyCollectedDataTypes und die Angaben in
+	  App Store Connect nachgezogen werden — sonst stimmt die Auskunft nicht
+	  mehr.
+	-->
+
+	<key>NSPrivacyTracking</key>
+	<false/>
+
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<!-- Heute wird nichts erhoben, was das Gerät verlässt. -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<!--
+			  UserDefaults ist eine API mit Begründungspflicht. CA92.1: Zugriff
+			  ausschließlich auf die eigenen Daten der App, nicht auf die
+			  anderer Apps und nicht zur Identifizierung des Geräts.
+			-->
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>de</string>
+	<key>CFBundleDisplayName</key>
+	<string>Kraftwürfel</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+
+	<!-- Einzel-Ziel-Uhrenapp (watchOS 7+): kein separates Extension-Bundle. -->
+	<key>WKApplication</key>
+	<true/>
+	<key>WKCompanionAppBundleIdentifier</key>
+	<string>app.kraftwuerfel</string>
+
+	<!-- Der watchOS-Gegenpart zu UIBackgroundModes. Nur damit läuft die
+	     HKWorkoutSession weiter, wenn das Zifferblatt ausgeht. -->
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
+
+	<key>NSHealthShareUsageDescription</key>
+	<string>Kraftwürfel liest Herzfrequenz und aktive Energie deiner Uhr, um dein Training in Echtzeit zu begleiten.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Kraftwürfel speichert die absolvierte Trainingseinheit mit den gemessenen Werten in Apple Health, damit sie in der Fitness-App und in deinen Ringen auftaucht.</string>
+
+	<key>UIAppFonts</key>
+	<array>
+		<string>BebasNeue-Regular.ttf</string>
+		<string>Inter-Regular.ttf</string>
+		<string>Inter-Medium.ttf</string>
+		<string>Inter-SemiBold.ttf</string>
+		<string>Inter-Bold.ttf</string>
+		<string>JetBrainsMono-Medium.ttf</string>
+		<string>JetBrainsMono-Bold.ttf</string>
+	</array>
+</dict>
+</plist>
