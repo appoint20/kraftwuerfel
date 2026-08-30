@@ -6,18 +6,32 @@
 	  Datenschutzmanifest. Seit Mai 2024 Pflicht; ohne die Datei weist App Store
 	  Connect den Upload zurück.
 
-	  Stand heute verlässt kein personenbezogenes Datum das Gerät:
+	  Was das Gerät verlässt und wohin:
 
-	    - Pläne, Favoriten und der Assistenten-Zustand liegen in UserDefaults.
-	    - Die Herzfrequenz wird nur gelesen und nur angezeigt.
-	    - Die einzigen Netzaufrufe sind GET /health und GET /exercises. Beide
-	      tragen keine Nutzerdaten.
+	  POST /generate-plan (KI-Coach) und POST /challenge-plan (Home-Challenge)
+	  senden Geschlecht, Alter, Größe, Gewicht, Zielgewicht, Trainingsziel,
+	  Erfahrung, Trainingstage, Einheitsdauer, Equipment, Ernährungsform und
+	  optionale Angaben zu Verletzungen an kraftwuerfel-api.onrender.com — mit
+	  einem Zugriffstoken, also kontobezogen. Deshalb unten durchgehend
+	  „verknüpft“ (Linked).
 
-	  ACHTUNG beim Nachrüsten der Anmeldung: Sobald POST /generate-plan
-	  tatsächlich läuft, gehen Geschlecht, Alter, Größe und Gewicht an den
-	  Server. Dann müssen hier NSPrivacyCollectedDataTypes und die Angaben in
-	  App Store Connect nachgezogen werden — sonst stimmt die Auskunft nicht
-	  mehr.
+	  ACHTUNG, das stand hier vorher falsch: Der Dienst hat sehr wohl eine
+	  Datenbank. In PostgreSQL liegen (a) das Konto — E-Mail, Passwort-Hash,
+	  is_premium, Token-Hashes — und (b) die Tabelle plan_cache, die den
+	  erzeugten Plan als JSON 14 Tage lang aufbewahrt, adressiert über einen
+	  SHA-256-Schlüssel aus genau diesen Antworten. Der Schlüssel ist nicht
+	  umkehrbar und enthält keine Kontokennung, aber der zwischengespeicherte
+	  Plan ist aus Gesundheitsangaben abgeleitet und liegt persistent. Die
+	  frühere Aussage „der Dienst hat keine Datenbank, die Werte werden nur
+	  durchgereicht“ war damit nicht mehr zutreffend.
+
+	  App Store Connect muss unter „App-Datenschutzangaben“ dieselben Angaben
+	  tragen, sonst stimmen App und Store-Eintrag nicht überein.
+
+	  Werbung: NSPrivacyTracking bleibt false und NSPrivacyTrackingDomains leer,
+	  weil kein Werbenetz eingebunden ist (siehe AdManager.adsEnabled). Wird das
+	  eingeschaltet, gehören hierher die Tracking-Domains, in die Info.plist eine
+	  NSUserTrackingUsageDescription und in den Code die ATT-Abfrage.
 	-->
 
 	<key>NSPrivacyTracking</key>
@@ -26,9 +40,80 @@
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 
-	<!-- Heute wird nichts erhoben, was das Gerät verlässt. -->
 	<key>NSPrivacyCollectedDataTypes</key>
-	<array/>
+	<array>
+		<dict>
+			<!--
+			  Geschlecht, Alter, Größe, Gewicht, Zielgewicht und angegebene
+			  Einschränkungen/Verletzungen — die Eingaben, die den erzeugten Plan
+			  auf den Körper zuschneiden. Gilt für den KI-Coach und für den
+			  Fragebogen der Home-Challenge gleichermaßen.
+
+			  Die Herzfrequenz aus HealthKit gehört NICHT dazu: Sie wird nur
+			  gelesen und in der Live-Session angezeigt, sie verlässt das Gerät
+			  nicht und wird nirgends gespeichert.
+			-->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeHealth</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<!--
+			  Trainingsziel, Erfahrungsstufe, Ausrüstung, Fokus, Methode, Tage,
+			  Einheitsdauer und die Länge der Challenge in Tagen — dieselbe
+			  Anfrage, fitnessbezogener Teil.
+			-->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeFitness</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<!--
+			  E-Mail-Adresse für Konto und Anmeldung. Sie liegt in unserer eigenen
+			  PostgreSQL-Datenbank (nicht mehr Supabase — das stand hier veraltet)
+			  und geht für Bestätigungs- und Reset-Mails an Mailjet.
+			-->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeEmailAddress</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<!--
+			  Anzeigename / Vorname für die persönliche Ansprache.
+			-->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeName</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
 
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>

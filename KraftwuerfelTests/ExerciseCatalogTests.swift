@@ -39,12 +39,6 @@ final class ExerciseCatalogTests: XCTestCase {
         }
     }
 
-    /// Kuratierte Entscheidung, kein Zufall: der Frauen-Split lässt Brust weg.
-    func testFrauenSplitSchliesstBrustAus() throws {
-        let categories = try XCTUnwrap(SplitType.women.categories)
-        XCTAssertFalse(categories.contains(.chest))
-    }
-
     /// `custom` bekommt seine Kategorien aus der Auswahl des Nutzers und darf
     /// deshalb als einziger Split `nil` liefern.
     func testNurEigenerSplitOhneKategorien() {

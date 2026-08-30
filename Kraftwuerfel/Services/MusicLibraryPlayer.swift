@@ -23,7 +23,10 @@ public final class MusicLibraryPlayer: NSObject, ObservableObject {
     @Published public private(set) var currentTitle: String = ""
     @Published public private(set) var currentArtist: String = ""
     @Published public private(set) var isPlaying: Bool = false
+    @Published public private(set) var isShuffleEnabled: Bool = false
     @Published public var authorizationDenied: Bool = false
+
+    private static let storageKey = "kraftwuerfel:saved_playlist_ids"
 
     /// Der App-eigene Player: die Warteschlange gehört uns, die Systemmusik
     /// des Nutzers bleibt unangetastet.
@@ -39,6 +42,8 @@ public final class MusicLibraryPlayer: NSObject, ObservableObject {
         NotificationCenter.default.addObserver(
             self, selector: #selector(nowPlayingChanged),
             name: .MPMusicPlayerControllerNowPlayingItemDidChange, object: player)
+
+        restoreSavedPlaylist()
     }
 
     // MARK: - Zugriff
@@ -52,13 +57,94 @@ public final class MusicLibraryPlayer: NSObject, ObservableObject {
             MPMediaLibrary.requestAuthorization { continuation.resume(returning: $0) }
         }
         authorizationDenied = (status == .denied || status == .restricted)
+        if status == .authorized {
+            restoreSavedPlaylist()
+        }
+    }
+
+    // MARK: - Persistenz
+
+    private func savePlaylist() {
+        let ids = tracks.map { "\($0.persistentID)" }
+        UserDefaults.standard.set(ids, forKey: Self.storageKey)
+    }
+
+    public func restoreSavedPlaylist() {
+        guard isAuthorized else { return }
+        guard let savedIds = UserDefaults.standard.stringArray(forKey: Self.storageKey), !savedIds.isEmpty else { return }
+
+        let query = MPMediaQuery.songs()
+        guard let allItems = query.items, !allItems.isEmpty else { return }
+
+        var itemMap: [String: MPMediaItem] = [:]
+        for item in allItems {
+            itemMap["\(item.persistentID)"] = item
+        }
+
+        let restored = savedIds.compactMap { itemMap[$0] }
+        if !restored.isEmpty {
+            self.tracks = restored
+        }
     }
 
     // MARK: - Warteschlange
 
+    // MARK: - Playlists der Mediathek
+
+    /*
+      Die eigenen Playlists des Nutzers.
+
+      Vorher gab es nur eine Liste: alle einzeln ausgewählten Titel
+      hintereinander. Wer für sein Training schon eine Playlist angelegt hat —
+      und das haben die meisten —, musste sie hier Titel für Titel
+      nachbauen. Gelesen wird direkt aus der Mediathek; angelegt oder
+      geändert wird dort nichts.
+    */
+    public struct LibraryPlaylist: Identifiable, Equatable {
+        public let id: UInt64
+        public let name: String
+        public let trackCount: Int
+        public let items: [MPMediaItem]
+
+        public static func == (a: LibraryPlaylist, b: LibraryPlaylist) -> Bool { a.id == b.id }
+    }
+
+    @Published public private(set) var playlists: [LibraryPlaylist] = []
+    /// Welche Playlist gerade geladen ist — `nil` bei einer selbst
+    /// zusammengestellten Auswahl.
+    @Published public private(set) var loadedPlaylistID: UInt64?
+
+    public func loadPlaylists() {
+        guard isAuthorized else { return }
+
+        let query = MPMediaQuery.playlists()
+        let collections = query.collections ?? []
+
+        playlists = collections.compactMap { collection in
+            guard let playlist = collection as? MPMediaPlaylist else { return nil }
+            let items = playlist.items.filter { !$0.isCloudItem || $0.assetURL != nil }
+            // Leere Playlists (oder solche, von denen nichts auf dem Gerät
+            // liegt) wären Zeilen, hinter denen nichts passiert.
+            guard !items.isEmpty else { return nil }
+            return LibraryPlaylist(
+                id: playlist.persistentID,
+                name: playlist.name ?? (I18n.shared.lang == "en" ? "Playlist" : "Wiedergabeliste"),
+                trackCount: items.count,
+                items: items
+            )
+        }
+    }
+
+    /// Eine ganze Playlist übernehmen — ersetzt die aktuelle Auswahl.
+    public func loadPlaylist(_ playlist: LibraryPlaylist) {
+        setQueue(playlist.items)
+        loadedPlaylistID = playlist.id
+    }
+
     public func setQueue(_ items: [MPMediaItem], startAt index: Int = 0) {
         guard !items.isEmpty else { return }
         tracks = items
+        savePlaylist()
 
         let collection = MPMediaItemCollection(items: items)
         player.setQueue(with: collection)
@@ -69,18 +155,60 @@ public final class MusicLibraryPlayer: NSObject, ObservableObject {
         refreshNowPlaying()
     }
 
+    public func addTracks(_ items: [MPMediaItem]) {
+        // Wer eigene Titel dazulegt, hört nicht mehr die Playlist von vorhin.
+        loadedPlaylistID = nil
+        guard !items.isEmpty else { return }
+        var updated = tracks
+        for item in items {
+            if !updated.contains(where: { $0.persistentID == item.persistentID }) {
+                updated.append(item)
+            }
+        }
+        tracks = updated
+        savePlaylist()
+
+        if !isPlaying {
+            let collection = MPMediaItemCollection(items: updated)
+            player.setQueue(with: collection)
+            player.shuffleMode = isShuffleEnabled ? .songs : .off
+            player.repeatMode = .all
+            if let first = updated.first {
+                player.nowPlayingItem = first
+            }
+            refreshNowPlaying()
+        }
+    }
+
     public func play(_ item: MPMediaItem) {
-        guard let index = tracks.firstIndex(of: item) else { return }
+        guard let index = tracks.firstIndex(where: { $0.persistentID == item.persistentID }) else { return }
         setQueue(tracks, startAt: index)
     }
 
     public func remove(_ item: MPMediaItem) {
-        tracks.removeAll { $0 == item }
+        tracks.removeAll { $0.persistentID == item.persistentID }
+        savePlaylist()
         if tracks.isEmpty {
-            stop()
-        } else if player.nowPlayingItem == item {
+            clearPlaylist()
+        } else if player.nowPlayingItem?.persistentID == item.persistentID {
             setQueue(tracks)
         }
+    }
+
+    public func move(fromOffsets source: IndexSet, toOffset destination: Int) {
+        tracks.move(fromOffsets: source, toOffset: destination)
+        savePlaylist()
+    }
+
+    public func clearPlaylist() {
+        loadedPlaylistID = nil
+        player.stop()
+        tracks = []
+        currentTitle = ""
+        currentArtist = ""
+        isPlaying = false
+        isShuffleEnabled = false
+        UserDefaults.standard.removeObject(forKey: Self.storageKey)
     }
 
     // MARK: - Steuerung
@@ -101,12 +229,29 @@ public final class MusicLibraryPlayer: NSObject, ObservableObject {
         refreshNowPlaying()
     }
 
+    public func toggleShuffle() {
+        if isShuffleEnabled {
+            player.shuffleMode = .off
+            isShuffleEnabled = false
+        } else {
+            player.shuffleMode = .songs
+            isShuffleEnabled = true
+        }
+    }
+
+    public func shuffleAll() {
+        guard !tracks.isEmpty else { return }
+        var shuffled = tracks
+        shuffled.shuffle()
+        setQueue(shuffled, startAt: 0)
+        player.shuffleMode = .songs
+        isShuffleEnabled = true
+    }
+
     public func stop() {
         player.stop()
-        tracks = []
-        currentTitle = ""
-        currentArtist = ""
         isPlaying = false
+        refreshNowPlaying()
     }
 
     // MARK: - Zustand
@@ -161,6 +306,58 @@ public struct MediaPicker: UIViewControllerRepresentable {
 
         public func mediaPickerDidCancel(_ mediaPicker: MPMediaPickerController) {
             mediaPicker.dismiss(animated: true)
+        }
+    }
+}
+
+/*
+  Spotify für die Live-Session — ein Knopf, kein Formular.
+
+  Vorher musste der Nutzer einen Playlist-Link von Hand einfügen. Das war der
+  Preis dafür, dass die App die Playlist selbst starten wollte: Ohne SDK kennt
+  sie keine einzige Playlist des Nutzers, also musste er ihr eine nennen.
+
+  Der Umweg lohnt sich nicht. Ein blankes `spotify:` öffnet die Spotify-App
+  dort, wo der Nutzer ohnehin hinwill — seine eigenen Playlists, mit Suche und
+  Empfehlungen. Er tippt eine an, sie läuft, er wischt zurück ins Training.
+  Genauso viele Schritte wie vorher, aber ohne einmaliges Link-Kopieren.
+
+  Was damit bewusst NICHT geht: Die App erfährt nie, was gerade läuft, und
+  kann Wiedergabe weder starten noch steuern. Dafür bräuchte es das App Remote
+  SDK samt Spotify-Entwicklerkonto und Client-ID.
+*/
+@MainActor
+public final class SpotifyConnectService: ObservableObject {
+    public static let shared = SpotifyConnectService()
+
+    private init() {}
+
+    /// Ohne `LSApplicationQueriesSchemes`-Eintrag in der Info.plist antwortet
+    /// iOS hier immer mit `false`, egal ob Spotify installiert ist.
+    public var isSpotifyInstalled: Bool {
+        guard let scheme = URL(string: "spotify:") else { return false }
+        return UIApplication.shared.canOpenURL(scheme)
+    }
+
+    /// Öffnet Spotify — die Auswahl trifft der Nutzer dort.
+    public func openSpotify() {
+        open(app: "spotify:", web: "https://open.spotify.com")
+    }
+
+    /// Direkt in die Suche nach Workout-Playlists. Spart das Tippen, wenn der
+    /// Nutzer noch keine eigene Trainings-Playlist hat.
+    public func openWorkoutPlaylists() {
+        open(app: "spotify:search:workout", web: "https://open.spotify.com/search/workout/playlists")
+    }
+
+    /// Ist Spotify nicht installiert, übernimmt der Browser — dort kann der
+    /// Nutzer die App laden oder im Web-Player hören. Ein toter Knopf wäre die
+    /// schlechtere Antwort.
+    private func open(app: String, web: String) {
+        if isSpotifyInstalled, let appURL = URL(string: app) {
+            UIApplication.shared.open(appURL, options: [:], completionHandler: nil)
+        } else if let webURL = URL(string: web) {
+            UIApplication.shared.open(webURL, options: [:], completionHandler: nil)
         }
     }
 }

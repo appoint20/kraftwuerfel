@@ -28,8 +28,12 @@ public final class WatchWorkoutManager: NSObject, ObservableObject {
     @Published public private(set) var activeCalories: Double = 0
     @Published public private(set) var startDate: Date?
     @Published public private(set) var lastError: String?
+    /// Spiegelt den tatsächlichen HKWorkoutSessionState — pausiert heißt
+    /// hier wirklich pausiert, nicht nur eine ausgeblendete Uhr. Aktive
+    /// Energie läuft während der Pause nicht weiter mit ein.
+    @Published public private(set) var isPaused = false
 
-    private let store = HKHealthStore()
+    private lazy var store = HKHealthStore()
     private var session: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
 
@@ -116,6 +120,18 @@ public final class WatchWorkoutManager: NSObject, ObservableObject {
         session.end()
     }
 
+    /// Pausiert die echte HKWorkoutSession — aktive Energie läuft währenddessen
+    /// nicht weiter mit ein, und die Fitness-App zeigt das Training als
+    /// pausiert an. `isPaused` folgt erst über das Delegate, sobald der
+    /// Zustandswechsel wirklich passiert ist.
+    public func pause() {
+        session?.pause()
+    }
+
+    public func resume() {
+        session?.resume()
+    }
+
     private func finishAndSave() {
         guard let builder else {
             DispatchQueue.main.async { self.teardown() }
@@ -137,6 +153,7 @@ public final class WatchWorkoutManager: NSObject, ObservableObject {
         session = nil
         builder = nil
         isRunning = false
+        isPaused = false
         heartRate = nil
         activeCalories = 0
         startDate = nil
@@ -153,6 +170,7 @@ extension WatchWorkoutManager: HKWorkoutSessionDelegate {
         from fromState: HKWorkoutSessionState,
         date: Date
     ) {
+        DispatchQueue.main.async { self.isPaused = (toState == .paused) }
         guard toState == .ended else { return }
         finishAndSave()
     }

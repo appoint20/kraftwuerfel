@@ -13,6 +13,7 @@ public struct FavoritenView: View {
     @ObservedObject private var storeKit = StoreKitManager.shared
 
     @State private var openId: UUID?
+    @State private var showPro = false
 
     public var onStartLiveWorkout: (([ExerciseSlot], String) -> Void)?
 
@@ -26,16 +27,28 @@ public struct FavoritenView: View {
                 SectionLabel(i18n.t("fav.title"))
                     .padding(.bottom, 10)
 
-                if !storeKit.isProUnlocked && favorites.favorites.isEmpty {
-                    premiumGate
-                } else if favorites.favorites.isEmpty {
+                if favorites.favorites.isEmpty {
                     EmptyStateBox(i18n.t("fav.empty"), hint: i18n.t("fav.emptyHint"))
                 } else {
                     VStack(spacing: 10) {
-                        ForEach(favorites.sortedForDisplay) { fav in
-                            favoriteCard(fav)
+                        ForEach(Array(favorites.sortedForDisplay.enumerated()), id: \.element.id) { index, fav in
+                            if storeKit.isProUnlocked || index < FavoritesStore.freeLimit {
+                                favoriteCard(fav)
+                            } else {
+                                lockedFavoriteCard(fav)
+                            }
                         }
                     }
+                }
+
+                /*
+                  Der Hinweis steht UNTER der Liste, nicht an ihrer Stelle.
+                  Vorher ersetzte die Pro-Sperre die ganze Ansicht, solange
+                  noch nichts favorisiert war — ein Gratis-Nutzer sah damit
+                  nie, dass ihm ein Favorit zusteht.
+                */
+                if !storeKit.isProUnlocked {
+                    premiumGate.padding(.top, favorites.favorites.isEmpty ? 0 : 14)
                 }
             }
             .padding(20)
@@ -43,6 +56,7 @@ public struct FavoritenView: View {
             .frame(maxWidth: .infinity)
         }
         .background(Theme.bg)
+        .sheet(isPresented: $showPro) { ProSubscriptionView() }
     }
 
     private func favoriteCard(_ fav: FavoriteDayPlan) -> some View {
@@ -101,26 +115,76 @@ public struct FavoritenView: View {
     }
 
 
+    /// Sagt, wie viele Favoriten gratis drin sind und wie viele davon schon
+    /// belegt sind — eine Zahl, die der Nutzer selbst nachzählen müsste.
     private var premiumGate: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "sparkles").font(.system(size: 13, weight: .bold))
-                Text(i18n.t("pro.badge")).font(KraftFont.bebas(15)).tracking(1.5)
-            }
-            .foregroundColor(Theme.accent)
-
-            Text(i18n.t("pro.gateText", ["feature": i18n.t("pro.feature.favorites")]))
-                .font(KraftFont.inter(13))
-                .foregroundColor(Theme.muted)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(16)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Theme.surface))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            showPro = true
+        }) {
+            VStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles").font(.system(size: 13, weight: .bold))
+                    Text(i18n.t("pro.badge")).font(KraftFont.bebas(15)).tracking(1.5)
+                }
                 .foregroundColor(Theme.accent)
-        )
+
+                Text(i18n.t("fav.limitBody", ["n": "\(FavoritesStore.freeLimit)"]))
+                    .font(KraftFont.inter(13))
+                    .foregroundColor(Theme.muted)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(i18n.t("pro.cta"))
+                    .font(KraftFont.bebas(14)).tracking(1)
+                    .foregroundColor(Theme.accent)
+                    .padding(.top, 2)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(16)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Theme.surface))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                    .foregroundColor(Theme.accent)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func lockedFavoriteCard(_ fav: FavoriteDayPlan) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(Theme.accent)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(i18n.weekday(fav.day))
+                    .font(KraftFont.bebas(16)).tracking(1)
+                    .foregroundColor(Theme.text)
+                Text(i18n.lang == "en" ? "Pro required to unlock extra favorites" : "Pro erforderlich für weitere Favoriten")
+                    .font(KraftFont.inter(11))
+                    .foregroundColor(Theme.muted)
+            }
+
+            Spacer()
+
+            Button(action: {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                showPro = true
+            }) {
+                Text("PRO")
+                    .font(KraftFont.bebas(12)).tracking(1)
+                    .foregroundColor(Theme.bg)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(Theme.accent))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .background(Theme.surface)
+        .cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
     }
 }

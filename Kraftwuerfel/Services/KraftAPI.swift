@@ -53,8 +53,9 @@ public final class KraftAPI: @unchecked Sendable {
     private init() {
         let config = URLSessionConfiguration.default
         // Kaltstart auf dem freien Plan darf nicht in ein Timeout laufen.
-        config.timeoutIntervalForRequest = 90
+        config.timeoutIntervalForRequest = 120
         config.timeoutIntervalForResource = 180
+        config.waitsForConnectivity = true
         session = URLSession(configuration: config)
     }
 
@@ -140,7 +141,163 @@ public final class KraftAPI: @unchecked Sendable {
         public var limitations: String
         public var warmup: String
         public var diet: String
+        public var excludedFoods: [String]
+        public var allergies: [String]
+        public var intolerances: [String]
+        public var dietPreferences: String
         public var language: String
+        public var somatotype: String
+        public var activityLevel: String
+        public var pushupLevel: String
+        public var pullupLevel: String
+        public var plankLevel: String
+        public var trainingLocation: String
+        public var bmi: Double?
+        public var bmr: Int?
+        public var tdee: Int?
+
+        public init(
+            goal: String,
+            experience: String,
+            sex: String,
+            age: Int,
+            height: Int,
+            weight: Int,
+            goalWeight: Int? = nil,
+            method: String = "standard",
+            days: [String],
+            sessionMinutes: Int = 60,
+            weeks: Int = 4,
+            equipment: [String] = [],
+            focus: [String] = [],
+            limitations: String = "",
+            warmup: String = "auto",
+            diet: String = "omnivore",
+            excludedFoods: [String] = [],
+            allergies: [String] = [],
+            intolerances: [String] = [],
+            dietPreferences: String = "",
+            language: String = "de",
+            somatotype: String = "mesomorph",
+            activityLevel: String = "moderately_active",
+            pushupLevel: String = "6-15",
+            pullupLevel: String = "1-5",
+            plankLevel: String = "30-60s",
+            trainingLocation: String = "gym",
+            bmi: Double? = nil,
+            bmr: Int? = nil,
+            tdee: Int? = nil
+        ) {
+            self.goal = goal
+            self.experience = experience
+            self.sex = sex
+            self.age = age
+            self.height = height
+            self.weight = weight
+            self.goalWeight = goalWeight
+            self.method = method
+            self.days = days
+            self.sessionMinutes = sessionMinutes
+            self.weeks = weeks
+            self.equipment = equipment
+            self.focus = focus
+            self.limitations = limitations
+            self.warmup = warmup
+            self.diet = diet
+            self.excludedFoods = excludedFoods
+            self.allergies = allergies
+            self.intolerances = intolerances
+            self.dietPreferences = dietPreferences
+            self.language = language
+            self.somatotype = somatotype
+            self.activityLevel = activityLevel
+            self.pushupLevel = pushupLevel
+            self.pullupLevel = pullupLevel
+            self.plankLevel = plankLevel
+            self.trainingLocation = trainingLocation
+            self.bmi = bmi
+            self.bmr = bmr
+            self.tdee = tdee
+        }
+    }
+
+    // MARK: - Home-Challenge
+
+    /*
+      Rumpf für POST /challenge-plan.
+
+      Getrennt von PlanRequest, weil der Fragebogen der Challenge ein anderer
+      ist: kein Split, keine Trainingsmethode, kein Studio-Equipment — dafür
+      eine Challenge-Länge in Tagen und Einheiten ab 10 Minuten.
+    */
+    public struct ChallengeRequest: Encodable {
+        public var sex: String
+        public var age: Int
+        public var height: Int
+        public var weight: Int
+        public var goalWeight: Int?
+        public var goal: String
+        public var experience: String
+        public var durationDays: Int
+        public var daysPerWeek: Int
+        public var days: [String]
+        public var sessionMinutes: Int
+        public var equipment: [String]
+        public var diet: String
+        public var limitations: String
+        public var language: String
+
+        public init(
+            sex: String,
+            age: Int,
+            height: Int,
+            weight: Int,
+            goalWeight: Int? = nil,
+            goal: String,
+            experience: String,
+            durationDays: Int,
+            daysPerWeek: Int,
+            days: [String],
+            sessionMinutes: Int,
+            equipment: [String],
+            diet: String,
+            limitations: String = "",
+            language: String = "de"
+        ) {
+            self.sex = sex
+            self.age = age
+            self.height = height
+            self.weight = weight
+            self.goalWeight = goalWeight
+            self.goal = goal
+            self.experience = experience
+            self.durationDays = durationDays
+            self.daysPerWeek = daysPerWeek
+            self.days = days
+            self.sessionMinutes = sessionMinutes
+            self.equipment = equipment
+            self.diet = diet
+            self.limitations = limitations
+            self.language = language
+        }
+    }
+
+    /// Gibt das rohe `plan`-Objekt zurück — die Umwandlung macht PlanMapper.
+    public func generateChallenge(_ request: ChallengeRequest) async throws -> [String: Any] {
+        guard let token = accessToken, !token.isEmpty else {
+            throw APIError.unauthorized
+        }
+
+        let body = try JSONEncoder().encode(request)
+
+        do {
+            return try await sendPlanRequest(path: "challenge-plan", body: body, token: token)
+        } catch APIError.unauthorized {
+            guard let fresh = await tokenRefresher?(), !fresh.isEmpty else {
+                throw APIError.unauthorized
+            }
+            return try await sendPlanRequest(path: "challenge-plan", body: body, token: fresh)
+        }
     }
 
     /*
@@ -161,18 +318,19 @@ public final class KraftAPI: @unchecked Sendable {
         let body = try JSONEncoder().encode(request)
 
         do {
-            return try await sendPlanRequest(body: body, token: token)
+            return try await sendPlanRequest(path: "generate-plan", body: body, token: token)
         } catch APIError.unauthorized {
             guard let fresh = await tokenRefresher?(), !fresh.isEmpty else {
                 throw APIError.unauthorized
             }
-            return try await sendPlanRequest(body: body, token: fresh)
+            return try await sendPlanRequest(path: "generate-plan", body: body, token: fresh)
         }
     }
 
-    private func sendPlanRequest(body: Data, token: String) async throws -> [String: Any] {
-        var urlRequest = URLRequest(url: baseURL.appending(path: "generate-plan"))
+    private func sendPlanRequest(path: String, body: Data, token: String) async throws -> [String: Any] {
+        var urlRequest = URLRequest(url: baseURL.appending(path: path))
         urlRequest.httpMethod = "POST"
+        urlRequest.timeoutInterval = 120
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         urlRequest.httpBody = body
@@ -233,7 +391,8 @@ public final class KraftAPI: @unchecked Sendable {
     }
 
     public func register(email: String, password: String) async throws -> AuthOutcome {
-        let (status, json) = try await authRequest(path: "auth/register", body: ["email": email, "password": password])
+        let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let (status, json) = try await authRequest(path: "auth/register", body: ["email": cleanEmail, "password": password])
         if status == 200, json?["needsEmailConfirmation"] as? Bool == true {
             return .needsEmailConfirmation
         }
@@ -241,13 +400,19 @@ public final class KraftAPI: @unchecked Sendable {
     }
 
     public func login(email: String, password: String) async throws -> AuthTokens {
-        let (status, json) = try await authRequest(path: "auth/login", body: ["email": email, "password": password])
+        let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let (status, json) = try await authRequest(path: "auth/login", body: ["email": cleanEmail, "password": password])
         return try decodeAuthTokens(status: status, json: json)
     }
 
     public func refresh(refreshToken: String) async throws -> AuthTokens {
         let (status, json) = try await authRequest(path: "auth/refresh", body: ["refreshToken": refreshToken])
         return try decodeAuthTokens(status: status, json: json)
+    }
+
+    public func recoverPassword(email: String) async throws {
+        let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        _ = try await authRequest(path: "auth/recover", body: ["email": cleanEmail])
     }
 
     /// Best-effort — die App verwirft ihre Tokens so oder so, ein Fehler hier ändert daran nichts.
@@ -258,9 +423,53 @@ public final class KraftAPI: @unchecked Sendable {
         _ = try? await session.data(for: request)
     }
 
+    /*
+      Konto und alle Serverdaten löschen (Art. 17 DSGVO).
+
+      Anders als `logout` ist das ausdrücklich NICHT best-effort: Wenn der
+      Server nicht bestätigt, darf die App dem Nutzer keine Löschung melden.
+      Ein stilles Fehlschlagen wäre hier die schlimmste Variante — der Nutzer
+      hielte seine Daten für gelöscht, während sie liegen bleiben.
+
+      Betrifft immer nur das eigene Konto: Welches gemeint ist, steht im
+      Token, nicht im Rumpf.
+    */
+    public func deleteAccount(accessToken: String) async throws {
+        var request = URLRequest(url: baseURL.appending(path: "auth/delete"))
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw APIError.transport(error.localizedDescription)
+        }
+
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+
+        /*
+          Nur 200/204 zählen als gelöscht.
+
+          Insbesondere 404 NICHT: Diese API antwortet auf jede unbekannte
+          Route mit 404, und solange `POST /auth/delete` dort noch nicht
+          existiert, käme genau das zurück. Als Erfolg gewertet, hätte die App
+          alle lokalen Daten weggeworfen und „Konto gelöscht“ gemeldet,
+          während auf dem Server alles liegen bleibt — die eine Zusage, die
+          eine Löschfunktion niemals brechen darf.
+        */
+        guard status == 200 || status == 204 else {
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            if let serverCode = json?["error"] as? String { throw AuthError(code: serverCode) }
+            throw AuthError(code: status == 404 ? "delete_not_supported" : "upstream_error")
+        }
+    }
+
     private func authRequest(path: String, body: [String: String]) async throws -> (Int, [String: Any]?) {
         var request = URLRequest(url: baseURL.appending(path: path))
         request.httpMethod = "POST"
+        request.timeoutInterval = 120
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
@@ -274,6 +483,13 @@ public final class KraftAPI: @unchecked Sendable {
 
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        
+        if status >= 400 {
+            if let serverCode = json?["error"] as? String {
+                throw AuthError(code: serverCode)
+            }
+        }
+        
         return (status, json)
     }
 

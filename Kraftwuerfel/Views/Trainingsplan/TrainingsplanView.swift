@@ -17,6 +17,7 @@ public struct TrainingsplanView: View {
     @ObservedObject private var favorites = FavoritesStore.shared
     @ObservedObject private var storeKit = StoreKitManager.shared
     @ObservedObject private var active = ActivePlanStore.shared
+    @ObservedObject private var profileStore = UserProfileStore.shared
 
     @State private var selectedDays: Set<String> = ["Mo", "Mi", "Fr"]
     @State private var durationWeeks: Int = 4
@@ -29,6 +30,12 @@ public struct TrainingsplanView: View {
       Wochen schauen kann.
     */
     @State private var selectedWeek: Int?
+    @State private var customDayOrder: [String] = []
+    /// Wird gesetzt, wenn ein Gratis-Nutzer über die Favoriten-Grenze stößt.
+    @State private var editingDay: DayEdit?
+    @State private var showPlanSetup = false
+    @State private var showFavoriteLimit = false
+    @State private var showPro = false
 
     public var onStartLiveWorkout: (([ExerciseSlot], String) -> Void)?
 
@@ -36,10 +43,54 @@ public struct TrainingsplanView: View {
         self.onStartLiveWorkout = onStartLiveWorkout
     }
 
+    /// Welcher Tag gerade bearbeitet wird — Tag und Zyklus zusammen, weil
+    /// beide zusammen erst eine Übungsliste ergeben.
+    struct DayEdit: Identifiable {
+        let day: String
+        let cycle: Int
+        var id: String { "\(day):\(cycle)" }
+    }
+
     private var sortedDays: [String] { Weekdays.sorted(selectedDays) }
-    private var cycles: Int { PlanGenerator.cyclesForDuration(durationWeeks) }
+    private var activeOrderedDays: [String] {
+        if let plan = active.plan {
+            let valid = Set(plan.days)
+            let ordered = customDayOrder.filter { valid.contains($0) }
+            let remaining = Weekdays.sorted(valid.subtracting(ordered))
+            return ordered + remaining
+        }
+        return sortedDays
+    }
+    private var generatedOrderedDays: [String] {
+        let ordered = customDayOrder.filter { selectedDays.contains($0) }
+        let remaining = Weekdays.sorted(selectedDays.subtracting(ordered))
+        return ordered + remaining
+    }
+    private var cycles: Int { settings.cycleMode.cycles(forDuration: durationWeeks) }
     private var planSalt: String { "\(settings.split.rawValue):\(settings.method.rawValue)" }
     private var canRoll: Bool { !settings.activeCategories.isEmpty && !selectedDays.isEmpty }
+
+    private func moveActiveDay(from source: Int, to destination: Int) {
+        var days = activeOrderedDays
+        guard source != destination, days.indices.contains(source), days.indices.contains(destination) else { return }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        withAnimation(.easeInOut(duration: 0.22)) {
+            let moved = days.remove(at: source)
+            days.insert(moved, at: destination)
+            customDayOrder = days
+        }
+    }
+
+    private func moveGeneratedDay(from source: Int, to destination: Int) {
+        var days = generatedOrderedDays
+        guard source != destination, days.indices.contains(source), days.indices.contains(destination) else { return }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        withAnimation(.easeInOut(duration: 0.22)) {
+            let moved = days.remove(at: source)
+            days.insert(moved, at: destination)
+            customDayOrder = days
+        }
+    }
 
     public var body: some View {
         ScrollView(showsIndicators: false) {
@@ -63,6 +114,65 @@ public struct TrainingsplanView: View {
             .frame(maxWidth: .infinity)
         }
         .background(Theme.bg)
+        .sheet(isPresented: $showPro) { ProSubscriptionView() }
+        .sheet(isPresented: $showPlanSetup) {
+            PlanSetupSheet(hasActivePlan: active.plan != nil)
+        }
+        .sheet(item: $editingDay) { target in
+            DayEditSheet(
+                day: target.day,
+                cycle: target.cycle,
+                method: active.plan?.method ?? settings.method
+            )
+        }
+        .kraftDialog(isPresented: $showFavoriteLimit) {
+            KraftDialog(
+                title: i18n.t("fav.limitTitle"),
+                message: i18n.t("fav.limitBody", ["n": "\(FavoritesStore.freeLimit)"]),
+                icon: "heart.fill",
+                dismissLabel: i18n.t("auth.deleteCancel"),
+                confirmLabel: i18n.t("pro.cta"),
+                onConfirm: {
+                    showFavoriteLimit = false
+                    showPro = true
+                },
+                onDismiss: { showFavoriteLimit = false }
+            )
+        }
+    }
+
+    /*
+      Das Herz ist für alle da — die Grenze greift erst beim Antippen.
+      Ausgeblendet (wie vorher über `canFavorite: isProUnlocked`) hätte ein
+      Gratis-Nutzer nie erfahren, dass es Favoriten überhaupt gibt.
+    */
+    private func toggleFavorite(day: String, cycles: [[ExerciseSlot]], split: String, method: TrainingMethod) {
+        let outcome = favorites.toggle(
+            day: day, cycles: cycles, split: split, method: method,
+            isPro: storeKit.isProUnlocked
+        )
+        if outcome == .blockedByLimit {
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            showFavoriteLimit = true
+        }
+    }
+
+    /*
+      Wird bei jeder Änderung am Plan neu gerechnet. Das ist billig genug —
+      die Bewertung läuft über ein paar Dutzend Übungen, nicht über eine
+      Datenbank.
+    */
+    @ViewBuilder
+    private func activePlanScore(_ plan: ActivePlan) -> some View {
+        let scored = PlanQualityScore.evaluate(
+            plan: plan.asTrainingPlan(),
+            goal: profileStore.profile.goal,
+            targetMinutes: profileStore.profile.durationMinutes
+        )
+        if scored.overall > 0 {
+            PlanScoreCard(score: scored)
+                .padding(.top, 12)
+        }
     }
 
     // MARK: - Laufender Plan
@@ -70,7 +180,13 @@ public struct TrainingsplanView: View {
     @ViewBuilder
     private func activePlanView(_ plan: ActivePlan) -> some View {
         let progress = PlanProgress.progress(for: plan)
-        let planCycles = PlanGenerator.cyclesForDuration(plan.duration)
+        /*
+          Was wirklich im Plan steht, nicht was die Planlänge nahelegt: Seit
+          die Zyklenzahl wählbar ist, kann ein 12-Wochen-Plan bewusst einen
+          einzigen Zyklus haben. Gerechnet hätte hier sonst 6 gestanden und
+          die Reiter hätten auf leere Zyklen gezeigt.
+        */
+        let planCycles = max(1, plan.dayPlans.values.map(\.count).max() ?? 1)
 
         if progress.finished {
             EmptyStateBox(i18n.t("tp.finished"),
@@ -85,21 +201,33 @@ public struct TrainingsplanView: View {
 
             selectionBadges(shownWeek: shownWeek, shownCycle: shownCycle, planCycles: planCycles)
             progressCard(plan, progress, planCycles)
+            /*
+              Wie gut der laufende Plan ist, nicht nur wie weit er ist.
+
+              Die Bewertung gab es bisher nur für frisch erzeugte Pläne (im
+              KI-Coach und im Plan-Baukasten) — also genau dort, wo man sie
+              einmal ansieht und danach nie wieder. Am laufenden Plan zählt
+              sie mehr: Er ändert sich, seit einzelne Tage angepasst werden
+              können, und eine getauschte Übung kann das Volumen einer
+              Muskelgruppe kippen.
+            */
+            activePlanScore(plan)
             weekTimeline(plan, progress, shownWeek: shownWeek)
             weekdayStatusRow(plan)
 
             SectionLabel(i18n.t("tp.tapDay", ["cycles": planCycles == 1 ? "" : "\(planCycles) "]))
                 .padding(.top, 20).padding(.bottom, 10)
 
+            let daysList = activeOrderedDays
             VStack(spacing: 8) {
-                ForEach(Weekdays.sorted(Set(plan.days)), id: \.self) { day in
+                ForEach(Array(daysList.enumerated()), id: \.element) { idx, day in
                     DayBlockView(
                         day: day,
                         cyclePlans: plan.dayPlans[day] ?? [],
                         currentCycleIdx: shownCycle,
                         isOpen: expandedDay == day,
                         isFavorited: favorites.isFavorited(day: day),
-                        canFavorite: storeKit.isProUnlocked,
+                        canFavorite: true,
                         planSalt: "\(plan.split):\(plan.method.rawValue)",
                         onToggle: {
                             withAnimation(.easeInOut(duration: 0.18)) {
@@ -107,22 +235,36 @@ public struct TrainingsplanView: View {
                             }
                         },
                         onFavorite: {
-                            favorites.toggle(
+                            toggleFavorite(
                                 day: day,
                                 cycles: plan.dayPlans[day] ?? [],
                                 split: plan.split,
                                 method: plan.method
                             )
                         },
-                        onStart: onStartLiveWorkout
+                        onStart: onStartLiveWorkout,
+                        onMoveUp: idx > 0 ? { moveActiveDay(from: idx, to: idx - 1) } : nil,
+                        onMoveDown: idx < daysList.count - 1 ? { moveActiveDay(from: idx, to: idx + 1) } : nil,
+                        /*
+                          Beides wirkt auf den GEZEIGTEN Zyklus, nicht auf den
+                          laufenden: Wer sich Zyklus 2 ansieht und mischt,
+                          erwartet, dass Zyklus 2 gemischt wird.
+                        */
+                        onEdit: { editingDay = DayEdit(day: day, cycle: shownCycle) },
+                        onShuffle: { active.reshuffleDay(day: day, cycle: shownCycle) }
                     )
                 }
             }
 
+            KraftDashedButton(i18n.t("planSetup.title"), systemImage: "slider.horizontal.3") {
+                showPlanSetup = true
+            }
+            .padding(.top, 14)
+
             KraftDashedButton(i18n.t("tp.end"), systemImage: "xmark") {
                 active.end()
             }
-            .padding(.top, 14)
+            .padding(.top, 8)
         }
     }
 
@@ -290,13 +432,34 @@ public struct TrainingsplanView: View {
     private var daysSection: some View {
         Group {
             SectionLabel(i18n.t("tp.pickDays")).padding(.bottom, 10)
-            FlowLayout(spacing: 8, lineSpacing: 8) {
+            HStack(spacing: 5) {
                 ForEach(Weekdays.all, id: \.self) { d in
-                    KraftChip(i18n.weekday(d), isActive: selectedDays.contains(d)) {
+                    let isSelected = selectedDays.contains(d)
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         if selectedDays.contains(d) { selectedDays.remove(d) } else { selectedDays.insert(d) }
+                    }) {
+                        Text(i18n.weekday(d))
+                            .font(KraftFont.inter(12.5, isSelected ? .bold : .semibold))
+                            .foregroundColor(isSelected ? Theme.bg : Theme.text)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                            .allowsTightening(true)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(isSelected ? Theme.accent : Theme.surface2)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(isSelected ? Theme.accent : Theme.border, lineWidth: 1)
+                            )
                     }
+                    .buttonStyle(.plain)
                 }
             }
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -334,22 +497,47 @@ public struct TrainingsplanView: View {
         }
     }
 
+    /*
+      Antippbar, statt nur zu berichten.
+
+      Hier stand „Einstellungen aus dem Generator" und darunter, was dort
+      eingestellt war — ohne Weg dorthin. Wer Split, Methode oder Zyklen
+      ändern wollte, musste den Reiter wechseln, dort suchen und
+      zurückkommen. Jetzt öffnet dieselbe Karte die Auswahl an Ort und Stelle.
+    */
     private var settingsSummary: some View {
         Group {
-            SectionLabel(i18n.t("tp.settingsFromGenerator")).padding(.top, 20).padding(.bottom, 10)
-            Text(i18n.t("tp.summary", [
-                "split": i18n.split(settings.split),
-                "count": "\(settings.count)",
-                "method": i18n.method(settings.method),
-                "rest": "\(settings.restTime)",
-            ]))
-            .font(KraftFont.inter(13))
-            .foregroundColor(Theme.muted)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surface))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.border, lineWidth: 1))
+            SectionLabel(i18n.t("planSetup.title")).padding(.top, 20).padding(.bottom, 10)
+            Button(action: { showPlanSetup = true }) {
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(i18n.t("tp.summary", [
+                            "split": i18n.split(settings.split),
+                            "count": "\(settings.count)",
+                            "method": i18n.method(settings.method),
+                            "rest": "\(settings.restTime)",
+                        ]))
+                        .font(KraftFont.inter(13))
+                        .foregroundColor(Theme.muted)
+                        .multilineTextAlignment(.leading)
+
+                        Text(settings.cycleMode.localized(i18n.lang))
+                            .font(KraftFont.mono(11, .bold))
+                            .foregroundColor(Theme.accent)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Theme.accent)
+                        .padding(.top, 2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surface))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.border, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -391,14 +579,15 @@ public struct TrainingsplanView: View {
         SectionLabel(i18n.t("tp.tapDay", ["cycles": "\(cycles) "]))
             .padding(.top, 20).padding(.bottom, 10)
 
+        let daysList = generatedOrderedDays
         VStack(spacing: 8) {
-            ForEach(sortedDays, id: \.self) { day in
+            ForEach(Array(daysList.enumerated()), id: \.element) { idx, day in
                 DayBlockView(
                     day: day,
                     cyclePlans: plans[day] ?? [],
                     isOpen: expandedDay == day,
                     isFavorited: favorites.isFavorited(day: day),
-                    canFavorite: storeKit.isProUnlocked,
+                    canFavorite: true,
                     planSalt: planSalt,
                     onToggle: {
                         withAnimation(.easeInOut(duration: 0.18)) {
@@ -406,14 +595,16 @@ public struct TrainingsplanView: View {
                         }
                     },
                     onFavorite: {
-                        favorites.toggle(
+                        toggleFavorite(
                             day: day,
                             cycles: plans[day] ?? [],
                             split: settings.split.rawValue,
                             method: settings.method
                         )
                     },
-                    onStart: onStartLiveWorkout
+                    onStart: onStartLiveWorkout,
+                    onMoveUp: idx > 0 ? { moveGeneratedDay(from: idx, to: idx - 1) } : nil,
+                    onMoveDown: idx < daysList.count - 1 ? { moveGeneratedDay(from: idx, to: idx + 1) } : nil
                 )
             }
         }
@@ -428,7 +619,7 @@ public struct TrainingsplanView: View {
         if storeKit.isProUnlocked {
             KraftPrimaryButton(i18n.t("tp.start"), systemImage: "dumbbell.fill", compact: true) {
                 active.start(
-                    days: sortedDays,
+                    days: generatedOrderedDays,
                     duration: durationWeeks,
                     split: settings.split.rawValue,
                     method: settings.method,
@@ -436,7 +627,7 @@ public struct TrainingsplanView: View {
                     restTime: settings.restTime,
                     dayPlans: plans
                 )
-                expandedDay = sortedDays.first
+                expandedDay = generatedOrderedDays.first
             }
             .padding(.top, 10)
         }

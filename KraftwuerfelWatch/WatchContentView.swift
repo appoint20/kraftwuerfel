@@ -1,26 +1,27 @@
 import SwiftUI
+import WatchKit
 
 /*
-  Die Uhr während des Trainings.
+  Die Apple Watch als direkte Trainingssteuerung.
 
-  Drei Dinge sind gegenüber der alten Fassung anders:
-
-  1. Kein `#if os(watchOS) || canImport(WatchKit)` mehr. Die Datei liegt jetzt
-     im watchOS-Ziel; die Bedingung war ohnehin auch auf iOS wahr und hat die
-     Ansicht in die iPhone-App gezogen.
-
-  2. Die Pause zählt hier herunter, nicht auf dem iPhone. Übertragen wird das
-     Ende als Zeitpunkt. Vorher kamen Restsekunden, die nur bei Zustands-
-     wechseln erneuert wurden — der Zähler auf der Uhr stand still.
-
-  3. Sobald das iPhone eine Sitzung meldet, startet die HKWorkoutSession. Erst
-     dadurch misst die Uhr durchgehend, erscheint das Training in der
-     Fitness-App und füllen sich die Ringe.
+  Ermöglicht das komplette Workout ohne Blick aufs iPhone:
+  - Aktuellen Satz und Übung sehen
+  - Gewicht anpassen (+/- 2.5 kg)
+  - Wiederholungen anpassen (+/- 1)
+  - Satz direkt auf der Watch abhaken & speichern
+  - Automatischer Pausen-Timer mit sicht- und hörbarem Countdown:
+    5 → 4 → 3 → 2 → 1 → LOS!
+  - Pausieren/Fortsetzen und Pause überspringen
+  - Herzfrequenz und verbrannte Kalorien in Echtzeit
 */
 struct WatchContentView: View {
 
-    @EnvironmentObject private var sync: WatchSyncManager
-    @EnvironmentObject private var workout: WatchWorkoutManager
+    @ObservedObject private var sync = WatchSyncManager.shared
+    @ObservedObject private var workout = WatchWorkoutManager.shared
+
+    @State private var localWeight: Double = 20.0
+    @State private var localReps: Int = 10
+    @State private var lastHapticSecond: Int = -1
 
     var body: some View {
         ZStack {
@@ -32,9 +33,21 @@ struct WatchContentView: View {
                 idle
             }
         }
+        .onAppear {
+            localWeight = sync.currentWeight
+            localReps = sync.currentReps
+        }
+        .onChange(of: sync.currentExercise) { _ in
+            localWeight = sync.currentWeight
+            localReps = sync.currentReps
+        }
+        .onChange(of: sync.currentSet) { _ in
+            localWeight = sync.currentWeight
+            localReps = sync.currentReps
+        }
         // Die Uhr folgt dem iPhone: Sitzung an -> messen, Sitzung aus ->
         // Training abschließen und in Apple Health ablegen.
-        .onChange(of: sync.isLiveSessionActive) { _, isActive in
+        .onChange(of: sync.isLiveSessionActive) { isActive in
             if isActive {
                 workout.start()
             } else {
@@ -46,87 +59,335 @@ struct WatchContentView: View {
     // MARK: - Laufende Sitzung
 
     private var activeSession: some View {
-        VStack(spacing: 6) {
-            if sync.isResting, let endsAt = sync.restEndsAt {
-                VStack(spacing: 2) {
-                    Text("PAUSE")
-                        .font(KraftFont.bebas(13)).tracking(1.5)
-                        .foregroundColor(Theme.accent)
-
-                    Text(timerInterval: Date()...endsAt, countsDown: true)
-                        .font(KraftFont.mono(30, .bold))
-                        .foregroundColor(Theme.text)
-                        .monospacedDigit()
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 8) {
+                if sync.isPaused {
+                    pausedView
+                } else if sync.isResting, let endsAt = sync.restEndsAt {
+                    restCountdownView(endsAt: endsAt)
+                } else {
+                    activeSetView
                 }
-            } else {
-                VStack(spacing: 2) {
-                    Text("SATZ \(sync.currentSet) / \(sync.totalSets)")
-                        .font(KraftFont.inter(11, .bold)).tracking(0.8)
-                        .foregroundColor(Theme.accent)
 
-                    Text(sync.currentExercise)
-                        .font(KraftFont.bebas(18)).tracking(0.7)
+                measurementsBar
+
+                if let startedAt = sync.sessionStartedAt {
+                    elapsedRow(startedAt)
+                }
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+        }
+        .onChange(of: sync.isPaused) { paused in
+            paused ? workout.pause() : workout.resume()
+        }
+    }
+
+    // MARK: - Aktiver Satz
+
+    private var activeSetView: some View {
+        VStack(spacing: 6) {
+            // Satz & Übungskopf
+            HStack {
+                Text("SATZ \(sync.currentSet)/\(sync.totalSets)")
+                    .font(KraftFont.mono(10.5, .bold))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Theme.accentDim)
+                    .foregroundColor(Theme.accent)
+                    .cornerRadius(6)
+
+                Spacer()
+
+                Button(action: { sync.requestPauseToggle() }) {
+                    Image(systemName: "pause.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(Theme.muted)
+                        .frame(width: 24, height: 20)
+                        .background(Theme.surface2)
+                        .cornerRadius(5)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Text(sync.currentExercise)
+                .font(KraftFont.bebas(16)).tracking(0.6)
+                .foregroundColor(Theme.text)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+
+            // Gewicht Stepper
+            HStack(spacing: 4) {
+                stepperButton(systemName: "minus", delta: -2.5) {
+                    localWeight = max(0, localWeight - 2.5)
+                }
+
+                VStack(spacing: 0) {
+                    Text(localWeight == localWeight.rounded() ? "\(Int(localWeight)) kg" : String(format: "%.1f kg", localWeight))
+                        .font(KraftFont.mono(13.5, .bold))
                         .foregroundColor(Theme.text)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                        .minimumScaleFactor(0.7)
+                    Text("GEWICHT")
+                        .font(KraftFont.inter(7.5, .bold))
+                        .foregroundColor(Theme.muted)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 3)
+                .background(Theme.surface)
+                .cornerRadius(7)
+
+                stepperButton(systemName: "plus", delta: 2.5) {
+                    localWeight += 2.5
                 }
             }
 
-            measurements
+            // Wiederholungen Stepper
+            HStack(spacing: 4) {
+                stepperButton(systemName: "minus", delta: -1) {
+                    localReps = max(1, localReps - 1)
+                }
 
-            Spacer(minLength: 2)
+                VStack(spacing: 0) {
+                    Text("\(localReps) Wdh")
+                        .font(KraftFont.mono(13.5, .bold))
+                        .foregroundColor(Theme.text)
+                    Text(sync.targetReps.isEmpty ? "REPS" : "ZIEL: \(sync.targetReps)")
+                        .font(KraftFont.inter(7.5, .bold))
+                        .foregroundColor(Theme.muted)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 3)
+                .background(Theme.surface)
+                .cornerRadius(7)
 
-            Button(action: { sync.completeSetRemotely() }) {
-                Text(sync.isResting ? "WEITER" : "FERTIG")
-                    .font(KraftFont.bebas(15)).tracking(1)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(Theme.accent)
-                    .foregroundColor(Theme.bg)
-                    .cornerRadius(10)
+                stepperButton(systemName: "plus", delta: 1) {
+                    localReps += 1
+                }
+            }
+
+            // Hauptaktion: Satz abhaken & weiter
+            Button(action: completeSetOnWatch) {
+                HStack(spacing: 5) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 13, weight: .bold))
+                    Text("SATZ ABHAKEN")
+                        .font(KraftFont.bebas(15)).tracking(1)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 7)
+                .background(Theme.accent)
+                .foregroundColor(Theme.bg)
+                .cornerRadius(9)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 2)
+        }
+    }
+
+    private func stepperButton(systemName: String, delta: Double, action: @escaping () -> Void) -> some View {
+        Button(action: {
+            WKInterfaceDevice.current().play(.click)
+            action()
+        }) {
+            Image(systemName: systemName)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(Theme.text)
+                .frame(width: 32, height: 28)
+                .background(Theme.surface2)
+                .cornerRadius(7)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func completeSetOnWatch() {
+        WKInterfaceDevice.current().play(.click)
+        sync.completeSetWithData(weight: localWeight, reps: localReps)
+    }
+
+    // MARK: - Pausen-Timer mit Countdown (5..1 LOS!)
+
+    private func restCountdownView(endsAt: Date) -> some View {
+        TimelineView(.animation(minimumInterval: 0.25, paused: sync.isPaused)) { timeline in
+            let remaining = max(0, Int(ceil(endsAt.timeIntervalSince(timeline.date))))
+
+            VStack(spacing: 4) {
+                HStack {
+                    Text("PAUSE")
+                        .font(KraftFont.bebas(12)).tracking(1.5)
+                        .foregroundColor(Theme.accent)
+                    Spacer()
+                    Text("NÄCHSTER SATZ")
+                        .font(KraftFont.inter(8.5, .semibold))
+                        .foregroundColor(Theme.muted)
+                }
+
+                if remaining > 5 {
+                    // Normaler Pausenzähler
+                    Text(formatTimer(remaining))
+                        .font(KraftFont.mono(32, .bold))
+                        .foregroundColor(Theme.text)
+                        .monospacedDigit()
+                        .padding(.vertical, 2)
+                } else if remaining >= 1 {
+                    // Akustischer & visueller 5..1 Countdown
+                    VStack(spacing: 1) {
+                        Text("\(remaining)")
+                            .font(KraftFont.mono(36, .bold))
+                            .foregroundColor(Theme.orange)
+                            .scaleEffect(1.1)
+                            .animation(.spring(response: 0.2, dampingFraction: 0.5), value: remaining)
+                        Text("BEREIT MACHEN")
+                            .font(KraftFont.bebas(10)).tracking(1.2)
+                            .foregroundColor(Theme.orange)
+                    }
+                    .onAppear { triggerCountdownHaptic(remaining) }
+                    .onChange(of: remaining) { sec in
+                        triggerCountdownHaptic(sec)
+                    }
+                } else {
+                    // LOS!
+                    VStack(spacing: 1) {
+                        Text("LOS!")
+                            .font(KraftFont.bebas(36)).tracking(2)
+                            .foregroundColor(Theme.accent)
+                        Text("SATZ STARTET")
+                            .font(KraftFont.inter(9, .bold))
+                            .foregroundColor(Theme.accent)
+                    }
+                    .onAppear {
+                        triggerFinishedHaptic()
+                    }
+                }
+
+                // Pause vorzeitig überspringen
+                Button(action: {
+                    WKInterfaceDevice.current().play(.click)
+                    sync.skipRestPause()
+                }) {
+                    Text("WEITER")
+                        .font(KraftFont.bebas(14)).tracking(1)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                        .background(Theme.surface2)
+                        .foregroundColor(Theme.text)
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
+            }
+            .padding(8)
+            .background(Theme.surface)
+            .cornerRadius(10)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(remaining <= 5 ? Theme.orange.opacity(0.8) : Theme.border, lineWidth: 1))
+        }
+    }
+
+    private func triggerCountdownHaptic(_ sec: Int) {
+        guard sec >= 1, sec <= 5, sec != lastHapticSecond else { return }
+        lastHapticSecond = sec
+        WKInterfaceDevice.current().play(.directionUp)
+    }
+
+    private func triggerFinishedHaptic() {
+        guard lastHapticSecond != 0 else { return }
+        lastHapticSecond = 0
+        WKInterfaceDevice.current().play(.success)
+    }
+
+    private func formatTimer(_ totalSeconds: Int) -> String {
+        let m = totalSeconds / 60
+        let s = totalSeconds % 60
+        return String(format: "%d:%02d", m, s)
+    }
+
+    // MARK: - Pausiert-Ansicht
+
+    private var pausedView: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "pause.fill")
+                .font(.system(size: 16))
+                .foregroundColor(Theme.orange)
+
+            Text("TRAINING PAUSIERT")
+                .font(KraftFont.bebas(15)).tracking(1.2)
+                .foregroundColor(Theme.orange)
+
+            Button(action: { sync.requestPauseToggle() }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "play.fill")
+                    Text("FORTSETZEN")
+                }
+                .font(KraftFont.bebas(14)).tracking(1)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 7)
+                .background(Theme.accent)
+                .foregroundColor(Theme.bg)
+                .cornerRadius(9)
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(8)
+        .background(Theme.surface)
+        .cornerRadius(10)
     }
 
-    /// Nur echte Werte. Vor der ersten Messung steht hier ein Strich — keine
-    /// Platzhalterzahl, die nach Puls aussieht.
-    private var measurements: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 3) {
+    // MARK: - Messwerte & Fußzeile
+
+    private var measurementsBar: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 2) {
                 Image(systemName: "heart.fill")
-                    .font(.system(size: 9))
+                    .font(.system(size: 8))
                     .foregroundColor(Theme.pink)
                 Text(workout.heartRate.map(String.init) ?? "–")
-                    .font(KraftFont.mono(13, .bold))
+                    .font(KraftFont.mono(11.5, .bold))
                     .foregroundColor(Theme.text)
             }
 
-            HStack(spacing: 3) {
+            Spacer()
+
+            HStack(spacing: 2) {
                 Image(systemName: "flame.fill")
-                    .font(.system(size: 9))
+                    .font(.system(size: 8))
                     .foregroundColor(Theme.orange)
-                Text("\(Int(workout.activeCalories))")
-                    .font(KraftFont.mono(13, .bold))
+                Text("\(Int(workout.activeCalories)) kcal")
+                    .font(KraftFont.mono(11.5, .bold))
                     .foregroundColor(Theme.text)
             }
         }
-        .opacity(workout.isRunning ? 1 : 0.35)
+        .padding(.horizontal, 6)
+        .opacity(workout.isRunning ? 1 : 0.4)
     }
 
-    // MARK: - Ohne Sitzung
+    private func elapsedRow(_ startedAt: Date) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: "stopwatch")
+                .font(.system(size: 8))
+                .foregroundColor(Theme.muted)
+            if startedAt <= Date.distantFuture {
+                Text(timerInterval: min(Date(), startedAt)...Date.distantFuture, countsDown: false)
+                    .font(KraftFont.mono(10.5, .semibold))
+                    .foregroundColor(Theme.muted)
+                    .monospacedDigit()
+            } else {
+                Text("0:00")
+                    .font(KraftFont.mono(10.5, .semibold))
+                    .foregroundColor(Theme.muted)
+                    .monospacedDigit()
+            }
+        }
+    }
+
+    // MARK: - Idle
 
     private var idle: some View {
         VStack(spacing: 8) {
             Image(systemName: "dumbbell.fill")
-                .font(.system(size: 26))
+                .font(.system(size: 24))
                 .foregroundColor(Theme.accent)
 
             Text("KRAFTWÜRFEL")
-                .font(KraftFont.bebas(15)).tracking(1)
+                .font(KraftFont.bebas(16)).tracking(1.2)
                 .foregroundColor(Theme.text)
 
             Text(hint)

@@ -100,4 +100,18 @@ where Item.ID == UUID {
     }
 
     public func clearError() { lastError = nil }
+
+    /*
+      Alles weg — für die Kontolöschung (Art. 17 DSGVO).
+
+      Anders als `delete` wird hier NICHT über `persist` gegangen: Der Schlüssel
+      verschwindet ganz, statt eine leere Liste zu hinterlassen. Und anders als
+      überall sonst wird die Liste auch dann geleert, wenn das Entfernen
+      scheitern sollte — bei einer Löschung ist Wegwerfen immer richtig.
+    */
+    public func wipe() {
+        defaults.removeObject(forKey: storageKey)
+        items = []
+        lastError = nil
+    }
 }

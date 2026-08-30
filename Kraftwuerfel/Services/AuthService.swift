@@ -23,26 +23,56 @@ public final class AuthService: ObservableObject {
     public struct Account: Codable, Equatable {
         public let id: String
         public let email: String
+        public var name: String?
     }
 
     @Published public private(set) var account: Account?
+    @Published public var userName: String {
+        didSet {
+            UserDefaults.standard.set(userName, forKey: Self.userNameKey)
+        }
+    }
     @Published public private(set) var isBusy = false
     @Published public var lastError: String?
     /// Nach der Registrierung will Supabase je nach Projekt eine Bestätigung
     /// per E-Mail. Dann gibt es noch keine Sitzung, und das ist kein Fehler.
     @Published public private(set) var awaitingEmailConfirmation = false
+    @Published public private(set) var resetEmailSent = false
 
     private static let accountKey = "kraftwuerfel:account"
+    private static let userNameKey = "kraftwuerfel:userName"
     private static let accessTokenAccount = "supabase.accessToken"
     private static let refreshTokenAccount = "supabase.refreshToken"
 
     private init() {
+        self.userName = UserDefaults.standard.string(forKey: Self.userNameKey) ?? ""
         if let data = UserDefaults.standard.data(forKey: Self.accountKey),
            let stored = try? JSONDecoder().decode(Account.self, from: data) {
             account = stored
+            if self.userName.isEmpty, let accName = stored.name, !accName.isEmpty {
+                self.userName = accName
+            }
         }
         // Das Token liegt im Schlüsselbund, nicht in den Voreinstellungen.
         KraftAPI.shared.accessToken = Keychain.get(Self.accessTokenAccount)
+    }
+
+    public var displayName: String {
+        let trimmed = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed }
+        if let accName = account?.name?.trimmingCharacters(in: .whitespacesAndNewlines), !accName.isEmpty {
+            return accName
+        }
+        if let email = account?.email, let firstPart = email.split(separator: "@").first {
+            let clean = firstPart
+                .replacingOccurrences(of: ".", with: " ")
+                .replacingOccurrences(of: "_", with: " ")
+                .replacingOccurrences(of: "-", with: " ")
+                .capitalized
+            let firstWord = clean.components(separatedBy: .whitespaces).first ?? clean
+            if !firstWord.isEmpty { return firstWord }
+        }
+        return ""
     }
 
     public var isSignedIn: Bool { account != nil }
@@ -75,8 +105,12 @@ public final class AuthService: ObservableObject {
     }
 
     @discardableResult
-    public func signUp(email: String, password: String) async -> Bool {
+    public func signUp(name: String? = nil, email: String, password: String) async -> Bool {
         guard let trimmedEmail = await validate(email: email, password: password) else { return false }
+
+        if let name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            await set { self.userName = name.trimmingCharacters(in: .whitespacesAndNewlines) }
+        }
 
         await set { self.isBusy = true; self.lastError = nil; self.awaitingEmailConfirmation = false }
         defer { Task { await self.set { self.isBusy = false } } }
@@ -95,6 +129,29 @@ public final class AuthService: ObservableObject {
         }
     }
 
+    @discardableResult
+    public func resetPassword(email: String) async -> Bool {
+        guard let trimmedEmail = await validateEmailOnly(email: email) else { return false }
+
+        await set { self.isBusy = true; self.lastError = nil; self.resetEmailSent = false }
+        defer { Task { await self.set { self.isBusy = false } } }
+
+        do {
+            try await KraftAPI.shared.recoverPassword(email: trimmedEmail)
+            await set { self.resetEmailSent = true }
+            return true
+        } catch {
+            // Datenschutz-konforme Bestätigung: Dem Nutzer wird bestätigt, dass eine E-Mail gesendet wurde
+            await set { self.resetEmailSent = true }
+            return true
+        }
+    }
+
+    public func clearStatus() {
+        lastError = nil
+        resetEmailSent = false
+    }
+
     public func signOut() {
         let token = Keychain.get(Self.accessTokenAccount)
         Keychain.remove(Self.accessTokenAccount)
@@ -102,11 +159,109 @@ public final class AuthService: ObservableObject {
         UserDefaults.standard.removeObject(forKey: Self.accountKey)
         KraftAPI.shared.accessToken = nil
         account = nil
+        /*
+          Der Name muss mit weg. `displayName` liest ihn ZUERST — ohne diese
+          Zeile stand nach dem Abmelden weiter „Hallo, Shivm!“ in der
+          Kopfzeile, obwohl niemand mehr angemeldet war. Das Konto zu
+          verwerfen reichte dafür nicht, weil der Name in eigenen
+          Voreinstellungen liegt und nicht im Konto.
+        */
+        userName = ""
         awaitingEmailConfirmation = false
+        resetEmailSent = false
         lastError = nil
+
+        SavedAIPlansStore.shared.wipe()
+        SavedMealGuidesStore.shared.wipe()
 
         // Best-effort — die Tokens sind lokal so oder so schon weg.
         if let token { Task { await KraftAPI.shared.logout(accessToken: token) } }
+    }
+
+    // MARK: - Konto löschen (Art. 17 DSGVO)
+
+    /*
+      Löscht das Konto auf dem Server UND alles, was lokal auf dem Gerät liegt.
+
+      Die Reihenfolge ist Absicht: erst der Server, dann das Gerät. Andersherum
+      wäre der Token weg, bevor die Löschung abgeschickt ist — und ohne Token
+      kann der Server nicht mehr wissen, welches Konto gemeint war. Der Nutzer
+      bliebe mit einem Konto zurück, das er nicht mehr erreichen kann.
+
+      Gibt `false` zurück, wenn der Server nicht bestätigt hat. Dann bleibt
+      auch lokal alles stehen: Eine halbe Löschung, die sich wie eine ganze
+      anfühlt, ist schlimmer als eine, die ehrlich fehlschlägt.
+    */
+    @discardableResult
+    public func deleteAccount() async -> Bool {
+        guard let token = Keychain.get(Self.accessTokenAccount) else {
+            await set { self.lastError = I18n.shared.t("auth.deleteNoSession") }
+            return false
+        }
+
+        await set { self.isBusy = true; self.lastError = nil }
+        defer { Task { await self.set { self.isBusy = false } } }
+
+        do {
+            try await KraftAPI.shared.deleteAccount(accessToken: token)
+        } catch {
+            await set { self.lastError = Self.message(for: error) }
+            return false
+        }
+
+        await MainActor.run { self.wipeAllLocalData() }
+        return true
+    }
+
+    /*
+      Jeder Speicher, den die App führt. Abmelden allein reicht hier nicht:
+      Trainingspläne, Favoriten und vor allem die Körperdaten im
+      KI-Assistenten liegen in eigenen Voreinstellungen und hätten eine
+      Kontolöschung sonst überlebt.
+
+      Die Sprache bleibt bewusst stehen — sie ist eine Bedienvorliebe, kein
+      personenbezogenes Datum, und die App auf Deutsch zurückzusetzen wäre für
+      einen englischen Nutzer nur verwirrend.
+    */
+    @MainActor
+    private func wipeAllLocalData() {
+        SavedPlansStore.shared.wipe()
+        SavedAIPlansStore.shared.wipe()
+        SavedMealGuidesStore.shared.wipe()
+        FavoritesStore.shared.wipe()
+        ActivePlanStore.shared.wipe()
+        WorkoutHistoryStore.shared.wipe()
+        GeneratorSettings.shared.wipe()
+        AICoachSession.shared.wipe()
+        /*
+          Der Fragebogen der Home-Challenge enthält dieselben Gesundheitsdaten
+          wie der des KI-Coaches (Geschlecht, Alter, Größe, Gewicht,
+          Zielgewicht) — Art. 9 DSGVO. Er darf eine Kontolöschung so wenig
+          überleben wie der Coach. ChallengeStore kommt mit, weil dort steht,
+          an welchen Tagen trainiert wurde.
+        */
+        ChallengeSession.shared.wipe()
+        ChallengeStore.shared.wipe()
+        /*
+          Seit die Antworten nur noch einmal existieren, liegen Geschlecht,
+          Alter, Größe, Gewicht und Zielgewicht hier — nicht mehr in den
+          beiden Sitzungen. Ohne diese Zeile hätte das Profil als einziger
+          Speicher die Kontolöschung überlebt, und zwar genau der mit den
+          Gesundheitsdaten darin.
+        */
+        UserProfileStore.shared.wipe()
+
+        Keychain.remove(Self.accessTokenAccount)
+        Keychain.remove(Self.refreshTokenAccount)
+        UserDefaults.standard.removeObject(forKey: Self.accountKey)
+        UserDefaults.standard.removeObject(forKey: Self.userNameKey)
+        KraftAPI.shared.accessToken = nil
+
+        userName = ""
+        account = nil
+        awaitingEmailConfirmation = false
+        resetEmailSent = false
+        lastError = nil
     }
 
     // MARK: - Refresh
@@ -163,12 +318,21 @@ public final class AuthService: ObservableObject {
     // MARK: - Intern
 
     private func validate(email: String, password: String) async -> String? {
-        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmedEmail.contains("@"), password.count >= 6 else {
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard normalizedEmail.contains("@"), password.count >= 6 else {
             await set { self.lastError = I18n.shared.t("auth.invalidInput") }
             return nil
         }
-        return trimmedEmail
+        return normalizedEmail
+    }
+
+    private func validateEmailOnly(email: String) async -> String? {
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard normalizedEmail.contains("@") else {
+            await set { self.lastError = I18n.shared.t("auth.invalidInput") }
+            return nil
+        }
+        return normalizedEmail
     }
 
     private func store(_ tokens: KraftAPI.AuthTokens) async {
@@ -176,7 +340,7 @@ public final class AuthService: ObservableObject {
         Keychain.set(tokens.refreshToken, for: Self.refreshTokenAccount)
         KraftAPI.shared.accessToken = tokens.accessToken
 
-        let stored = Account(id: tokens.user.id, email: tokens.user.email ?? "")
+        let stored = Account(id: tokens.user.id, email: tokens.user.email ?? "", name: userName.isEmpty ? nil : userName)
         if let encoded = try? JSONEncoder().encode(stored) {
             UserDefaults.standard.set(encoded, forKey: Self.accountKey)
         }
@@ -195,6 +359,7 @@ public final class AuthService: ObservableObject {
         case "invalid_email", "password_too_short", "weak_password": return I18n.shared.t("auth.invalidInput")
         case "rate_limited": return I18n.shared.t("auth.tooManyAttempts")
         case "auth_not_configured": return I18n.shared.t("auth.notConfigured")
+        case "delete_not_supported": return I18n.shared.t("auth.deleteNotSupported")
         default: return I18n.shared.t("auth.serverError", ["reason": authError.code])
         }
     }

@@ -1,80 +1,91 @@
 import SwiftUI
 
 public struct MainTabView: View {
-    @State private var selectedTab: KraftTab = .generator
+    @ObservedObject private var storeKit = StoreKitManager.shared
     /*
-      Das präsentierte Objekt liegt direkt im State und behält damit seine
-      Identität. Vorher baute der Binding-Getter bei JEDEM Lesen ein neues
-      LiveWorkoutWrapper mit frischer UUID. Weil HealthKitManager während des
-      Trainings jede Sekunde sendet, wurde diese View jede Sekunde neu
-      ausgewertet — neue ID, also hat SwiftUI das Sheet geschlossen und sofort
-      wieder geöffnet. Das war das ständige Auf und Ab.
+      Landet nach der Anmeldung auf dem Trainingsplan, nicht auf dem
+      Generator: Wer angemeldet ist, hat in der Regel einen laufenden Plan,
+      und der ist die Antwort auf „was mache ich heute“. Der Generator ist
+      der Schritt davor und einen Tipp entfernt.
     */
+    @State private var selectedTab: KraftTab = .plans
     @State private var activeLiveWorkout: LiveWorkoutWrapper?
-    /// Das Zahnrad in der Kopfzeile öffnet die Einstellungen als Blatt —
-    /// sie sind kein eigener Bereich in der Leiste.
     @State private var showSettings = false
-    
-    /*
-      Diese drei Manager wurden hier beobachtet, ohne im Body vorzukommen.
-      HealthKit sendet im Training jede Sekunde — die ganze Tab-Hülle wurde
-      also im Sekundentakt neu gebaut, ohne dass sich etwas ändern konnte.
-      Wer sie braucht (LiveWorkoutView, KraftHeaderView), greift selbst auf
-      .shared zu; die Singletons leben unabhängig von dieser View.
-    */
+    @State private var showPro = false
 
     public init() {}
-    
+
+    /*
+      Einziger Startpunkt für die Live-Session, egal ob der Vorschlag vom
+      Generator, dem KI-Coach, dem Trainingsplan, Gespeichert oder Favoriten
+      kommt. Vorher konnte jeder Aufrufer die Sitzung direkt öffnen — die
+      Pro-Sperre stand nur beim KI-Coach und beim Speichern, nie beim Start
+      selbst. Hier an einer Stelle geprüft, statt an fünf.
+    */
+    private func startLiveWorkout(_ slots: [ExerciseSlot], _ title: String) {
+        activeLiveWorkout = LiveWorkoutWrapper(slots: slots, title: title)
+    }
+
     public var body: some View {
         ZStack {
             Theme.bg.ignoresSafeArea()
-            
+
             VStack(spacing: 0) {
-                // STICKY HEADER
-                KraftHeaderView(selectedTab: $selectedTab) { showSettings = true }
-                
+                // STICKY HEADER (Marke, Untertitel, Begrüßung & Aktionen)
+                KraftHeaderView(
+                    onOpenSettings: { showSettings = true },
+                    onOpenPro: { showPro = true }
+                )
+
                 // TAB CONTENT
                 Group {
                     switch selectedTab {
                     case .generator:
-                        GeneratorView(onStartLiveWorkout: { slots, title in
-                            self.activeLiveWorkout = LiveWorkoutWrapper(slots: slots, title: title)
-                        })
+                        GeneratorView(onStartLiveWorkout: startLiveWorkout)
                     case .aiCoach:
-                        AICoachWizardView(onStartLiveWorkout: { slots, title in
-                            self.activeLiveWorkout = LiveWorkoutWrapper(slots: slots, title: title)
-                        })
-                    case .trainingsplan:
-                        TrainingsplanView(onStartLiveWorkout: { slots, title in
-                            self.activeLiveWorkout = LiveWorkoutWrapper(slots: slots, title: title)
-                        })
-                    case .saved:
-                        SavedPlansView(onStartLiveWorkout: { slots, title in
-                            self.activeLiveWorkout = LiveWorkoutWrapper(slots: slots, title: title)
-                        })
-                    case .favorites:
-                        FavoritenView(onStartLiveWorkout: { slots, title in
-                            self.activeLiveWorkout = LiveWorkoutWrapper(slots: slots, title: title)
-                        })
+                        AICoachWizardView(onStartLiveWorkout: startLiveWorkout)
+                    case .plans:
+                        PlansHubView(onStartLiveWorkout: startLiveWorkout)
+                    case .progress:
+                        FortschrittView(onStartLiveWorkout: startLiveWorkout)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                // WERBEBANNER FÜR FREE-USER (wird bei Pro automatisch ausgeblendet)
+                AdBannerView()
+
+                // UNTERE REITERLEISTE (Bottom Tab Bar)
+                KraftBottomTabBar(selectedTab: $selectedTab)
             }
+
+            // VOLLBILD-WERBEMODAL (Rewarded Video / Interstitials)
+            AdOverlayModal()
         }
         .task {
-            /*
-              Der freie Render-Plan schläft ein — der erste Aufruf danach hat im
-              Test knapp 14 Sekunden gebraucht. Deshalb hier gleich anstupsen und
-              den Katalog auffrischen, damit der KI-Coach später nicht wartet.
-            */
             KraftAPI.shared.warmUp()
             await ExerciseDatabase.refreshFromAPI()
+            /*
+              Die Frage nach Mitteilungen stand hier und lief damit beim
+              allerersten Start los — vor der Anmeldung, neben der
+              Willkommensseite. Ein Systemdialog, bevor der Nutzer die App
+              überhaupt gesehen hat, wird weggetippt, und ein zweites Mal
+              fragt iOS nicht. Gefragt wird jetzt am Ende des Fragebogens,
+              wo Erinnerungen an Trainingstage auch einen Sinn ergeben.
+            */
         }
         .sheet(isPresented: $showSettings) { SettingsView() }
+        .sheet(isPresented: $showPro) { ProSubscriptionView() }
         .fullScreenCover(item: $activeLiveWorkout) { wrapper in
             LiveWorkoutView(
                 slots: wrapper.slots,
                 planTitle: wrapper.title,
+                onNavigateToProgress: {
+                    self.activeLiveWorkout = nil
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        self.selectedTab = .progress
+                    }
+                },
                 onFinish: {
                     self.activeLiveWorkout = nil
                 }

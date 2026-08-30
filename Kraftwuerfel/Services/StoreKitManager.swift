@@ -27,7 +27,23 @@ public final class StoreKitManager: ObservableObject {
     @Published public var isPurchasing: Bool = false
     @Published public var lastError: String?
 
-    public let proProductId = "app.kraftwuerfel.pro.monthly"
+    nonisolated public static let monthlyProductId = "app.kraftwuerfel.pro.monthly"
+    nonisolated public static let yearlyProductId = "app.kraftwuerfel.pro.yearly"
+    nonisolated public static let allProductIds: [String] = [monthlyProductId, yearlyProductId]
+
+    public var proProductId: String { Self.monthlyProductId }
+
+    public enum ProPlanChoice: String, CaseIterable, Identifiable {
+        case yearly, monthly
+        public var id: String { rawValue }
+
+        public var productId: String {
+            switch self {
+            case .yearly: return StoreKitManager.yearlyProductId
+            case .monthly: return StoreKitManager.monthlyProductId
+            }
+        }
+    }
 
     #if DEBUG
     /*
@@ -45,6 +61,7 @@ public final class StoreKitManager: ObservableObject {
     #endif
 
     private var updatesTask: Task<Void, Never>?
+    private var accountObserver: AnyCancellable?
 
     private init() {
         // Auf Änderungen hören, die außerhalb der App passieren.
@@ -58,37 +75,70 @@ public final class StoreKitManager: ObservableObject {
             }
         }
 
+        /*
+          Pro hängt am Konto, nicht am Gerät: `syncEntitlementToServer` unten
+          schreibt is_premium in genau das angemeldete Konto, und der Kauf
+          wird über `appAccountToken` daran gebunden. Ohne Anmeldung gibt es
+          folglich auch kein Pro — sonst blieben KI-Coach, Live-Session und
+          Speichern nach dem Abmelden offen, weil `isProUnlocked` allein die
+          Apple-ID kannte und vom Abmelden nie erfuhr.
+        */
+        accountObserver = AuthService.shared.$account
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                Task { await self?.refreshEntitlements() }
+            }
+
         Task {
             await fetchProducts()
             await refreshEntitlements()
         }
     }
 
-    deinit { updatesTask?.cancel() }
+    deinit {
+        updatesTask?.cancel()
+        accountObserver?.cancel()
+    }
 
     // MARK: - Produkte
 
     public func fetchProducts() async {
         do {
-            availableProducts = try await Product.products(for: [proProductId])
+            availableProducts = try await Product.products(for: Self.allProductIds)
         } catch {
             // Kein Grund, irgendetwas freizuschalten — nur merken.
             lastError = error.localizedDescription
         }
     }
 
+    public func product(for plan: ProPlanChoice) -> Product? {
+        availableProducts.first(where: { $0.id == plan.productId })
+    }
+
     // MARK: - Kaufen
 
     @discardableResult
-    public func purchasePro() async -> Bool {
+    public func purchase(plan: ProPlanChoice) async -> Bool {
         if availableProducts.isEmpty { await fetchProducts() }
 
-        guard let product = availableProducts.first(where: { $0.id == proProductId }) else {
-            // Früher wurde hier freigeschaltet. Ohne Produkt gibt es keinen Kauf.
+        guard let product = availableProducts.first(where: { $0.id == plan.productId }) else {
+            // Fallback zum ersten verfügbaren Pro-Produkt
+            if let fallback = availableProducts.first(where: { Self.allProductIds.contains($0.id) }) {
+                return await executePurchase(product: fallback)
+            }
             lastError = "product_unavailable"
             return false
         }
 
+        return await executePurchase(product: product)
+    }
+
+    @discardableResult
+    public func purchasePro() async -> Bool {
+        await purchase(plan: .yearly)
+    }
+
+    private func executePurchase(product: Product) async -> Bool {
         isPurchasing = true
         defer { isPurchasing = false }
 
@@ -141,6 +191,16 @@ public final class StoreKitManager: ObservableObject {
       Abgelaufene und erstattete Transaktionen zählen ausdrücklich nicht.
     */
     public func refreshEntitlements() async {
+        /*
+          Ohne Anmeldung kein Pro — auch nicht im Debug-Build. Die Hintertür
+          darf beim Ausprobieren nicht genau den Fall verdecken, den sie
+          testen soll: abmelden und sehen, dass die Pro-Funktionen zugehen.
+        */
+        guard AuthService.shared.isSignedIn else {
+            isProUnlocked = false
+            return
+        }
+
         #if DEBUG
         if debugProOverride {
             isProUnlocked = true
@@ -153,7 +213,7 @@ public final class StoreKitManager: ObservableObject {
 
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result else { continue }
-            guard transaction.productID == proProductId else { continue }
+            guard Self.allProductIds.contains(transaction.productID) else { continue }
             if transaction.revocationDate != nil { continue }
             if let expiry = transaction.expirationDate, expiry <= Date() { continue }
             unlocked = true

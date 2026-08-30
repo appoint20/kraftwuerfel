@@ -20,6 +20,7 @@ public struct SavedPlansView: View {
     @ObservedObject private var saved = SavedPlansStore.shared
     @ObservedObject private var aiPlans = SavedAIPlansStore.shared
     @ObservedObject private var mealGuides = SavedMealGuidesStore.shared
+    @ObservedObject private var storeKit = StoreKitManager.shared
 
     private enum Section: String, CaseIterable {
         case workouts, aiPlans, mealGuides
@@ -45,6 +46,33 @@ public struct SavedPlansView: View {
     @State private var openPlanId: UUID?
     @State private var openedAIPlan: SavedAIPlan?
     @State private var openedMealGuide: SavedMealGuide?
+    @State private var showPro: Bool = false
+
+    /*
+      Einen Plan aktiv zu setzen ersetzt den laufenden — samt Fortschritt.
+      Das ist nicht rückgängig zu machen, deshalb wird gefragt, statt es
+      einfach zu tun.
+    */
+    @State private var pendingActivation: PendingActivation?
+
+    enum PendingActivation: Identifiable {
+        case workout(SavedWorkoutPlan)
+        case aiPlan(SavedAIPlan)
+
+        var id: UUID {
+            switch self {
+            case .workout(let p): return p.id
+            case .aiPlan(let p):  return p.id
+            }
+        }
+
+        var name: String {
+            switch self {
+            case .workout(let p): return p.name
+            case .aiPlan(let p):  return p.name
+            }
+        }
+    }
 
     public var onStartLiveWorkout: (([ExerciseSlot], String) -> Void)?
 
@@ -74,6 +102,49 @@ public struct SavedPlansView: View {
         .sheet(item: $openedMealGuide) { entry in
             SavedMealGuideSheet(entry: entry)
         }
+        .sheet(isPresented: $showPro) {
+            ProSubscriptionView()
+        }
+        .kraftDialog(item: $pendingActivation) { target in
+            KraftDialog(
+                title: i18n.t("saved.setActiveTitle"),
+                message: i18n.t(
+                    ActivePlanStore.shared.plan == nil ? "saved.setActiveBody" : "saved.setActiveReplace",
+                    ["name": target.name]
+                ),
+                icon: "calendar.badge.plus",
+                dismissLabel: i18n.t("auth.deleteCancel"),
+                confirmLabel: i18n.t("saved.setActive"),
+                onConfirm: {
+                    activate(target)
+                    pendingActivation = nil
+                },
+                onDismiss: { pendingActivation = nil }
+            )
+        }
+    }
+
+    /*
+      Ein gespeichertes Workout ist EINE Einheit, ein KI-Plan ein ganzer
+      Wochenplan — deshalb zwei Wege in denselben Speicher.
+
+      Das einzelne Workout landet auf den Trainingstagen aus dem Profil: Das
+      ist die Angabe, die der Nutzer ohnehin schon gemacht hat, und ohne sie
+      müsste hier ein weiteres Formular stehen.
+    */
+    private func activate(_ target: PendingActivation) {
+        switch target {
+        case .workout(let plan):
+            ActivePlanStore.shared.activate(
+                slots: plan.slots,
+                name: plan.name,
+                days: Weekdays.sorted(UserProfileStore.shared.profile.selectedDays),
+                durationWeeks: UserProfileStore.shared.profile.weeks
+            )
+        case .aiPlan(let entry):
+            ActivePlanStore.shared.activate(trainingPlan: entry.plan, title: entry.name)
+        }
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
     // MARK: - Umschalter
@@ -135,6 +206,9 @@ public struct SavedPlansView: View {
                 onStartLiveWorkout(plan.slots, plan.name)
             })
         }
+        actions.append(PlanCardAction(i18n.t("saved.setActive"), systemImage: "calendar.badge.plus") {
+            pendingActivation = .workout(plan)
+        })
         actions.append(PlanCardAction(i18n.t("saved.delete"),
                                       systemImage: "trash", style: .destructive) {
             saved.delete(plan)
@@ -172,7 +246,14 @@ public struct SavedPlansView: View {
 
     @ViewBuilder
     private var aiPlansList: some View {
-        if aiPlans.items.isEmpty {
+        if !storeKit.isProUnlocked {
+            proSavedGate(
+                title: i18n.t("saved.tabAIPlans"),
+                desc: i18n.lang == "en"
+                    ? "Saving and managing AI workout plans is a Pro feature."
+                    : "KI-Trainingspläne dauerhaft speichern und verwalten ist ein Pro-Feature."
+            )
+        } else if aiPlans.items.isEmpty {
             EmptySavedState(
                 icon: "sparkles",
                 text: i18n.t("saved.emptyAIPlans"),
@@ -188,7 +269,8 @@ public struct SavedPlansView: View {
                             + " · " + i18n.t("saved.exercises", ["n": "\(entry.exerciseCount)"]),
                         savedAt: entry.savedAt,
                         onOpen: { openedAIPlan = entry },
-                        onDelete: { aiPlans.delete(entry) }
+                        onDelete: { aiPlans.delete(entry) },
+                        onActivate: { pendingActivation = .aiPlan(entry) }
                     )
                     .padding(.horizontal, 20)
                 }
@@ -200,7 +282,14 @@ public struct SavedPlansView: View {
 
     @ViewBuilder
     private var mealGuidesList: some View {
-        if mealGuides.items.isEmpty {
+        if !storeKit.isProUnlocked {
+            proSavedGate(
+                title: i18n.t("saved.tabMealGuides"),
+                desc: i18n.lang == "en"
+                    ? "Saving and managing AI nutrition guides is a Pro feature."
+                    : "Ernährungspläne & Meal Guides dauerhaft speichern ist ein Pro-Feature."
+            )
+        } else if mealGuides.items.isEmpty {
             EmptySavedState(
                 icon: "leaf.circle",
                 text: i18n.t("saved.emptyMealGuides"),
@@ -222,6 +311,45 @@ public struct SavedPlansView: View {
             }
         }
     }
+
+    private func proSavedGate(title: String, desc: String) -> some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            showPro = true
+        }) {
+            VStack(spacing: 12) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundColor(Theme.accent)
+
+                Text(title)
+                    .font(KraftFont.bebas(20)).tracking(1.2)
+                    .foregroundColor(Theme.text)
+
+                Text(desc)
+                    .font(KraftFont.inter(13))
+                    .foregroundColor(Theme.muted)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+
+                Text(i18n.t("pro.cta"))
+                    .font(KraftFont.bebas(15)).tracking(1)
+                    .foregroundColor(Theme.accent)
+                    .padding(.top, 4)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 36)
+            .padding(.horizontal, 20)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Theme.surface))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                    .foregroundColor(Theme.accent.opacity(0.6))
+            )
+            .padding(.horizontal, 20)
+        }
+        .buttonStyle(.plain)
+    }
 }
 
 // MARK: - Bausteine
@@ -236,6 +364,9 @@ struct SavedEntryCard: View {
     let savedAt: Date
     let onOpen: () -> Void
     let onDelete: () -> Void
+    /// `nil`, wenn sich der Eintrag nicht als laufender Plan setzen lässt —
+    /// ein Meal Guide ist kein Trainingsplan.
+    var onActivate: (() -> Void)? = nil
 
     private var dateLabel: String {
         let df = DateFormatter()
@@ -291,6 +422,32 @@ struct SavedEntryCard: View {
                         .frame(width: 40, height: 36)
                         .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surface2))
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.border, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+
+            /*
+              „Als Plan starten" steht bewusst unter und nicht neben „Öffnen":
+              Es ist die folgenreichere der beiden Aktionen — sie ersetzt den
+              laufenden Plan — und soll nicht versehentlich getroffen werden,
+              wenn jemand nur nachsehen wollte.
+            */
+            if let onActivate {
+                Button(action: {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    onActivate()
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar.badge.plus").font(.system(size: 12, weight: .bold))
+                        Text(i18n.t("saved.setActive"))
+                            .font(KraftFont.bebas(14)).tracking(0.8)
+                            .textCase(.uppercase)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
+                    .foregroundColor(Theme.accent)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentDim))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.accent.opacity(0.4), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }
@@ -392,7 +549,18 @@ struct SavedMealGuideSheet: View {
 
     var body: some View {
         SheetFrame(title: entry.name) { dismiss() } content: {
-            MealGuideView(nutrition: entry.nutrition, showsSaveButton: false)
+            MealGuideView(
+                nutrition: entry.nutrition,
+                showsSaveButton: false,
+                onUpdate: { updatedNutrition in
+                    SavedMealGuidesStore.shared.replace(SavedMealGuide(
+                        id: entry.id,
+                        name: entry.name,
+                        nutrition: updatedNutrition,
+                        savedAt: entry.savedAt
+                    ))
+                }
+            )
         }
     }
 }

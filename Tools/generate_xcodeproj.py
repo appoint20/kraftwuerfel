@@ -48,7 +48,7 @@ WIDGET_BUNDLE_ID = f"{APP_BUNDLE_ID}.LiveActivity"
 WATCH_BUNDLE_ID = f"{APP_BUNDLE_ID}.watchkitapp"
 
 IOS_DEPLOYMENT_TARGET = "16.2"   # ActivityContent/ActivityConfiguration
-WATCHOS_DEPLOYMENT_TARGET = "10.0"
+WATCHOS_DEPLOYMENT_TARGET = "9.0"
 SWIFT_VERSION = "5.0"
 MARKETING_VERSION = "1.0"
 CURRENT_PROJECT_VERSION = "1"
@@ -209,7 +209,7 @@ def collect(app_tree: Node, widget_tree: Node, watch_tree: Node, test_tree: Node
                 widget.sources.append(rel)
             if rel in SHARED_WITH_WATCH:
                 watch.sources.append(rel)
-        elif suffix in (".xcassets", ".xcprivacy"):
+        elif suffix in (".xcassets", ".xcprivacy", ".json"):
             app.resources.append(rel)
         # Info.plist und .entitlements gehören in Build-Settings, nicht in eine
         # Kopierphase — sonst landen sie zusätzlich als lose Datei im Bündel.
@@ -302,7 +302,7 @@ APP_SETTINGS = {
     "PRODUCT_BUNDLE_IDENTIFIER": APP_BUNDLE_ID,
     "PRODUCT_NAME": "$(TARGET_NAME)",
     "SWIFT_EMIT_LOC_STRINGS": "YES",
-    "TARGETED_DEVICE_FAMILY": "1,2",
+    "TARGETED_DEVICE_FAMILY": "1",
 }
 
 WIDGET_SETTINGS = {
@@ -319,7 +319,7 @@ WIDGET_SETTINGS = {
     "PRODUCT_NAME": "$(TARGET_NAME)",
     "SKIP_INSTALL": "YES",
     "SWIFT_EMIT_LOC_STRINGS": "YES",
-    "TARGETED_DEVICE_FAMILY": "1,2",
+    "TARGETED_DEVICE_FAMILY": "1",
 }
 
 WATCH_SETTINGS = {
@@ -354,7 +354,7 @@ TEST_SETTINGS = {
     "PRODUCT_BUNDLE_IDENTIFIER": f"{APP_BUNDLE_ID}.tests",
     "PRODUCT_NAME": "$(TARGET_NAME)",
     "SWIFT_EMIT_LOC_STRINGS": "NO",
-    "TARGETED_DEVICE_FAMILY": "1,2",
+    "TARGETED_DEVICE_FAMILY": "1",
     # Die Tests laufen in der App, damit `@testable import Kraftwuerfel` greift.
     "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/Kraftwuerfel.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Kraftwuerfel",
 }

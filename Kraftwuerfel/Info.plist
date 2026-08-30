@@ -20,37 +20,24 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-
-	<!--
-	  Ohne diesen Schlüssel bleibt jeder Upload an der Exportfrage hängen,
-	  statt in TestFlight anzukommen. `false` heißt: keine nicht-ausgenommene
-	  Verschlüsselung — die App spricht nur über HTTPS, und das ist
-	  ausgenommen. Sobald eigene Kryptografie dazukommt, muss der Wert neu
-	  bewertet werden.
-	-->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>spotify</string>
+	</array>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>Kraftwürfel spielt Titel aus deiner Mediathek während der Live-Session ab.</string>
-
-	<!--
-	  Nur Lesen, und nur die Herzfrequenz. Die App schreibt vom iPhone aus
-	  nichts nach Apple Health: eine HKWorkoutSession gibt es ausschließlich auf
-	  watchOS, und die Werte, die diese App auf dem iPhone allein anzeigt, sind
-	  Schätzungen. NSHealthUpdateUsageDescription ist deshalb bewusst nicht
-	  gesetzt — das Recht zu schreiben liegt bei der Uhr, die auch misst.
-	-->
 	<key>NSHealthShareUsageDescription</key>
-	<string>Kraftwürfel liest deine Herzfrequenz mit, um sie während der Live-Session anzuzeigen. Ohne Zugriff zeigt die App stattdessen einen als Schätzung gekennzeichneten Wert.</string>
-
+	<string>Kraftwürfel liest deine Herzfrequenz mit, um sie während der Live-Session anzuzeigen, und übernimmt Gewicht, Größe und Körperdaten in dein Profil, damit du sie nicht eintippen musst. Ohne Zugriff zeigt die App stattdessen einen als Schätzung gekennzeichneten Wert.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Kraftwürfel sichert dein Gewicht und deinen Körperfettanteil sowie abgeschlossene Trainings in Apple Health, damit deine Fortschritte an einem Ort zusammenlaufen. Geschätzte Werte werden nie geschrieben.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
 	<true/>
-
 	<key>UIAppFonts</key>
 	<array>
 		<string>BebasNeue-Regular.ttf</string>
@@ -61,24 +48,18 @@
 		<string>JetBrainsMono-Medium.ttf</string>
 		<string>JetBrainsMono-Bold.ttf</string>
 	</array>
-
-	<!--
-	  "audio" für den Musikspieler in der Live-Session. "workout-processing"
-	  stand hier früher mit — das ist ein watchOS-Modus (dort heißt der
-	  Schlüssel WKBackgroundModes) und auf iOS wirkungslos. Er liegt jetzt im
-	  watchOS-Ziel, wo die HKWorkoutSession läuft.
-	-->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
 	</array>
-
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>
 	</array>
+	<key>UIStatusBarHidden</key>
+	<true/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

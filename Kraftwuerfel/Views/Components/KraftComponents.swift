@@ -90,6 +90,8 @@ public struct KraftChip: View {
             Text(label)
                 .font(KraftFont.inter(13, .semibold))
                 .foregroundColor(isActive ? Theme.bg : Theme.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background(
@@ -277,6 +279,105 @@ public struct KraftPrimaryButton: View {
     }
 }
 
+/*
+  Der Knopf in den Farben der Würfel-Arena: Mint nach Orange.
+
+  Die Home-Challenge benutzt ihn durchgehend — Weiter, Zurück-Rahmen und
+  „Challenge erstellen" tragen dieselbe Farbe wie „3D Würfel werfen" darunter.
+  Vorher war der Wurf-Knopf der einzige mit Verlauf, und der Fragebogen davor
+  sah aus, als gehörte er zu einem anderen Bildschirm.
+*/
+public struct KraftGradientButton: View {
+    private let title: String
+    private let systemImage: String?
+    private let isEnabled: Bool
+    private let compact: Bool
+    private let action: () -> Void
+
+    public static let gradient = LinearGradient(
+        colors: [Theme.accent, Theme.orange],
+        startPoint: .leading,
+        endPoint: .trailing
+    )
+
+    public init(
+        _ title: String,
+        systemImage: String? = nil,
+        isEnabled: Bool = true,
+        compact: Bool = false,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.isEnabled = isEnabled
+        self.compact = compact
+        self.action = action
+    }
+
+    public var body: some View {
+        Button(action: {
+            guard isEnabled else { return }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            action()
+        }) {
+            HStack(spacing: 10) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: compact ? 14 : 16, weight: .bold))
+                }
+                Text(title)
+                    .font(KraftFont.bebas(compact ? 15 : 18))
+                    .tracking(compact ? 1.2 : 1.5)
+            }
+            .foregroundColor(Theme.bg)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, compact ? 11 : 14)
+            .background(Self.gradient)
+            .cornerRadius(14)
+            .shadow(color: Theme.accent.opacity(isEnabled ? 0.35 : 0), radius: 10, y: 4)
+            .opacity(isEnabled ? 1 : 0.45)
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+    }
+}
+
+/// Die zurückhaltende Fassung desselben Knopfes: Verlauf nur als Rahmen.
+public struct KraftGradientOutlineButton: View {
+    private let title: String
+    private let systemImage: String?
+    private let action: () -> Void
+
+    public init(_ title: String, systemImage: String? = nil, action: @escaping () -> Void) {
+        self.title = title
+        self.systemImage = systemImage
+        self.action = action
+    }
+
+    public var body: some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        }) {
+            HStack(spacing: 8) {
+                if let systemImage {
+                    Image(systemName: systemImage).font(.system(size: 12, weight: .bold))
+                }
+                Text(title).font(KraftFont.bebas(15)).tracking(1.2)
+            }
+            .foregroundColor(Theme.accent)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Theme.accentDim))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(KraftGradientButton.gradient, lineWidth: 1.2)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Gestrichelter Sekundärbutton (.remix-btn)
 
 public struct KraftDashedButton: View {
@@ -425,6 +526,16 @@ public struct EditableStepper: View {
                     .foregroundColor(Theme.text)
                     .focused($isFocused)
                     .frame(maxWidth: .infinity)
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button(I18n.shared.lang == "en" ? "Done" : "Fertig") {
+                                isFocused = false
+                            }
+                            .font(KraftFont.inter(14, .semibold))
+                            .foregroundColor(Theme.accent)
+                        }
+                    }
                     .onChange(of: isFocused) { focused in
                         // Erst beim Verlassen übernehmen, sonst springt die Zahl
                         // schon beim Tippen der ersten Ziffer in den Bereich.
@@ -495,12 +606,17 @@ public struct WizardCardChip: View {
                 Text(label)
                     .font(KraftFont.inter(13.5, .semibold))
                     .foregroundColor(isActive ? Theme.accent : Theme.text)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+                    .allowsTightening(true)
+                    .truncationMode(.tail)
                 if let subtitle {
                     Text(subtitle)
                         .font(KraftFont.inter(11))
                         .foregroundColor(Theme.muted)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                        .allowsTightening(true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -511,6 +627,199 @@ public struct WizardCardChip: View {
             .shadow(color: isActive ? Theme.accent.opacity(0.15) : .clear, radius: 8)
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Dialog im App-Stil
+
+/*
+  Ein Hinweisfenster in den Farben der App.
+
+  `.alert(...)` von SwiftUI zeichnet das System-Fenster: helles Grau, Apples
+  Schrift, blauer Knopf. Neben dieser Oberfläche — Schwarz, Mint, Bebas —
+  sieht das aus wie ein Fremdkörper aus einer anderen App. Aussehen lässt es
+  sich nicht ändern, also übernimmt diese Ansicht die Rolle.
+
+  Sie liegt als Overlay über dem Inhalt, nicht als Sheet: ein Sheet würde von
+  unten hereinfahren und sich wie ein Seitenwechsel anfühlen, während hier nur
+  etwas bestätigt wird.
+*/
+public struct KraftDialog: View {
+    private let title: String
+    private let message: String
+    private let isError: Bool
+    private let icon: String?
+    private let dismissLabel: String
+    private let onDismiss: () -> Void
+    /// Gesetzt macht aus dem Hinweis eine Rückfrage: links Abbrechen,
+    /// rechts die eigentliche Handlung.
+    private let confirmLabel: String?
+    private let onConfirm: (() -> Void)?
+
+    @State private var appeared = false
+
+    public init(
+        title: String,
+        message: String,
+        isError: Bool = false,
+        icon: String? = nil,
+        dismissLabel: String = "OK",
+        confirmLabel: String? = nil,
+        onConfirm: (() -> Void)? = nil,
+        onDismiss: @escaping () -> Void
+    ) {
+        self.title = title
+        self.message = message
+        self.isError = isError
+        self.icon = icon
+        self.dismissLabel = dismissLabel
+        self.confirmLabel = confirmLabel
+        self.onConfirm = onConfirm
+        self.onDismiss = onDismiss
+    }
+
+    private var tint: Color { isError ? Theme.red : Theme.accent }
+
+    private var symbol: String {
+        icon ?? (isError ? "exclamationmark.triangle.fill" : "checkmark")
+    }
+
+    private var isConfirm: Bool { onConfirm != nil }
+
+    public var body: some View {
+        ZStack {
+            // Der Hintergrund schluckt Tippen, damit nichts darunter reagiert.
+            Color.black.opacity(0.55)
+                .ignoresSafeArea()
+                .onTapGesture { close() }
+
+            VStack(spacing: 14) {
+                ZStack {
+                    Circle().fill(isError ? Theme.red.opacity(0.14) : Theme.accentDim)
+                    Image(systemName: symbol)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(tint)
+                }
+                .frame(width: 52, height: 52)
+
+                VStack(spacing: 6) {
+                    Text(title)
+                        .font(KraftFont.bebas(20)).tracking(1)
+                        .foregroundColor(Theme.text)
+                        .multilineTextAlignment(.center)
+
+                    if !message.isEmpty {
+                        Text(message)
+                            .font(KraftFont.inter(13))
+                            .foregroundColor(Theme.muted)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                if isConfirm {
+                    // Bei einer Rückfrage steht Abbrechen zuerst und trägt
+                    // das ruhigere Gewicht — gefüllt ist nur die Handlung,
+                    // die der Nutzer ausdrücklich gewählt hat.
+                    HStack(spacing: 8) {
+                        Button(action: close) {
+                            Text(dismissLabel)
+                                .font(KraftFont.inter(13.5, .semibold))
+                                .foregroundColor(Theme.muted)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 13)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Theme.border, lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+
+                        Button(action: confirm) {
+                            Text(confirmLabel ?? "")
+                                .font(KraftFont.bebas(16)).tracking(1.2)
+                                .textCase(.uppercase)
+                                .foregroundColor(Theme.bg)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 13)
+                                .background(RoundedRectangle(cornerRadius: 12).fill(tint))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.top, 2)
+                } else {
+                    Button(action: close) {
+                        Text(dismissLabel)
+                            .font(KraftFont.bebas(16)).tracking(1.5)
+                            .textCase(.uppercase)
+                            .foregroundColor(Theme.bg)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 13)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(tint))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 2)
+                }
+            }
+            .padding(22)
+            .frame(maxWidth: 320)
+            .background(RoundedRectangle(cornerRadius: 20).fill(Theme.surface))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(
+                        LinearGradient(
+                            colors: [tint.opacity(0.55), Theme.border],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(color: .black.opacity(0.5), radius: 24, y: 8)
+            .padding(.horizontal, 32)
+            .scaleEffect(appeared ? 1 : 0.92)
+            .opacity(appeared ? 1 : 0)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) { appeared = true }
+        }
+    }
+
+    private func close() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        onDismiss()
+    }
+
+    private func confirm() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        onConfirm?()
+    }
+}
+
+extension View {
+    /// Ersatz für `.alert(item:)` — gleiche Aufrufform, aber im App-Stil.
+    public func kraftDialog<Item: Identifiable>(
+        item: Binding<Item?>,
+        @ViewBuilder content: @escaping (Item) -> KraftDialog
+    ) -> some View {
+        overlay {
+            if let value = item.wrappedValue {
+                content(value)
+                    .transition(.opacity)
+            }
+        }
+    }
+
+    /// Dieselbe Optik für eine einfache Ja/Nein-Rückfrage.
+    public func kraftDialog(
+        isPresented: Binding<Bool>,
+        @ViewBuilder content: @escaping () -> KraftDialog
+    ) -> some View {
+        overlay {
+            if isPresented.wrappedValue {
+                content().transition(.opacity)
+            }
+        }
     }
 }
 
@@ -544,6 +853,37 @@ public struct ReviewRow: View {
         .padding(.bottom, isLast ? 0 : 10)
         .overlay(alignment: .bottom) {
             if !isLast { Rectangle().fill(Theme.surface2).frame(height: 1) }
+        }
+    }
+}
+
+// MARK: - Tastatur Schließen
+
+public struct DismissKeyboardOnTap: ViewModifier {
+    public func body(content: Content) -> some View {
+        content
+            .onTapGesture {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
+    }
+}
+
+public extension View {
+    func dismissKeyboardOnTap() -> some View {
+        modifier(DismissKeyboardOnTap())
+    }
+
+    func addDoneButtonToKeyboard(onDone: (() -> Void)? = nil) -> some View {
+        toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button(I18n.shared.lang == "en" ? "Done" : "Fertig") {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    onDone?()
+                }
+                .font(KraftFont.inter(13.5, .semibold))
+                .foregroundColor(Theme.accent)
+            }
         }
     }
 }

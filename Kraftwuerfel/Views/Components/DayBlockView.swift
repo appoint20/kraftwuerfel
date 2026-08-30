@@ -23,6 +23,16 @@ public struct DayBlockView: View {
     private let onToggle: () -> Void
     private let onFavorite: () -> Void
     private let onStart: (([ExerciseSlot], String) -> Void)?
+    private let onMoveUp: (() -> Void)?
+    private let onMoveDown: (() -> Void)?
+    /*
+      Nur der LAUFENDE Plan lässt sich ändern. Gespeicherte und favorisierte
+      Tagespläne zeigen dieselbe Karte, sind aber Momentaufnahmen — dort
+      bleiben beide Rückrufe `nil` und die Knöpfe verschwinden, statt eine
+      Änderung anzubieten, die nirgends ankäme.
+    */
+    private let onEdit: (() -> Void)?
+    private let onShuffle: (() -> Void)?
 
     public init(
         day: String,
@@ -34,7 +44,11 @@ public struct DayBlockView: View {
         planSalt: String = "",
         onToggle: @escaping () -> Void,
         onFavorite: @escaping () -> Void,
-        onStart: (([ExerciseSlot], String) -> Void)? = nil
+        onStart: (([ExerciseSlot], String) -> Void)? = nil,
+        onMoveUp: (() -> Void)? = nil,
+        onMoveDown: (() -> Void)? = nil,
+        onEdit: (() -> Void)? = nil,
+        onShuffle: (() -> Void)? = nil
     ) {
         self.day = day
         self.cyclePlans = cyclePlans
@@ -46,6 +60,10 @@ public struct DayBlockView: View {
         self.onToggle = onToggle
         self.onFavorite = onFavorite
         self.onStart = onStart
+        self.onMoveUp = onMoveUp
+        self.onMoveDown = onMoveDown
+        self.onEdit = onEdit
+        self.onShuffle = onShuffle
     }
 
     /// Gewürfelte Pläne haben kein Modell, das sie benennt — der Name kommt lokal.
@@ -68,6 +86,14 @@ public struct DayBlockView: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(Theme.surface))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .onLongPressGesture(minimumDuration: 0.4) {
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            if let onMoveDown {
+                onMoveDown()
+            } else if let onMoveUp {
+                onMoveUp()
+            }
+        }
         .onAppear { selectedCycle = currentCycleIdx ?? 0 }
         .onChange(of: currentCycleIdx) { newValue in selectedCycle = newValue ?? 0 }
     }
@@ -102,6 +128,17 @@ public struct DayBlockView: View {
             }
             .buttonStyle(.plain)
 
+            if onMoveUp != nil || onMoveDown != nil {
+                HStack(spacing: 0) {
+                    if let onMoveUp {
+                        sideButton("chevron.up", tint: Theme.muted, action: onMoveUp)
+                    }
+                    if let onMoveDown {
+                        sideButton("chevron.down", tint: Theme.muted, action: onMoveDown)
+                    }
+                }
+            }
+
             if onStart != nil && !cyclePlans.isEmpty {
                 sideButton("play.fill", tint: Theme.accent) {
                     onStart?(targetCycle, startTitle)
@@ -113,6 +150,29 @@ public struct DayBlockView: View {
                            action: onFavorite)
             }
         }
+    }
+
+    private func editChip(
+        _ symbol: String,
+        _ label: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        }) {
+            HStack(spacing: 6) {
+                Image(systemName: symbol).font(.system(size: 11, weight: .bold))
+                Text(label).font(KraftFont.inter(12, .semibold))
+            }
+            .foregroundColor(tint)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 9).fill(Theme.surface2))
+            .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.border, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     private func sideButton(_ symbol: String, tint: Color, action: @escaping () -> Void) -> some View {
@@ -185,6 +245,19 @@ public struct DayBlockView: View {
                         onStart?(slots, "\(startTitle) · \(i18n.t("tp.cycleLabel", ["n": "\(selectedCycle + 1)"]))")
                     }
                 )
+            }
+
+            if onEdit != nil || onShuffle != nil {
+                HStack(spacing: 8) {
+                    if let onShuffle {
+                        editChip("shuffle", i18n.t("dayEdit.shuffleDay"), tint: Theme.accent) {
+                            withAnimation(.easeOut(duration: 0.2)) { onShuffle() }
+                        }
+                    }
+                    if let onEdit {
+                        editChip("slider.horizontal.3", i18n.t("dayEdit.edit"), tint: Theme.muted, action: onEdit)
+                    }
+                }
             }
 
             // .tp-day-actions-row

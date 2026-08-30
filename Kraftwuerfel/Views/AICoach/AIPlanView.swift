@@ -22,6 +22,7 @@ import SwiftUI
 public struct AIPlanView: View {
     @ObservedObject private var i18n = I18n.shared
     @ObservedObject private var store = SavedAIPlansStore.shared
+    @ObservedObject private var storeKit = StoreKitManager.shared
 
     @Binding public var plan: TrainingPlan
     @Binding public var viewingCycle: Int
@@ -36,9 +37,49 @@ public struct AIPlanView: View {
     public var onReset: (() -> Void)?
 
     @State private var alert: SaveAlert?
+    @State private var showPro = false
+    /// Erklärt die Pro-Sperre, bevor das Kaufblatt aufgeht.
+    @State private var proNotice: SaveAlert?
     /// Welche Tage offen sind. Beim Start genau der erste.
     @State private var expandedDays: Set<UUID> = []
     @State private var didSetInitialExpansion = false
+    /// Welche Übung gerade getauscht wird — Tag, Zyklus und Slot.
+    @State private var swapping: SwapTarget?
+    /// Welchem Tag eine Übung hinzugefügt wird.
+    @State private var addingTo: AddTarget?
+
+    private struct SwapTarget: Identifiable {
+        let id = UUID()
+        let dayID: UUID
+        let cycle: Int
+        let slot: ExerciseSlot
+        let usedNames: Set<String>
+    }
+
+    private struct AddTarget: Identifiable {
+        let id = UUID()
+        let dayID: UUID
+        let cycle: Int
+        let usedNames: Set<String>
+    }
+
+    /// In welchen Zyklus Änderungen gehen. Ohne zweiten Zyklus immer 1 —
+    /// sonst editiert der Nutzer etwas, das er gar nicht sieht.
+    private var activeCycle: Int { plan.hasTwoCycles ? viewingCycle : 1 }
+
+    /*
+      Die Bewertung wird bei jeder Änderung neu gerechnet. Das ist reine
+      Arithmetik über höchstens ein paar Dutzend Übungen — kein Grund, sie zu
+      puffern, und der Wert stimmt so immer mit dem überein, was auf dem
+      Schirm steht.
+    */
+    private var score: PlanQualityScore {
+        PlanQualityScore.evaluate(
+            plan: plan,
+            goal: input?.goal ?? .muscle,
+            targetMinutes: input?.sessionDurationMinutes
+        )
+    }
 
     public init(
         plan: Binding<TrainingPlan>,
@@ -60,7 +101,15 @@ public struct AIPlanView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 14) {
                 titleCard
-                cycleSelector
+
+                PlanScoreCard(score: score)
+                    .padding(.horizontal, 20)
+
+                cycleToggleRow
+
+                if plan.hasTwoCycles {
+                    cycleSelector
+                }
                 ForEach(plan.days) { day in
                     dayCard(day)
                 }
@@ -71,7 +120,52 @@ public struct AIPlanView: View {
             .padding(.bottom, 30)
         }
         .background(Theme.bg.ignoresSafeArea())
-        .alert(item: $alert) { $0.alert }
+        .kraftDialog(item: $alert) { entry in
+            KraftDialog(title: entry.title, message: entry.message, isError: entry.isError) {
+                alert = nil
+            }
+        }
+        .kraftDialog(item: $proNotice) { entry in
+            KraftDialog(
+                title: entry.title,
+                message: entry.message,
+                icon: "sparkles",
+                dismissLabel: i18n.t("auth.deleteCancel"),
+                confirmLabel: i18n.t("pro.cta"),
+                onConfirm: {
+                    proNotice = nil
+                    showPro = true
+                },
+                onDismiss: { proNotice = nil }
+            )
+        }
+        .sheet(isPresented: $showPro) {
+            ProSubscriptionView()
+        }
+        .sheet(item: $swapping) { target in
+            ExercisePickerSheet(
+                title: i18n.lang == "en" ? "Swap exercise" : "Übung tauschen",
+                highlightCategories: target.slot.exercise.categories,
+                alreadyUsed: target.usedNames,
+                allowedEquipment: input?.equipment
+            ) { picked in
+                plan.replaceSlot(
+                    dayID: target.dayID,
+                    cycle: target.cycle,
+                    slotID: target.slot.id,
+                    with: picked
+                )
+            }
+        }
+        .sheet(item: $addingTo) { target in
+            ExercisePickerSheet(
+                title: i18n.lang == "en" ? "Add exercise" : "Übung hinzufügen",
+                alreadyUsed: target.usedNames,
+                allowedEquipment: input?.equipment
+            ) { picked in
+                plan.addSlot(dayID: target.dayID, cycle: target.cycle, exercise: picked)
+            }
+        }
         .onAppear {
             guard !didSetInitialExpansion else { return }
             didSetInitialExpansion = true
@@ -96,6 +190,62 @@ public struct AIPlanView: View {
         .background(Theme.surface)
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
+        .padding(.horizontal, 20)
+    }
+
+    /*
+      Der Schalter für den zweiten Zyklus.
+
+      Vorher gab es ihn nicht: Ob ein Plan mit ein oder zwei Zyklen lief,
+      ergab sich daraus, ob das Modell zwei unterschiedliche Wochen geliefert
+      hatte. Wer mit drei Trainingstagen einfach dreimal dasselbe machen
+      wollte, konnte das nicht einstellen — und wer den Wechsel wollte, bekam
+      ihn nur mit Glück.
+    */
+    private var cycleToggleRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(plan.hasTwoCycles ? Theme.accent : Theme.muted)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(i18n.lang == "en" ? "Two alternating cycles" : "Zwei Zyklen im Wechsel")
+                    .font(KraftFont.inter(13, .semibold))
+                    .foregroundColor(Theme.text)
+                Text(plan.hasTwoCycles
+                     ? (i18n.lang == "en"
+                        ? "Week A and week B alternate — more variety per muscle."
+                        : "Woche A und B wechseln sich ab — mehr Reize je Muskel.")
+                     : (i18n.lang == "en"
+                        ? "Every week runs the same plan."
+                        : "Jede Woche läuft derselbe Plan."))
+                    .font(KraftFont.inter(11))
+                    .foregroundColor(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 6)
+
+            Toggle("", isOn: Binding(
+                get: { plan.hasTwoCycles },
+                set: { enabled in
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        plan.setTwoCycles(
+                            enabled,
+                            equipment: input?.equipment,
+                            method: input?.method ?? .standard
+                        )
+                        if !enabled { viewingCycle = 1 }
+                    }
+                }
+            ))
+            .labelsHidden()
+            .tint(Theme.accent)
+        }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Theme.surface))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border, lineWidth: 1))
         .padding(.horizontal, 20)
     }
 
@@ -155,8 +305,9 @@ public struct AIPlanView: View {
     }
 
     private func dayCard(_ day: DayPlan) -> some View {
-        let slots = day.slots(forCycle: viewingCycle)
-        let cycleLabel = i18n.t("tp.cycleLabel", ["n": "\(viewingCycle)"])
+        let activeCycle = plan.hasTwoCycles ? viewingCycle : 1
+        let slots = day.slots(forCycle: activeCycle)
+        let cycleLabel = plan.hasTwoCycles ? i18n.t("tp.cycleLabel", ["n": "\(viewingCycle)"]) : ""
         let open = isExpanded(day)
 
         return VStack(alignment: .leading, spacing: 0) {
@@ -180,9 +331,11 @@ public struct AIPlanView: View {
                             Text(day.name)
                                 .font(KraftFont.bebas(18)).tracking(0.5)
                                 .foregroundColor(Theme.text)
-                            Text(cycleLabel)
-                                .font(KraftFont.bebas(14)).tracking(0.5)
-                                .foregroundColor(Theme.accent)
+                            if plan.hasTwoCycles {
+                                Text(cycleLabel)
+                                    .font(KraftFont.bebas(14)).tracking(0.5)
+                                    .foregroundColor(Theme.accent)
+                            }
                         }
                         Text(day.focus)
                             .font(KraftFont.inter(11.5))
@@ -206,10 +359,10 @@ public struct AIPlanView: View {
                     if let onStartLiveWorkout, !slots.isEmpty {
                         Button(action: {
                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                            onStartLiveWorkout(
-                                slots,
-                                "\(day.name) · \(i18n.weekday(day.weekday)) (\(cycleLabel))"
-                            )
+                            let title = plan.hasTwoCycles
+                                ? "\(day.name) · \(i18n.weekday(day.weekday)) (\(cycleLabel))"
+                                : "\(day.name) · \(i18n.weekday(day.weekday))"
+                            onStartLiveWorkout(slots, title)
                         }) {
                             HStack(spacing: 6) {
                                 Image(systemName: "play.fill").font(.system(size: 11, weight: .bold))
@@ -227,6 +380,8 @@ public struct AIPlanView: View {
                     }
 
                     if !day.warmup.isEmpty { warmupBlock(day) }
+
+                    dayToolbar(day: day, slots: slots)
 
                     ForEach(slots) { slot in
                         slotRow(day: day, slot: slot)
@@ -269,6 +424,66 @@ public struct AIPlanView: View {
         .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surface2))
     }
 
+    /*
+      Werkzeuge für genau diesen Tag.
+
+      „Neu mischen“ trifft nur diesen einen Tag. Vorher gab es dafür nichts:
+      Wer mit dem Montag unzufrieden war, musste den ganzen Plan neu erzeugen
+      und verlor damit auch Mittwoch und Freitag. Gemischt wird innerhalb der
+      Muskelgruppen, die der Tag ohnehin trifft — ein Brust-Tag bleibt einer.
+    */
+    private func dayToolbar(day: DayPlan, slots: [ExerciseSlot]) -> some View {
+        HStack(spacing: 8) {
+            Button(action: { reshuffle(day) }) {
+                HStack(spacing: 5) {
+                    Image(systemName: "shuffle").font(.system(size: 11, weight: .bold))
+                    Text(i18n.lang == "en" ? "SHUFFLE DAY" : "TAG NEU MISCHEN")
+                        .font(KraftFont.bebas(12.5)).tracking(0.8)
+                }
+                .foregroundColor(Theme.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentDim))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.accent.opacity(0.45), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+
+            Button(action: {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                addingTo = AddTarget(
+                    dayID: day.id,
+                    cycle: activeCycle,
+                    usedNames: Set(slots.map(\.exercise.name))
+                )
+            }) {
+                HStack(spacing: 5) {
+                    Image(systemName: "plus").font(.system(size: 11, weight: .bold))
+                    Text(i18n.lang == "en" ? "ADD" : "ÜBUNG")
+                        .font(KraftFont.bebas(12.5)).tracking(0.8)
+                }
+                .foregroundColor(Theme.text)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surface2))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.border, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func reshuffle(_ day: DayPlan) {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        withAnimation(.easeInOut(duration: 0.22)) {
+            let ok = plan.reshuffleDay(
+                dayID: day.id,
+                cycle: activeCycle,
+                equipment: input?.equipment,
+                method: input?.method ?? .standard
+            )
+            if !ok { UINotificationFeedbackGenerator().notificationOccurred(.warning) }
+        }
+    }
+
     // MARK: - Eine Übung, direkt anpassbar
 
     private func slotRow(day: DayPlan, slot: ExerciseSlot) -> some View {
@@ -290,6 +505,31 @@ public struct AIPlanView: View {
                     }
                 }
                 Spacer(minLength: 0)
+
+                // Tauschen, würfeln, entfernen — für genau diese eine Übung.
+                HStack(spacing: 5) {
+                    slotAction("arrow.left.arrow.right", label: i18n.lang == "en" ? "Swap exercise" : "Übung tauschen") {
+                        swapping = SwapTarget(
+                            dayID: day.id,
+                            cycle: activeCycle,
+                            slot: slot,
+                            usedNames: Set(day.slots(forCycle: activeCycle).map(\.exercise.name))
+                        )
+                    }
+                    slotAction("die.face.5", label: i18n.lang == "en" ? "Roll a different one" : "Andere würfeln") {
+                        plan.rerollSlot(
+                            dayID: day.id,
+                            cycle: activeCycle,
+                            slotID: slot.id,
+                            method: input?.method ?? .standard
+                        )
+                    }
+                    if day.slots(forCycle: activeCycle).count > 1 {
+                        slotAction("trash", label: i18n.lang == "en" ? "Remove" : "Entfernen", isDestructive: true) {
+                            plan.removeSlot(dayID: day.id, cycle: activeCycle, slotID: slot.id)
+                        }
+                    }
+                }
             }
 
             HStack(spacing: 8) {
@@ -314,6 +554,27 @@ public struct AIPlanView: View {
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
     }
 
+    private func slotAction(
+        _ symbol: String,
+        label: String,
+        isDestructive: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(.easeInOut(duration: 0.18)) { action() }
+        }) {
+            Image(systemName: symbol)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(isDestructive ? Theme.red : Theme.muted)
+                .frame(width: 28, height: 28)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Theme.surface))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.border, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+
     /*
       Jede Änderung geht durch `updateSlot`. Das trifft genau diesen Slot in
       genau diesem Zyklus dieses Tages — die übrigen Übungen bleiben, wie sie
@@ -321,11 +582,11 @@ public struct AIPlanView: View {
     */
     private func setSets(day: DayPlan, slot: ExerciseSlot, to value: Int) {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        plan.updateSlot(dayID: day.id, cycle: viewingCycle, slotID: slot.id, sets: value)
+        plan.updateSlot(dayID: day.id, cycle: activeCycle, slotID: slot.id, sets: value)
     }
 
     private func setReps(day: DayPlan, slot: ExerciseSlot, to value: String) {
-        plan.updateSlot(dayID: day.id, cycle: viewingCycle, slotID: slot.id, reps: value)
+        plan.updateSlot(dayID: day.id, cycle: activeCycle, slotID: slot.id, reps: value)
     }
 
     // MARK: - Speichern
@@ -378,6 +639,21 @@ public struct AIPlanView: View {
     private func save() {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
 
+        /*
+          Erst sagen, warum — dann anbieten. Vorher sprang hier ohne ein Wort
+          das Kaufblatt auf; wer nur speichern wollte, stand unvermittelt vor
+          einer Preisliste und wusste nicht, was das mit seinem Tippen zu tun
+          hat.
+        */
+        guard storeKit.isProUnlocked else {
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            proNotice = SaveAlert.info(
+                title: i18n.t("pro.badge"),
+                message: i18n.t("ai.savingIsProFeature")
+            )
+            return
+        }
+
         guard !isSaved else {
             alert = .info(title: i18n.t("ai.planAlreadySaved"), message: i18n.t("ai.planSavedBody"))
             return
@@ -388,7 +664,7 @@ public struct AIPlanView: View {
             alert = .info(title: i18n.t("ai.planSavedTitle"), message: i18n.t("ai.planSavedBody"))
         } else {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
-            alert = .info(
+            alert = .error(
                 title: i18n.t("ai.planFailedTitle"),
                 message: i18n.t("ai.planFailedBody", ["reason": store.lastError ?? ""])
             )

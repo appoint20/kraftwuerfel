@@ -16,7 +16,24 @@ public struct ActivePlan: Identifiable, Codable, Hashable {
     public let method: TrainingMethod
     public let count: Int
     public let restTime: Int
-    public let dayPlans: [String: [[ExerciseSlot]]]
+    /*
+      Veränderbar, seit der laufende Plan Tag für Tag angepasst werden kann:
+      eine Übung austauschen, neu würfeln oder den ganzen Tag neu mischen.
+      Vorher stand der Plan ab dem Start fest — wer eine Übung nicht machen
+      konnte (besetzte Bank, schmerzendes Knie), musste den ganzen Plan
+      beenden und neu würfeln und verlor dabei seinen Fortschritt.
+    */
+    public var dayPlans: [String: [[ExerciseSlot]]]
+
+    /*
+      Woher der Plan kommt — „KI-Coach Hypertrophie", der Name eines
+      gespeicherten Plans, oder `nil` für einen gewürfelten.
+
+      Optional, damit bereits gespeicherte Pläne weiter lesbar bleiben: Ein
+      Pflichtfeld hätte beim ersten Start nach dem Update jeden laufenden Plan
+      unlesbar gemacht und damit den Fortschritt gelöscht.
+    */
+    public var title: String?
 
     public init(
         startDate: Date,
@@ -26,7 +43,8 @@ public struct ActivePlan: Identifiable, Codable, Hashable {
         method: TrainingMethod,
         count: Int,
         restTime: Int,
-        dayPlans: [String: [[ExerciseSlot]]]
+        dayPlans: [String: [[ExerciseSlot]]],
+        title: String? = nil
     ) {
         self.startDate = startDate
         self.duration = duration
@@ -36,6 +54,40 @@ public struct ActivePlan: Identifiable, Codable, Hashable {
         self.count = count
         self.restTime = restTime
         self.dayPlans = dayPlans
+        self.title = title
+    }
+
+    /*
+      Der laufende Plan als TrainingPlan — nur zum Bewerten.
+
+      PlanQualityScore.evaluate rechnet auf DayPlan/TrainingPlan, der
+      laufende Plan liegt aber als Wochentag-zu-Zyklen-Tabelle vor. Statt die
+      Bewertung ein zweites Mal für diese Form zu schreiben (und damit zwei
+      Rechnungen zu haben, die auseinanderlaufen können), wird hier
+      umgeformt.
+    */
+    public func asTrainingPlan(title planTitle: String? = nil) -> TrainingPlan {
+        let ordered = Weekdays.sorted(Set(days))
+        let dayList: [DayPlan] = ordered.compactMap { weekday in
+            guard let cycles = dayPlans[weekday], let first = cycles.first, !first.isEmpty else { return nil }
+            return DayPlan(
+                weekday: weekday,
+                name: PlanNames.planName(for: "\(split):\(weekday)"),
+                focus: "",
+                warmup: [],
+                cycle1Slots: first,
+                cycle2Slots: cycles.count > 1 ? cycles[1] : []
+            )
+        }
+
+        return TrainingPlan(
+            title: planTitle ?? title ?? split,
+            summary: "",
+            weeks: duration,
+            days: dayList,
+            nutrition: nil,
+            notes: []
+        )
     }
 }
 

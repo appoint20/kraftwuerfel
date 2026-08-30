@@ -30,9 +30,19 @@ public final class WatchSyncManager: NSObject, ObservableObject {
     @Published public private(set) var currentExercise: String = ""
     @Published public private(set) var currentSet: Int = 0
     @Published public private(set) var totalSets: Int = 0
+    @Published public var currentWeight: Double = 20.0
+    @Published public var currentReps: Int = 10
+    @Published public private(set) var targetReps: String = "8-12"
+    @Published public private(set) var restDurationSeconds: Int = 60
     @Published public private(set) var isResting: Bool = false
     /// Ende der Pause als Zeitpunkt — die Uhr zählt daraus selbst herunter.
     @Published public private(set) var restEndsAt: Date?
+    /// Das Training selbst pausiert — anders als `isResting`, das nur die
+    /// Pause zwischen zwei Sätzen ist. Wie bei `restEndsAt` zählt die Uhr die
+    /// Gesamtzeit über `sessionStartedAt` selbst weiter; angezeigt wird der
+    /// pausierte Zustand separat, statt den Zähler künstlich anzuhalten.
+    @Published public private(set) var isPaused: Bool = false
+    @Published public private(set) var sessionStartedAt: Date?
 
     // MARK: - Gegenstelle
 
@@ -53,6 +63,12 @@ public final class WatchSyncManager: NSObject, ObservableObject {
 
     /// Wird gerufen, wenn auf der Gegenstelle „Satz fertig“ gedrückt wurde.
     public var onSetCompletedRemotely: (() -> Void)?
+    /// Wird gerufen, wenn auf der Watch Gewicht und Wiederholungen eingetragen & abgehakt wurden.
+    public var onSetCompletedWithDataRemotely: ((Double, Int) -> Void)?
+    /// Wird gerufen, wenn auf der Gegenstelle Pause/Fortsetzen gedrückt wurde.
+    public var onPauseToggleRequestedRemotely: (() -> Void)?
+    /// Wird gerufen, wenn die Pause vorzeitig auf der Watch übersprungen wurde.
+    public var onSkipRestRequestedRemotely: (() -> Void)?
 
     private var session: WCSession? {
         WCSession.isSupported() ? WCSession.default : nil
@@ -65,9 +81,8 @@ public final class WatchSyncManager: NSObject, ObservableObject {
         session.activate()
     }
 
-    /// Ein Messwert gilt zehn Sekunden. Danach lieber nichts zeigen als eine
-    /// Zahl, die längst nicht mehr stimmt.
-    public static let sampleValidity: TimeInterval = 10
+    /// Ein Messwert gilt dreißig Sekunden, um Messpausen des optischen Sensors abzufedern.
+    public static let sampleValidity: TimeInterval = 30
 
     // MARK: - Senden
 
@@ -98,14 +113,26 @@ public final class WatchSyncManager: NSObject, ObservableObject {
         exercise: String,
         set: Int,
         totalSets: Int,
+        weight: Double = 20.0,
+        reps: Int = 10,
+        targetReps: String = "8-12",
         isRest: Bool,
-        restEndsAt: Date?
+        restEndsAt: Date?,
+        restDurationSeconds: Int = 60,
+        isPaused: Bool,
+        sessionStartedAt: Date
     ) {
         self.currentExercise = exercise
         self.currentSet = set
         self.totalSets = totalSets
+        self.currentWeight = weight
+        self.currentReps = reps
+        self.targetReps = targetReps
         self.isResting = isRest
         self.restEndsAt = restEndsAt
+        self.restDurationSeconds = restDurationSeconds
+        self.isPaused = isPaused
+        self.sessionStartedAt = sessionStartedAt
         self.isLiveSessionActive = true
 
         var payload: [String: Any] = [
@@ -113,7 +140,13 @@ public final class WatchSyncManager: NSObject, ObservableObject {
             "exercise": exercise,
             "set": set,
             "totalSets": totalSets,
+            "weight": weight,
+            "reps": reps,
+            "targetReps": targetReps,
             "isRest": isRest,
+            "restDurationSeconds": restDurationSeconds,
+            "isPaused": isPaused,
+            "sessionStartedAt": sessionStartedAt.timeIntervalSince1970,
             "timestamp": Date().timeIntervalSince1970
         ]
         if let restEndsAt {
@@ -131,6 +164,8 @@ public final class WatchSyncManager: NSObject, ObservableObject {
         totalSets = 0
         isResting = false
         restEndsAt = nil
+        isPaused = false
+        sessionStartedAt = nil
         watchHeartRate = nil
         watchActiveCalories = nil
         watchSampleDate = nil
@@ -145,11 +180,19 @@ public final class WatchSyncManager: NSObject, ObservableObject {
         else { return nil }
         return watchHeartRate
     }
+
+    /// Die zuletzt gemeldeten Aktivkalorien von der Watch.
+    public var freshWatchActiveCalories: Double? {
+        guard let watchActiveCalories, let watchSampleDate,
+              Date().timeIntervalSince(watchSampleDate) < Self.sampleValidity
+        else { return nil }
+        return watchActiveCalories
+    }
     #endif
 
     #if os(watchOS)
-    /// Echte Sensorwerte ans iPhone. Nur Messwerte gehen hier durch —
-    /// geschätzte Zahlen haben auf diesem Weg nichts verloren.
+    /// Echte Sensorwerte ans iPhone. Werden via sendMessage, applicationContext
+    /// und transferUserInfo übertragen, damit kein Messwert verloren geht.
     public func sendMeasurements(heartRate: Int?, activeCalories: Double?) {
         var payload: [String: Any] = [
             "type": "measurements",
@@ -158,28 +201,68 @@ public final class WatchSyncManager: NSObject, ObservableObject {
         if let heartRate { payload["bpm"] = heartRate }
         if let activeCalories { payload["kcal"] = activeCalories }
         guard payload.count > 2 else { return }
-        fire(payload)
+
+        guard let session, session.activationState == .activated else { return }
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil, errorHandler: nil)
+        }
+        try? session.updateApplicationContext(payload)
+        session.transferUserInfo(payload)
+    }
+
+    /// Satz auf der Watch mit angepasstem Gewicht und Wiederholungen abhaken.
+    public func completeSetWithData(weight: Double, reps: Int) {
+        self.currentWeight = weight
+        self.currentReps = reps
+        fire([
+            "type": "complete_set_with_data",
+            "weight": weight,
+            "reps": reps,
+            "set": currentSet,
+            "timestamp": Date().timeIntervalSince1970
+        ])
+    }
+
+    /// Pausenzeit auf der Watch vorzeitig beenden.
+    public func skipRestPause() {
+        fire([
+            "type": "skip_rest",
+            "timestamp": Date().timeIntervalSince1970
+        ])
     }
     #endif
 
-    /// Auf beiden Seiten dasselbe: „Satz fertig“ meldet sich bei der
-    /// Gegenstelle und schaltet lokal weiter.
     public func completeSetRemotely() {
         fire(["type": "complete_set", "timestamp": Date().timeIntervalSince1970])
-        DispatchQueue.main.async { self.onSetCompletedRemotely?() }
+    }
+
+    /// Bittet die Gegenstelle, Pause/Fortsetzen umzuschalten. Autorität über
+    /// `isPaused` bleibt beim iPhone, genau wie bei Übung, Satz und der Pause
+    /// zwischen Sätzen — die Uhr fragt nur an, sie setzt den Zustand nie
+    /// selbst.
+    public func requestPauseToggle() {
+        fire(["type": "toggle_pause", "timestamp": Date().timeIntervalSince1970])
     }
 
     // MARK: - Empfangen
 
-    private func apply(_ message: [String: Any]) {
-        DispatchQueue.main.async {
+    func apply(_ message: [String: Any]) {
+        let block = {
             switch message["type"] as? String {
             case "workout_update":
                 self.isLiveSessionActive = true
                 if let v = message["exercise"] as? String { self.currentExercise = v }
                 if let v = message["set"] as? Int { self.currentSet = v }
                 if let v = message["totalSets"] as? Int { self.totalSets = v }
+                if let v = message["weight"] as? Double { self.currentWeight = v }
+                if let v = message["reps"] as? Int { self.currentReps = v }
+                if let v = message["targetReps"] as? String { self.targetReps = v }
+                if let v = message["restDurationSeconds"] as? Int { self.restDurationSeconds = v }
                 if let v = message["isRest"] as? Bool { self.isResting = v }
+                if let v = message["isPaused"] as? Bool { self.isPaused = v }
+                if let v = message["sessionStartedAt"] as? TimeInterval {
+                    self.sessionStartedAt = Date(timeIntervalSince1970: v)
+                }
                 self.restEndsAt = (message["restEndsAt"] as? TimeInterval).map(Date.init(timeIntervalSince1970:))
 
             case "workout_end":
@@ -189,9 +272,28 @@ public final class WatchSyncManager: NSObject, ObservableObject {
                 self.totalSets = 0
                 self.isResting = false
                 self.restEndsAt = nil
+                self.isPaused = false
+                self.sessionStartedAt = nil
+
+            case "complete_set_with_data":
+                let w = message["weight"] as? Double ?? self.currentWeight
+                let r = message["reps"] as? Int ?? self.currentReps
+                self.currentWeight = w
+                self.currentReps = r
+                if let handler = self.onSetCompletedWithDataRemotely {
+                    handler(w, r)
+                } else {
+                    self.onSetCompletedRemotely?()
+                }
+
+            case "skip_rest":
+                self.onSkipRestRequestedRemotely?()
 
             case "complete_set":
                 self.onSetCompletedRemotely?()
+
+            case "toggle_pause":
+                self.onPauseToggleRequestedRemotely?()
 
             case "measurements":
                 #if os(iOS)
@@ -201,12 +303,19 @@ public final class WatchSyncManager: NSObject, ObservableObject {
                 }
                 if let kcal = message["kcal"] as? Double {
                     self.watchActiveCalories = kcal
+                    self.watchSampleDate = Date()
                 }
                 #endif
 
             default:
                 break
             }
+        }
+
+        if Thread.isMainThread {
+            block()
+        } else {
+            DispatchQueue.main.async(execute: block)
         }
     }
 }
@@ -239,6 +348,10 @@ extension WatchSyncManager: WCSessionDelegate {
 
     public func session(_ session: WCSession, didReceiveApplicationContext context: [String: Any]) {
         apply(context)
+    }
+
+    public func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        apply(userInfo)
     }
 
     #if os(iOS)

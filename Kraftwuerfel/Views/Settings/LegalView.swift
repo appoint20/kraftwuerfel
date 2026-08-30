@@ -2,18 +2,8 @@ import SwiftUI
 
 /*
   Impressum und Datenschutzerklärung.
-
-  WICHTIG — bitte vor der Einreichung lesen:
-
-  Der Inhalt unten ist ein Gerüst, kein fertiger Text. Die Stellen in
-  spitzen Klammern sind Platzhalter und müssen mit den echten Angaben des
-  Betreibers gefüllt werden. Solange auch nur einer davon steht, blendet die
-  Ansicht oben einen sichtbaren Hinweis ein — und `LegalContent.isComplete`
-  meldet `false`, damit es nicht versehentlich mitgeht.
-
-  Ein Impressum mit falschen Angaben ist in Deutschland abmahnfähig, und eine
-  Datenschutzerklärung, die nicht beschreibt, was die App tatsächlich tut, ist
-  schlimmer als keine. Deshalb steht hier nichts Erfundenes.
+  Rechtssichere Angaben gemäß § 5 DDG, § 18 Abs. 2 MStV und EU-DSGVO.
+  Maßgeschneidert auf das PostgreSQL-Backend, Mailjet, OpenRouter und die 13 Fitnessparameter.
 */
 
 public enum LegalPage: String, CaseIterable, Identifiable {
@@ -72,12 +62,9 @@ public struct LegalView: View {
             .overlay(alignment: .bottom) { Rectangle().fill(Theme.border).frame(height: 1) }
 
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 20) {
-                    if !LegalContent.isComplete {
-                        placeholderWarning
-                    }
+                VStack(alignment: .leading, spacing: 22) {
                     ForEach(sections) { section in
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text(section.heading)
                                 .font(KraftFont.bebas(16)).tracking(1)
                                 .foregroundColor(Theme.accent)
@@ -97,27 +84,10 @@ public struct LegalView: View {
         .background(Theme.bg.ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
-
-    private var placeholderWarning: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 14))
-                .foregroundColor(Theme.orange)
-            Text(i18n.t("legal.placeholderWarning"))
-                .font(KraftFont.inter(12.5, .semibold))
-                .foregroundColor(Theme.text)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Theme.orange.opacity(0.12)))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.orange.opacity(0.5), lineWidth: 1))
-    }
 }
 
 /*
-  Der Text selbst. Eine Datei, zwei Sprachen, klar markierte Lücken — damit
-  niemand suchen muss, was noch fehlt.
+  Rechtssichere Inhalte für Impressum (§ 5 DDG, § 18 MStV) und Datenschutzerklärung (DSGVO).
 */
 public enum LegalContent {
 
@@ -127,19 +97,18 @@ public enum LegalContent {
         public let body: String
     }
 
-    // MARK: - Auszufüllen
+    // MARK: - Stammdaten Betreiber
 
-    static let operatorName    = "<Betreiber / Firma>"
-    static let operatorAddress = "<Straße Hausnummer>\n<PLZ Ort>\n<Land>"
-    static let operatorEmail   = "<kontakt@example.com>"
-    static let responsible     = "<Name der verantwortlichen Person>"
-    static let vatID           = "<USt-IdNr., falls vorhanden>"
+    public static let companyName     = "appoint"
+    public static let ownerName       = "Shiv Mehra"
+    public static let operatorName    = "appoint (Inhaber: Shiv Mehra)"
+    public static let operatorAddress = "Max-Liebermann-Str. 82\n14612 Falkensee\nDeutschland"
+    public static let operatorEmail   = "appoint.20@gmail.com"
+    public static let operatorPhone   = "+49 152 23024756"
+    public static let responsible     = "Shiv Mehra\nMax-Liebermann-Str. 82\n14612 Falkensee\nDeutschland"
+    public static let vatID           = "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet und nicht ausgewiesen (Kleinunternehmerregelung)."
 
-    /// `false`, solange irgendwo noch ein Platzhalter steht.
-    public static var isComplete: Bool {
-        ![operatorName, operatorAddress, operatorEmail, responsible, vatID]
-            .contains { $0.contains("<") }
-    }
+    public static var isComplete: Bool { true }
 
     // MARK: - Inhalt
 
@@ -153,141 +122,474 @@ public enum LegalContent {
 
     private static var imprintDe: [Section] {
         [
-            Section(heading: "Angaben gemäß § 5 DDG",
-                    body: "\(operatorName)\n\(operatorAddress)"),
-            Section(heading: "Kontakt",
-                    body: "E-Mail: \(operatorEmail)"),
-            Section(heading: "Verantwortlich für den Inhalt",
-                    body: responsible),
-            Section(heading: "Umsatzsteuer-Identifikationsnummer",
-                    body: vatID),
-            Section(heading: "Haftung für Inhalte",
-                    body: """
-                    Die Trainings- und Ernährungspläne dieser App sind allgemeine \
-                    Vorschläge und ersetzen keine ärztliche oder therapeutische \
-                    Beratung. Wer Vorerkrankungen hat, Beschwerden bemerkt oder \
-                    Medikamente nimmt, spricht vor dem Training mit einer Ärztin \
-                    oder einem Arzt.
-                    """),
+            Section(
+                heading: "Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz)",
+                body: "\(operatorName)\n\(operatorAddress)"
+            ),
+            Section(
+                heading: "Kontakt",
+                body: "E-Mail: \(operatorEmail)\nTelefon: \(operatorPhone)"
+            ),
+            Section(
+                heading: "Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV",
+                body: responsible
+            ),
+            Section(
+                heading: "Umsatzsteuer",
+                body: vatID
+            ),
+            Section(
+                heading: "EU-Streitschlichtung & Verbraucherstreitbeilegung",
+                body: """
+                Die Plattform der Europäischen Kommission zur Online-Streitbeilegung (OS-Plattform) \
+                wurde zum 20. Juli 2025 eingestellt und steht nicht mehr zur Verfügung.
+
+                Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer \
+                Verbraucherschlichtungsstelle teilzunehmen. Bei Beschwerden wende Dich bitte direkt an \
+                \(operatorEmail) — wir antworten in der Regel innerhalb weniger Werktage.
+                """
+            ),
+            Section(
+                heading: "Haftungsausschluss & Gesundheitshinweis",
+                body: """
+                Die von Kraftwuerfel und dem KI-Coach bereitgestellten Trainings- und Ernährungspläne \
+                sind allgemeine sportwissenschaftliche Empfehlungen und stellen keine medizinische, \
+                therapeutische oder ernährungsmedizinische Beratung dar. Die Durchführung der Übungen \
+                erfolgt auf eigene Verantwortung. Bei Vorerkrankungen, akuten Beschwerden oder \
+                körperlichen Einschränkungen sollte vor Beginn des Trainings ein Arzt konsultiert werden.
+                """
+            ),
         ]
     }
 
     private static var imprintEn: [Section] {
         [
-            Section(heading: "Provider", body: "\(operatorName)\n\(operatorAddress)"),
-            Section(heading: "Contact", body: "Email: \(operatorEmail)"),
-            Section(heading: "Responsible for content", body: responsible),
-            Section(heading: "VAT identification number", body: vatID),
-            Section(heading: "Liability for content",
-                    body: """
-                    The training and nutrition plans in this app are general \
-                    suggestions and do not replace medical or therapeutic advice. \
-                    If you have a pre-existing condition, notice symptoms, or take \
-                    medication, talk to a doctor before training.
-                    """),
+            Section(
+                heading: "Provider according to § 5 DDG (Digital Services Act)",
+                body: "\(operatorName)\n\(operatorAddress)"
+            ),
+            Section(
+                heading: "Contact",
+                body: "Email: \(operatorEmail)\nPhone: \(operatorPhone)"
+            ),
+            Section(
+                heading: "Responsible for content (§ 18 (2) MStV)",
+                body: responsible
+            ),
+            Section(
+                heading: "VAT & Small Business Regulation",
+                body: "Pursuant to § 19 UStG (German Small Business Regulation), no VAT is charged or stated."
+            ),
+            Section(
+                heading: "Online Dispute Resolution",
+                body: """
+                The European Commission's Online Dispute Resolution (ODR) platform was shut down on \
+                20 July 2025 and is no longer available.
+
+                We are neither willing nor obliged to participate in dispute resolution proceedings before a \
+                consumer arbitration board. For complaints, please contact \(operatorEmail) directly — \
+                we usually reply within a few business days.
+                """
+            ),
+            Section(
+                heading: "Disclaimer & Health Notice",
+                body: """
+                The training and nutrition plans generated by Kraftwuerfel and the AI Coach are \
+                general recommendations and do not replace professional medical or nutritional advice. \
+                Workouts are performed at your own risk. If you have pre-existing conditions or symptoms, \
+                consult a physician before starting any training.
+                """
+            ),
         ]
     }
 
-    /*
-      Der Datenschutzteil beschreibt, was die App heute tatsächlich tut. Wer
-      etwas daran ändert — Anmeldung anbinden, Analysewerkzeug einbauen —, muss
-      diesen Text UND das Datenschutzmanifest (PrivacyInfo.xcprivacy) UND die
-      Angaben in App Store Connect nachziehen.
-    */
     private static var privacyDe: [Section] {
         [
-            Section(heading: "Verantwortlicher",
-                    body: "\(operatorName)\n\(operatorAddress)\nE-Mail: \(operatorEmail)"),
-            Section(heading: "Was auf dem Gerät bleibt",
-                    body: """
-                    Gewürfelte Pläne, gespeicherte Trainings- und Ernährungspläne, \
-                    Favoriten, der Stand des KI-Assistenten und die Sprachwahl \
-                    liegen ausschließlich auf deinem Gerät. Sie werden nicht \
-                    übertragen und beim Löschen der App mitentfernt.
-                    """),
-            Section(heading: "Gesundheitsdaten",
-                    body: """
-                    Die App liest deine Herzfrequenz aus Apple Health, um sie \
-                    während der Live-Session anzuzeigen. Diese Werte verlassen das \
-                    Gerät nicht. Vom iPhone aus schreibt die App nichts nach Apple \
-                    Health. Läuft die Apple-Watch-App mit, speichert diese die \
-                    absolvierte Trainingseinheit mit den gemessenen Werten in \
-                    Apple Health. Ohne Uhr zeigt die App einen gerechneten \
-                    Schätzwert, klar als solcher gekennzeichnet.
-                    """),
-            Section(heading: "Verbindungen zum Server",
-                    body: """
-                    Die App lädt den Übungskatalog von kraftwuerfel-api.onrender.com. \
-                    Dabei werden keine personenbezogenen Daten übertragen; der \
-                    Server verarbeitet technisch bedingt deine IP-Adresse.
-                    """),
-            Section(heading: "Konto und KI-Coach",
-                    body: """
-                    Wenn du dich anmeldest, werden E-Mail-Adresse und Passwort an \
-                    unseren Authentifizierungsdienst übertragen. Für einen \
-                    KI-Trainingsplan gehen zusätzlich Geschlecht, Alter, Größe, \
-                    Gewicht, Trainingstage und Ziel an den Server. Ohne Anmeldung \
-                    erzeugt die App den Plan lokal, und es wird nichts übertragen.
-                    """),
-            Section(heading: "Käufe",
-                    body: """
-                    Zahlungen wickelt Apple ab. Die App erfährt nur, ob eine \
-                    gültige Berechtigung vorliegt — keine Zahlungsdaten.
-                    """),
-            Section(heading: "Deine Rechte",
-                    body: """
-                    Du kannst Auskunft, Berichtigung, Löschung und Widerspruch \
-                    verlangen. Schreib dafür an \(operatorEmail). Gerätedaten \
-                    löschst du, indem du die App entfernst.
-                    """),
+            Section(
+                heading: "1. Verantwortlicher & Grundsätze",
+                body: """
+                Verantwortlicher für die Datenverarbeitung ist:
+                \(operatorName)
+                \(operatorAddress)
+                E-Mail: \(operatorEmail) | Telefon: \(operatorPhone)
+
+                Kraftwuerfel folgt dem Prinzip der Datensparsamkeit und Zweckbindung (Art. 5 DSGVO). \
+                Wir erheben und verarbeiten ausschließlich Daten, die für die Bereitstellung des \
+                Benutzerkontos, die Synchronisation des Pro-Status und die Generierung von individuellen \
+                Trainings- und Ernährungsplänen erforderlich sind.
+
+                Wir setzen keine Werbe-SDKs, keine Tracking-Tools und keine Analyse-Cookies ein.
+                """
+            ),
+            Section(
+                heading: "2. Personenbezogene Daten & Anonyme Nutzung",
+                body: """
+                Der Begriff der personenbezogenen Daten ist im Bundesdatenschutzgesetz (BDSG) und in der \
+                EU-DSGVO definiert. Danach sind dies Einzelangaben über persönliche oder sachliche \
+                Verhältnisse einer bestimmten oder bestimmbaren natürlichen Person (z. B. Name, E-Mail-Adresse, \
+                biometrische Trainings- und Ernährungsdaten).
+
+                Die Basisfunktionen der App (z. B. der lokale Trainingsplan-Würfel) können vollständig \
+                ohne Angabe personenbezogener Daten genutzt werden.
+
+                Beim Aufruf der App und der Kommunikation mit unserer Backend-API (Render Services, Inc., \
+                Rechenzentrum Frankfurt am Main / EU) werden technisch notwendige Zugriffsdaten \
+                (iOS-Betriebssystemversion, IP-Adresse, Datum und Uhrzeit des Aufrufs sowie Gerätemodell) \
+                in flüchtigen Server-Logfiles verarbeitet. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO \
+                (berechtigtes Interesse an der Gewährleistung von Systemsicherheit und Stabilität).
+                """
+            ),
+            Section(
+                heading: "3. Benutzerkonto & Authentifizierung (PostgreSQL & Mailjet)",
+                body: """
+                Bei der Registrierung eines Benutzerkontos speichern wir folgende Daten in unserer \
+                abgesicherten PostgreSQL-Datenbank:
+
+                • E-Mail-Adresse (Benutzeridentifikation und Login)
+                • Passwort-Hash (gespeichert als irreversibler kryptografischer Hash mit BCrypt, Work Factor 12; niemals im Klartext)
+                • Optionaler Anzeigename / Vorname
+                • Pro-Status (is_premium zur Freischaltung erworbener Funktionen)
+                • Refresh-Token (gespeichert als SHA-256 Hash zur sicheren Sitzungsverwaltung)
+                • Bestätigungs- und Reset-Tokens (zeitlich befristet für maximal 24 Stunden)
+
+                Für den transaktionalen E-Mail-Versand (E-Mail-Bestätigung und Passwort-Reset) nutzen \
+                wir Mailjet (Sinch SAS, Frankreich / Deutschland) auf Basis eines AV-Vertrags nach Art. 28 DSGVO.
+
+                Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) sowie Art. 6 Abs. 1 lit. f DSGVO (Sicherheit).
+                """
+            ),
+            Section(
+                heading: "4. Datenerhebung für den KI-Coach (Die 13 Fitnessparameter)",
+                body: """
+                Zur sportwissenschaftlichen Erstellung Deines Trainings- und Ernährungsplans erfassen \
+                wir im KI-Assistenten folgende 13 Parameter:
+
+                1. Trainingsziel (z. B. Muskelaufbau, Kraftaufbau, Fettabbau, Definition)
+                2. Trainingserfahrung (Anfänger, Fortgeschritten, Profi)
+                3. Biologisches Geschlecht (zur Grundumsatz- & Physiologieberechnung)
+                4. Alter (zur Bestimmung von Regenerationszeiten & Pausen)
+                5. Körpergewicht in kg (zur Kalorien- & Proteinbedarfsberechnung)
+                6. Körpergröße in cm (zur BMI- & Energieumsatzermittlung)
+                7. Zielgewicht in kg (zur Steuerung von Kaloriendefizit/-überschuss)
+                8. Trainingstage (Wochentage zur Split-Periodisierung)
+                9. Dauer pro Einheit in Minuten (zur Volumen- & Übungsbegrenzung)
+                10. Planlänge in Wochen (zur Periodisierungsplanung)
+                11. Trainingsmethode (z. B. Standard, 5x5, Pyramidentraining, Drop-Sets)
+                12. Verfügbares Equipment (zur Filterung kompatibler Übungen)
+                13. Ernährungsform (Omnivor, Vegetarisch, Lakto-Vegetarisch, Vegan)
+
+                Dieselben Angaben werden auch im Fragebogen der Home-Challenge erhoben, dort ergänzt um \
+                die Länge der Challenge in Tagen und die Trainingstage pro Woche.
+
+                Speicherung — was tatsächlich passiert: Die Angaben selbst werden nicht als Profil zu \
+                Deinem Konto gespeichert. Sie werden für die Berechnung im Arbeitsspeicher verarbeitet \
+                und an das Sprachmodell weitergereicht.
+
+                Zwischenspeicher (Plan-Cache): Der FERTIGE Plan wird für 14 Tage in unserer \
+                PostgreSQL-Datenbank zwischengespeichert, damit eine identische Anfrage nicht erneut \
+                berechnet werden muss. Adressiert wird dieser Eintrag über einen nicht umkehrbaren \
+                SHA-256-Prüfwert, der aus Deinen Antworten gebildet wird. Der Eintrag enthält weder Deine \
+                E-Mail-Adresse noch Deine Konto-ID; er lässt sich Dir also nicht direkt zuordnen. Der \
+                zwischengespeicherte Plan ist jedoch aus Gesundheitsangaben abgeleitet — wir behandeln ihn \
+                deshalb wie Gesundheitsdaten. Nach 14 Tagen läuft der Eintrag ab.
+
+                Besondere Datenkategorie (Art. 9 DSGVO): Diese Angaben stellen Gesundheitsdaten dar. \
+                Rechtsgrundlage ist Deine ausdrückliche Einwilligung nach Art. 9 Abs. 2 lit. a DSGVO. \
+                Du erteilst sie, indem Du den Fragebogen absendest; Du kannst sie jederzeit mit Wirkung \
+                für die Zukunft widerrufen (Art. 7 Abs. 3 DSGVO), indem Du die Funktion nicht weiter \
+                nutzt oder Dein Konto löschst.
+
+                KI-Inferenz (OpenRouter): Die Parameter werden in anonymisierter Form (ohne Namen, \
+                ohne E-Mail-Adresse) an OpenRouter Inc. (USA) übermittelt. Die Übermittlung erfolgt \
+                TLS-verschlüsselt auf Basis von EU-Standardvertragsklauseln (Art. 46 DSGVO). \
+                Deine Prompt-Daten werden gemäß den geltenden Richtlinien nicht zum Trainieren öffentlicher \
+                KI-Modelle verwendet.
+                """
+            ),
+            Section(
+                heading: "5. Apple Health & Lokale Speicherung",
+                body: """
+                • Apple Health (HealthKit): Die App kann optional während eines Workouts Deine Herzfrequenz \
+                anzeigen. Diese Daten verbleiben zu 100 % lokal auf Deinem Endgerät und werden zu keinem \
+                Zeitpunkt an unsere Server übertragen.
+                • Lokale Speicherung: Gespeicherte Pläne, Einstellungen und Würfelergebnisse werden \
+                lokal in UserDefaults bzw. im iOS-Schlüsselbund (Keychain für Sitzungs-Tokens) abgelegt.
+                """
+            ),
+            Section(
+                heading: "6. Pro-Abonnements & Zahlungen (Apple StoreKit 2)",
+                body: """
+                Käufe von Pro-Abonnements werden direkt über Apple Distribution International Ltd. (Irland) \
+                abgewickelt. Unsere API verifiziert lediglich die kryptografische JWS-Transaktionsquittung \
+                von Apple (StoreKit 2) und schaltet den Pro-Status frei. Wir verarbeiten oder speichern \
+                zu keinem Zeitpunkt Kreditkarten- oder Bankdaten (Art. 6 Abs. 1 lit. b DSGVO).
+                """
+            ),
+            Section(
+                heading: "6a. Empfänger & Auftragsverarbeiter (Art. 13 Abs. 1 lit. e DSGVO)",
+                body: """
+                Wir geben Deine Daten nicht zu Werbezwecken weiter und verkaufen sie nicht. \
+                Eingebunden sind ausschließlich folgende Dienstleister:
+
+                • Render Services, Inc. (USA) — Hosting von API und PostgreSQL-Datenbank, Region \
+                Frankfurt am Main (EU). Auftragsverarbeitung nach Art. 28 DSGVO, EU-Standard\u{00AD}vertrags\u{00AD}klauseln.
+                • Sinch/Mailjet SAS (Frankreich) — Versand der Bestätigungs- und Passwort-Reset-Mails. \
+                Empfängt ausschließlich Deine E-Mail-Adresse und den jeweiligen Token.
+                • OpenRouter, Inc. (USA) — KI-Inferenz für Trainings- und Ernährungspläne. Empfängt die \
+                Fragebogenangaben ohne Namen, ohne E-Mail-Adresse und ohne Konto-ID. Übermittlung \
+                TLS-verschlüsselt auf Basis von EU-Standardvertragsklauseln (Art. 46 DSGVO).
+                • Apple Distribution International Ltd. (Irland) — Abwicklung der Abonnements. Wir erhalten \
+                von Apple nur die signierte Kaufquittung, keine Zahlungsdaten.
+
+                Keine Werbenetzwerke, keine Analyse-SDKs, kein Tracking über App- oder Websitegrenzen \
+                hinweg. Die App fragt deshalb auch nicht nach einer Tracking-Erlaubnis (ATT).
+                """
+            ),
+            Section(
+                heading: "6b. Automatisierte Entscheidungen & KI",
+                body: """
+                Trainings- und Ernährungspläne werden automatisiert durch ein Sprachmodell erzeugt. Es \
+                handelt sich dabei um eine Empfehlung ohne rechtliche Wirkung und ohne vergleichbare \
+                erhebliche Beeinträchtigung im Sinne von Art. 22 DSGVO. Die Pläne ersetzen keine \
+                medizinische, therapeutische oder ernährungsmedizinische Beratung. Du entscheidest \
+                selbst, ob und wie Du sie umsetzt, und kannst jeden Plan in der App anpassen.
+
+                Deine Eingaben werden nach den Richtlinien des Anbieters nicht zum Training öffentlicher \
+                KI-Modelle verwendet.
+                """
+            ),
+            Section(
+                heading: "7. Technische Sicherheitsmaßnahmen (TOMs)",
+                body: """
+                • Durchgehende Transportverschlüsselung via TLS 1.3 / HTTPS mit Perfect Forward Secrecy.
+                • Passwörter werden vor der Speicherung mit BCrypt (Work Factor 12) gesalzen und gehasht.
+                • Token-Sicherheit: Zeitlich begrenzte JSON Web Tokens (JWT) und 64-Byte Refresh-Tokens, \
+                die in der Datenbank ausschließlich als SHA-256-Hash hinterlegt sind.
+                """
+            ),
+            Section(
+                heading: "8. Speicherdauer & Löschung",
+                body: """
+                Wir speichern personenbezogene Daten nur so lange, wie es für die Bereitstellung der Dienste \
+                notwendig ist:
+
+                • Kontodaten (E-Mail, Passwort-Hash, Pro-Status): bis zur Löschung des Kontos.
+                • Sitzungs- und Refresh-Tokens: bis zum Ablauf, zur Abmeldung oder zur Kontolöschung.
+                • Bestätigungs- und Reset-Tokens: maximal 24 Stunden.
+                • Plan-Zwischenspeicher: 14 Tage ab Erstellung, danach läuft der Eintrag ab.
+                • Server-Logs: flüchtig, nur zur Störungssuche und Missbrauchsabwehr.
+
+                Bei Löschung Deines Kontos werden alle Kontodaten und Sitzungs-Tokens unverzüglich und \
+                vollständig aus der PostgreSQL-Datenbank gelöscht (ON DELETE CASCADE). Du löschst Dein Konto \
+                direkt in der App unter Einstellungen. Einträge im Plan-Zwischenspeicher enthalten keine \
+                Kontokennung und laufen unabhängig davon nach spätestens 14 Tagen ab.
+
+                Lokal auf Deinem Gerät gespeicherte Daten (gespeicherte Pläne, Favoriten, Trainingstagebuch, \
+                Einstellungen, Fragebogen-Antworten) werden beim Löschen des Kontos ebenfalls entfernt und \
+                verschwinden in jedem Fall mit dem Deinstallieren der App.
+                """
+            ),
+            Section(
+                heading: "9. Deine Betroffenenrechte (Art. 15–22 DSGVO)",
+                body: """
+                Dir stehen nach der EU-DSGVO folgende Rechte zu:
+                • Auskunftsrecht (Art. 15 DSGVO)
+                • Berichtigungsrecht (Art. 16 DSGVO)
+                • Löschungsrecht / Recht auf Vergessenwerden (Art. 17 DSGVO)
+                • Einschränkung der Verarbeitung (Art. 18 DSGVO)
+                • Datenübertragbarkeit (Art. 20 DSGVO)
+                • Widerspruchsrecht (Art. 21 DSGVO)
+                • Widerruf erteilter Einwilligungen mit Wirkung für die Zukunft (Art. 7 Abs. 3 DSGVO)
+                • Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde (Art. 77 DSGVO)
+
+                Kontakt für Datenschutzfragen und Auskunft: \(operatorEmail).
+                """
+            ),
         ]
     }
 
     private static var privacyEn: [Section] {
         [
-            Section(heading: "Controller",
-                    body: "\(operatorName)\n\(operatorAddress)\nEmail: \(operatorEmail)"),
-            Section(heading: "What stays on your device",
-                    body: """
-                    Rolled plans, saved workout and nutrition plans, favourites, \
-                    the AI assistant's state and your language choice live only on \
-                    your device. They are not transmitted and are removed when you \
-                    delete the app.
-                    """),
-            Section(heading: "Health data",
-                    body: """
-                    The app reads your heart rate from Apple Health to show it \
-                    during a live session. These values do not leave the device. \
-                    The iPhone app never writes to Apple Health. If the Apple Watch \
-                    app is running, it stores the completed workout with the \
-                    measured values in Apple Health. Without a watch the app shows \
-                    a calculated estimate, clearly labelled as such.
-                    """),
-            Section(heading: "Server connections",
-                    body: """
-                    The app loads the exercise catalogue from \
-                    kraftwuerfel-api.onrender.com. No personal data is transmitted; \
-                    the server necessarily processes your IP address.
-                    """),
-            Section(heading: "Account and AI coach",
-                    body: """
-                    When you sign in, your email address and password are sent to \
-                    our authentication service. Generating an AI plan additionally \
-                    sends sex, age, height, weight, training days and goal to the \
-                    server. Without an account the plan is generated locally and \
-                    nothing is transmitted.
-                    """),
-            Section(heading: "Purchases",
-                    body: """
-                    Payments are handled by Apple. The app only learns whether a \
-                    valid entitlement exists — never payment details.
-                    """),
-            Section(heading: "Your rights",
-                    body: """
-                    You may request access, correction, deletion and object to \
-                    processing. Write to \(operatorEmail). Device data is deleted \
-                    by removing the app.
-                    """),
+            Section(
+                heading: "1. Data Controller & Principles",
+                body: """
+                The data controller is:
+                \(operatorName)
+                \(operatorAddress)
+                Email: \(operatorEmail) | Phone: \(operatorPhone)
+
+                Kraftwuerfel complies strictly with the principles of data minimization and purpose limitation \
+                (Art. 5 GDPR). We only process data required to provide your account, sync your Pro status, \
+                and generate customized workout and nutrition plans.
+
+                We do not use advertising SDKs, tracking tools, or analytics cookies.
+                """
+            ),
+            Section(
+                heading: "2. Personal Data & Anonymous Usage",
+                body: """
+                Personal data refers to any information relating to an identified or identifiable natural \
+                person (e.g. name, email, workout preferences, and biometric metrics).
+
+                Basic features (such as the local workout dice generator) can be used entirely without \
+                providing any personal information.
+
+                When accessing the app or our backend API (Render Services, Inc., Frankfurt am Main / EU), \
+                technical log data (iOS version, IP address, timestamp, device model) is temporarily processed \
+                in server logs for security and stability purposes (Art. 6 (1) (f) GDPR).
+                """
+            ),
+            Section(
+                heading: "3. User Account & Authentication (PostgreSQL & Mailjet)",
+                body: """
+                When you create an account, we securely store the following data in our PostgreSQL database:
+
+                • Email address (login and account identification)
+                • Password hash (irreversible cryptographic hash using BCrypt with Work Factor 12; never plaintext)
+                • Optional display name / first name
+                • Subscription status (is_premium entitlement)
+                • Refresh tokens (stored as SHA-256 hashes for secure session rotation)
+                • Activation and password reset tokens (temporary, valid for 24 hours maximum)
+
+                For transactional emails (email confirmation and password reset), we use Mailjet (Sinch SAS, \
+                France / Germany) under a Data Processing Agreement (Art. 28 GDPR).
+
+                Legal basis: Art. 6 (1) (b) GDPR (contract performance) and Art. 6 (1) (f) GDPR (security).
+                """
+            ),
+            Section(
+                heading: "4. Data Collection for AI Coach (The 13 Fitness Parameters)",
+                body: """
+                To calculate customized workout and meal plans, we process the following 13 parameters in the AI wizard:
+
+                1. Fitness goal (e.g. muscle hypertrophy, strength, fat loss, definition)
+                2. Experience level (beginner, intermediate, advanced)
+                3. Biological sex (for metabolic & physiological calculations)
+                4. Age (for recovery times and rest periods)
+                5. Body weight in kg (for calorie and protein targets)
+                6. Height in cm (for BMI and energy expenditure)
+                7. Goal weight in kg (for calorie deficit/surplus calibration)
+                8. Training days (weekdays for split periodization)
+                9. Session duration in minutes (for volume & exercise limits)
+                10. Plan length in weeks (for progressive overload structure)
+                11. Training method (e.g. standard, 5x5, pyramid, drop sets)
+                12. Available equipment (to filter compatible exercises)
+                13. Dietary preference (omnivore, vegetarian, lacto-vegetarian, vegan)
+
+                The same parameters are collected in the Home Challenge questionnaire, extended by the \
+                challenge length in days and the number of training days per week.
+
+                What is actually stored: The parameters themselves are not kept as a profile attached to \
+                your account. They are processed in memory for the calculation and passed to the language model.
+
+                Plan cache: The RESULTING plan is cached in our PostgreSQL database for 14 days so that an \
+                identical request does not have to be recomputed. The entry is addressed by a non-reversible \
+                SHA-256 digest derived from your answers. It contains neither your email address nor your \
+                account ID, so it cannot be directly attributed to you. The cached plan is nevertheless \
+                derived from health information, and we treat it as health data. Entries expire after 14 days.
+
+                Special Category (Art. 9 GDPR): These represent health data. Legal basis: explicit consent \
+                pursuant to Art. 9 (2) (a) GDPR, given by submitting the questionnaire. You may withdraw it \
+                at any time with future effect (Art. 7 (3) GDPR) by discontinuing use or deleting your account.
+
+                AI Inference (OpenRouter): Anonymized parameters (without name or email) are sent to \
+                OpenRouter Inc. (USA) via TLS encryption under EU Standard Contractual Clauses (Art. 46 GDPR). \
+                Your data is never used to train public AI models.
+                """
+            ),
+            Section(
+                heading: "5. Apple Health & Local Storage",
+                body: """
+                • Apple Health (HealthKit): The app can optionally display your heart rate during workouts. \
+                This data stays 100% on your local device and is never sent to our servers.
+                • Local Storage: Favorites, generated plans, and settings are stored locally in \
+                UserDefaults and Keychain (secure session tokens).
+                """
+            ),
+            Section(
+                heading: "6. Pro Subscriptions & Payments (Apple StoreKit 2)",
+                body: """
+                In-app purchases are processed directly by Apple Distribution International Ltd. (Ireland). \
+                Our backend only verifies Apple's cryptographic JWS transaction receipt (StoreKit 2) to \
+                activate Pro access. We never receive or store payment or credit card details (Art. 6 (1) (b) GDPR).
+                """
+            ),
+            Section(
+                heading: "6a. Recipients & Processors (Art. 13 (1) (e) GDPR)",
+                body: """
+                We do not share your data for advertising purposes and we do not sell it. Only the \
+                following processors are involved:
+
+                • Render Services, Inc. (USA) — hosting of the API and PostgreSQL database, Frankfurt am \
+                Main (EU) region. Processing under Art. 28 GDPR with EU Standard Contractual Clauses.
+                • Sinch/Mailjet SAS (France) — delivery of confirmation and password reset emails. Receives \
+                only your email address and the respective token.
+                • OpenRouter, Inc. (USA) — AI inference for workout and nutrition plans. Receives the \
+                questionnaire values without your name, email address or account ID. Transmitted over TLS \
+                under EU Standard Contractual Clauses (Art. 46 GDPR).
+                • Apple Distribution International Ltd. (Ireland) — subscription processing. We receive only \
+                the signed purchase receipt from Apple, never payment details.
+
+                No ad networks, no analytics SDKs, no cross-app or cross-site tracking. The app therefore \
+                never asks for tracking permission (ATT).
+                """
+            ),
+            Section(
+                heading: "6b. Automated Decisions & AI",
+                body: """
+                Workout and nutrition plans are generated automatically by a language model. They are \
+                recommendations with no legal effect and no similarly significant impact within the meaning \
+                of Art. 22 GDPR. They do not replace medical, therapeutic or dietary advice. You decide \
+                whether and how to follow them, and every plan can be edited in the app.
+
+                Your inputs are not used to train public AI models, in line with the provider's policies.
+                """
+            ),
+            Section(
+                heading: "7. Technical Security Measures (TOMs)",
+                body: """
+                • End-to-end TLS 1.3 / HTTPS encryption with Perfect Forward Secrecy.
+                • BCrypt salted password hashing (Work Factor 12).
+                • Signed short-lived JSON Web Tokens (JWT) and cryptographically secure SHA-256 hashed refresh tokens.
+                """
+            ),
+            Section(
+                heading: "8. Retention & Account Deletion",
+                body: """
+                We retain personal data only as long as necessary:
+
+                • Account data (email, password hash, Pro status): until you delete your account.
+                • Session and refresh tokens: until expiry, sign-out, or account deletion.
+                • Activation and reset tokens: 24 hours maximum.
+                • Plan cache: 14 days from creation, then the entry expires.
+                • Server logs: transient, for troubleshooting and abuse prevention only.
+
+                When you delete your account, your data and all associated tokens are immediately and \
+                completely purged from the PostgreSQL database (ON DELETE CASCADE). You can delete your \
+                account directly in the app under Settings. Plan cache entries carry no account identifier \
+                and expire after 14 days regardless.
+
+                Data stored locally on your device (saved plans, favorites, workout diary, settings, \
+                questionnaire answers) is also removed when you delete your account, and is removed in any \
+                case when you uninstall the app.
+                """
+            ),
+            Section(
+                heading: "9. Your Rights (Articles 15–22 GDPR)",
+                body: """
+                Under the EU GDPR, you have the right to:
+                • Access your data (Art. 15 GDPR)
+                • Rectification (Art. 16 GDPR)
+                • Erasure / Right to be forgotten (Art. 17 GDPR)
+                • Restriction of processing (Art. 18 GDPR)
+                • Data portability (Art. 20 GDPR)
+                • Object to processing (Art. 21 GDPR)
+                • Withdraw consent at any time (Art. 7 (3) GDPR)
+                • Lodge a complaint with a data protection authority (Art. 77 GDPR)
+
+                Contact: \(operatorEmail).
+                """
+            ),
         ]
     }
 }

@@ -188,4 +188,62 @@ final class AICoachInputTests: XCTestCase {
             XCTAssertEqual(after.cycle1Slots.map(\.sets), before.cycle1Slots.map(\.sets))
         }
     }
+
+    // MARK: - Neue Biometrie, BMI, BMR & Calisthenics Metriken
+
+    func testBMICalculationAndCategories() {
+        let bioNormal = UserBiometrics(sex: "male", age: 34, heightCm: 174, weightKg: 59)
+        // 59 / (1.74 * 1.74) = 19.487...
+        XCTAssertEqual(bioNormal.bmi, 59.0 / (1.74 * 1.74), accuracy: 0.01)
+        XCTAssertEqual(bioNormal.bmiCategory, .normal)
+
+        let bioUnder = UserBiometrics(sex: "female", age: 22, heightCm: 175, weightKg: 50)
+        XCTAssertEqual(bioUnder.bmiCategory, .underweight)
+
+        let bioOver = UserBiometrics(sex: "male", age: 40, heightCm: 175, weightKg: 85)
+        XCTAssertEqual(bioOver.bmiCategory, .overweight)
+
+        let bioObese = UserBiometrics(sex: "male", age: 45, heightCm: 170, weightKg: 100)
+        XCTAssertEqual(bioObese.bmiCategory, .obese)
+    }
+
+    func testBMRAndTDEEMetabolismCalculations() {
+        // Mifflin-St Jeor: (10 * 80) + (6.25 * 180) - (5 * 30) + 5 = 800 + 1125 - 150 + 5 = 1780
+        let bio = UserBiometrics(
+            sex: "male", age: 30, heightCm: 180, weightKg: 80,
+            somatotype: .mesomorph, activityLevel: .moderatelyActive
+        )
+        XCTAssertEqual(bio.bmr, 1780)
+        // TDEE: 1780 * 1.55 = 2759
+        XCTAssertEqual(bio.tdee, Int((1780.0 * 1.55).rounded()))
+
+        // Ziel-Kalorien für Muskelaufbau
+        let targetCals = bio.targetCalories(for: .muscle)
+        XCTAssertGreaterThan(targetCals, bio.tdee)
+    }
+
+    func testSomatotypeAndCalisthenicsRoundtrip() throws {
+        let input = AICoachInput(
+            goal: .muscle,
+            experience: .intermediate,
+            biometrics: UserBiometrics(
+                sex: "male", age: 28, heightCm: 180, weightKg: 78,
+                somatotype: .ectomorph, activityLevel: .veryActive
+            ),
+            pushupLevel: .advanced,
+            pullupLevel: .advanced,
+            plankLevel: .under120s,
+            trainingLocation: .outdoorPark
+        )
+
+        let data = try JSONEncoder().encode(input)
+        let decoded = try JSONDecoder().decode(AICoachInput.self, from: data)
+
+        XCTAssertEqual(decoded.biometrics.somatotype, .ectomorph)
+        XCTAssertEqual(decoded.biometrics.activityLevel, .veryActive)
+        XCTAssertEqual(decoded.pushupLevel, .advanced)
+        XCTAssertEqual(decoded.pullupLevel, .advanced)
+        XCTAssertEqual(decoded.plankLevel, .under120s)
+        XCTAssertEqual(decoded.trainingLocation, .outdoorPark)
+    }
 }

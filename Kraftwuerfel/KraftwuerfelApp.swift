@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct KraftwuerfelApp: App {
+    @State private var isShowingSplash = true
+
     init() {
         // Force dark mode appearance across navigation bars and UI elements
         UIView.appearance().overrideUserInterfaceStyle = .dark
@@ -14,9 +16,21 @@ struct KraftwuerfelApp: App {
     
     var body: some Scene {
         WindowGroup {
-            MainTabView()
-                .preferredColorScheme(.dark)
-                .background(Theme.bg.ignoresSafeArea())
+            ZStack {
+                RootView()
+                    .preferredColorScheme(.dark)
+                    .background(Theme.bg.ignoresSafeArea())
+
+                if isShowingSplash {
+                    SplashScreenView {
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            isShowingSplash = false
+                        }
+                    }
+                    .transition(.opacity)
+                    .zIndex(1)
+                }
+            }
         }
     }
 }

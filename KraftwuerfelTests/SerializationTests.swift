@@ -54,7 +54,7 @@ final class SerializationTests: XCTestCase {
             startDate: Date(),
             duration: 8,
             days: ["Mo", "Mi", "Fr"],
-            split: SplitType.women.rawValue,
+            split: SplitType.push.rawValue,
             method: .legsFocus,
             count: 6,
             restTime: 90,

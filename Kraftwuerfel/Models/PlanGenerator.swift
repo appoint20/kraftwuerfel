@@ -91,7 +91,12 @@ public enum PlanGenerator {
         extraExclude: Set<String> = [],
         equipment: Set<EquipmentType>? = nil
     ) -> [ExerciseSlot] {
-        let focusCat = focusCategory(for: method)
+        // Normalisierung: Bei reinem Beine-Split ist Beine-Fokus redundant & ungültig
+        let effectiveMethod: TrainingMethod = (categoriesIn == [.legs, .glutes, .calves] && method == .legsFocus)
+            ? .standard
+            : method
+
+        let focusCat = focusCategory(for: effectiveMethod)
         let categories: [MuscleCategory] = {
             guard let f = focusCat, !categoriesIn.contains(f) else { return categoriesIn }
             return [f] + categoriesIn

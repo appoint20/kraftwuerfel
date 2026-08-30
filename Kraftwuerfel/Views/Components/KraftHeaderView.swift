@@ -1,40 +1,42 @@
 import SwiftUI
 
 /*
-  Portierung des Kopfbereichs aus src/App.jsx (.header, .brand, .tabs).
-
-  Gegenüber der bisherigen Fassung sind drei Dinge neu, die das Web schon hatte:
-  der fünfte Tab (Favoriten), der DE/EN-Schalter und das Würfel-Logo statt eines
-  SF-Symbols. Außerdem läuft die Schrift jetzt über Bebas Neue — vorher hat die
-  breitere Systemschrift die Tab-Beschriftungen umbrechen lassen
-  ("TRAININGSP / LAN").
+  Kopfbereich: Markenzeile und darunter die KI-Coach Begrüßung für den Nutzer.
+  Die Navigationsleiste ist nun in die untere Leiste (KraftBottomTabBar) gewandert.
 */
 
 public enum KraftTab: String, CaseIterable, Identifiable {
-    case generator, aiCoach, trainingsplan, saved, favorites
+    /*
+      Vier Reiter, nicht sechs.
+
+      Trainingsplan, Gespeichert und Favoriten waren drei eigene Reiter und
+      damit drei Fünftel der Leiste — obwohl alle drei dasselbe zeigen: Pläne.
+      Wer von seinem laufenden Plan zu einem gespeicherten wollte, wechselte
+      den Reiter, und die untere Leiste war so voll, dass die Beschriftungen
+      nicht mehr lesbar waren. Sie liegen jetzt unter `plans` zusammen, mit
+      einer Segmentleiste darin.
+    */
+    case generator, aiCoach, plans, progress
 
     public var id: String { rawValue }
 
-    /// Schlüssel wie in der TABS-Tabelle in App.jsx.
+    /// Schlüssel wie in der TABS-Tabelle.
     public var titleKey: String {
         switch self {
         case .generator:     return "tabs.generator"
         case .aiCoach:       return "tabs.ai"
-        case .trainingsplan: return "tabs.trainingsplan"
-        case .saved:         return "tabs.saved"
-        case .favorites:     return "tabs.favorites"
+        case .plans:         return "tabs.plans"
+        case .progress:      return "tabs.progress"
         }
     }
 
-    /// Symbol für die Leiste. Ohne Bild bräuchte die Beschriftung mehr Platz,
-    /// als eine einzige Zeile für fünf Bereiche hergibt.
+    /// Symbol für die Leiste.
     public var icon: String {
         switch self {
         case .generator:     return "dice.fill"
         case .aiCoach:       return "sparkles"
-        case .trainingsplan: return "calendar"
-        case .saved:         return "bookmark.fill"
-        case .favorites:     return "heart.fill"
+        case .plans:         return "calendar"
+        case .progress:      return "chart.line.uptrend.xyaxis"
         }
     }
 }
@@ -87,37 +89,49 @@ public struct LogoIcon: View {
     }
 }
 
-/*
-  Kopfbereich: Markenzeile und darunter die Navigationsleiste.
-
-  Vorher lagen die fünf Bereiche in einem umbrechenden Layout und standen
-  dadurch in zwei Zeilen ("GENERATOR / KI-COACH / TRAININGSPLAN" und darunter
-  "GESPEICHERT / FAVORITEN"). Jetzt ist es eine Zeile mit Symbol und
-  Beschriftung je Bereich; der aktive bekommt Fläche, Farbe und einen Strich.
-
-  Der DE/EN-Schalter saß hier oben rechts. Er ist in die Einstellungen gewandert
-  — an seiner Stelle steht das Zahnrad.
-*/
 public struct KraftHeaderView: View {
-    @Binding public var selectedTab: KraftTab
     @ObservedObject private var i18n = I18n.shared
+    @ObservedObject private var auth = AuthService.shared
     @ObservedObject private var storeKit = StoreKitManager.shared
 
     public var onOpenSettings: (() -> Void)?
+    public var onOpenPro: (() -> Void)?
 
-    public init(selectedTab: Binding<KraftTab>, onOpenSettings: (() -> Void)? = nil) {
-        self._selectedTab = selectedTab
+    /*
+      Welcher der Begrüßungssätze gerade läuft. Einmal pro App-Start
+      neu gewürfelt — @State wird nur beim ersten Erscheinen ausgewertet,
+      ein Tabwechsel oder Re-Render würfelt nicht erneut.
+    */
+    @State private var sentenceVariant = Int.random(in: 1...25)
+
+    public init(
+        onOpenSettings: (() -> Void)? = nil,
+        onOpenPro: (() -> Void)? = nil
+    ) {
         self.onOpenSettings = onOpenSettings
+        self.onOpenPro = onOpenPro
+    }
+
+    private var currentUserName: String {
+        let name = auth.displayName
+        return name.isEmpty ? i18n.t("greeting.guestName") : name
+    }
+
+    private var greetingSentence: String {
+        i18n.t("greeting.sentence.\(sentenceVariant)", ["name": currentUserName])
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 12) {
             brandRow
                 .padding(.horizontal, 20)
-                .padding(.bottom, 12)
-            taskBar
+
+            aiGreetingCard
+                .padding(.horizontal, 20)
+                .padding(.bottom, 4)
         }
-        .padding(.top, 14)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
         .background(Theme.bg)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Theme.border).frame(height: 1)
@@ -149,7 +163,10 @@ public struct KraftHeaderView: View {
     }
 
     private var proButton: some View {
-        Button(action: {}) {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            onOpenPro?()
+        }) {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles").font(.system(size: 12, weight: .bold))
                 Text(i18n.t("nav.getPro")).font(KraftFont.bebas(13)).tracking(1)
@@ -178,66 +195,49 @@ public struct KraftHeaderView: View {
         .accessibilityLabel(i18n.t("settings.title"))
     }
 
-    // MARK: - Navigationsleiste
+    // MARK: - KI-Coach Begrüßung für den Nutzer
 
-    /*
-      Eine Zeile, fünf gleich breite Felder. `minimumScaleFactor` fängt die
-      längeren deutschen Wörter ab, statt sie umbrechen zu lassen — ein Umbruch
-      wäre wieder die zweite Zeile, die hier weg soll.
-    */
-    private var taskBar: some View {
-        HStack(spacing: 0) {
-            ForEach(KraftTab.allCases) { tab in
-                taskBarItem(tab)
+    private var aiGreetingCard: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Theme.accentDim)
+                Image(systemName: "sparkles")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(Theme.accent)
             }
-        }
-        .padding(.horizontal, 8)
-    }
+            .frame(width: 32, height: 32)
 
-    private func taskBarItem(_ tab: KraftTab) -> some View {
-        let isActive = selectedTab == tab
-        return Button(action: {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            withAnimation(.easeInOut(duration: 0.18)) { selectedTab = tab }
-        }) {
-            VStack(spacing: 0) {
-                VStack(spacing: 3) {
-                    ZStack {
-                        if isActive {
-                            RoundedRectangle(cornerRadius: 9)
-                                .fill(Theme.accentDim)
-                                .frame(height: 26)
-                        }
-                        HStack(spacing: 4) {
-                            Image(systemName: tab.icon)
-                                .font(.system(size: 12.5, weight: .semibold))
-                            // Das Web markiert den KI-Tab für Nicht-Pro.
-                            if tab == .aiCoach && !storeKit.isProUnlocked {
-                                Circle().fill(Theme.accent).frame(width: 4, height: 4)
-                            }
-                        }
-                        .foregroundColor(isActive ? Theme.accent : Theme.muted)
-                    }
-                    .frame(height: 26)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(i18n.t("greeting.title", ["name": currentUserName]))
+                    .font(KraftFont.inter(13.5, .bold))
+                    .foregroundColor(Theme.text)
+                    .lineLimit(1)
 
-                    Text(i18n.t(tab.titleKey))
-                        .font(KraftFont.bebas(11.5))
-                        .tracking(0.3)
-                        .foregroundColor(isActive ? Theme.accent : Theme.muted)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                }
-                .padding(.bottom, 7)
-
-                Rectangle()
-                    .fill(isActive ? Theme.accent : Color.clear)
-                    .frame(height: 2)
+                Text(greetingSentence)
+                    .font(KraftFont.inter(12, .medium))
+                    .foregroundColor(Theme.muted)
+                    .lineLimit(1)
             }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
+
+            Spacer(minLength: 0)
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isActive ? [.isSelected] : [])
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Theme.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    LinearGradient(
+                        colors: [Theme.accent.opacity(0.4), Theme.border],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
     }
 }
-

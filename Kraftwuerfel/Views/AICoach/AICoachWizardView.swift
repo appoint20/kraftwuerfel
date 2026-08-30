@@ -8,16 +8,22 @@ public struct AICoachWizardView: View {
       wieder von vorn an.
     */
     @ObservedObject private var session = AICoachSession.shared
+    @ObservedObject private var storeKit = StoreKitManager.shared
+    @ObservedObject private var adManager = AdManager.shared
+    @ObservedObject private var auth = AuthService.shared
+    @ObservedObject private var profileStore = UserProfileStore.shared
     @State private var loadingPulse: Bool = false
-    
+    @State private var showPro = false
+    @State private var showAuth = false
+    @State private var showProfile = false
+
     public var onStartLiveWorkout: (([ExerciseSlot], String) -> Void)?
-    
-    private let allWeekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
-    
+
+
     public init(onStartLiveWorkout: (([ExerciseSlot], String) -> Void)? = nil) {
         self.onStartLiveWorkout = onStartLiveWorkout
     }
-    
+
     public var body: some View {
         VStack(spacing: 0) {
             if let plan = session.generatedPlan {
@@ -28,10 +34,45 @@ public struct AICoachWizardView: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
+        .dismissKeyboardOnTap()
         // Der Plan trägt seine Texte in sich; nach einem Sprachwechsel müssen
         // sie nachgezogen werden, sonst steht der Fokus weiter auf Deutsch.
         .onChange(of: i18n.lang) { lang in session.relocalizeIfNeeded(to: lang) }
         .onAppear { session.relocalizeIfNeeded(to: i18n.lang) }
+        .sheet(isPresented: $showPro) { ProSubscriptionView() }
+        .sheet(isPresented: $showAuth) { AuthView() }
+        .sheet(isPresented: $showProfile) { ProfileSettingsView() }
+    }
+
+    // MARK: - Pro-Sperre
+    // Der KI-Coach ist eine Pro-Funktion; ohne diese Prüfung bekam jeder
+    // Nutzer den Assistenten vollständig kostenlos (Richtlinie 3.1.1 / 2.3.1).
+
+    private var proGate: some View {
+        VStack(spacing: 18) {
+            Spacer()
+            VStack(spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles").font(.system(size: 15, weight: .bold))
+                    Text(i18n.t("pro.badge")).font(KraftFont.bebas(17)).tracking(1.5)
+                }
+                .foregroundColor(Theme.accent)
+
+                Text(i18n.t("pro.gateText", ["feature": i18n.t("pro.feature.ai")]))
+                    .font(KraftFont.inter(14))
+                    .foregroundColor(Theme.muted)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 280)
+            }
+
+            KraftPrimaryButton(i18n.t("pro.cta"), systemImage: "sparkles", compact: true) {
+                showPro = true
+            }
+            .frame(maxWidth: 220)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(24)
     }
 
     // MARK: - Fertiger Plan
@@ -102,7 +143,61 @@ public struct AICoachWizardView: View {
             )
         } else if let nutrition = plan.nutrition {
             MealGuideView(nutrition: nutrition, suggestedName: plan.title)
+        } else {
+            mealGuideErrorCard
         }
+    }
+
+    private var mealGuideErrorCard: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 32))
+                .foregroundColor(Theme.orange)
+                .padding(.top, 12)
+
+            Text(i18n.t("meal.generateFailed"))
+                .font(KraftFont.inter(14, .semibold))
+                .foregroundColor(Theme.text)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+
+            Button(action: {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                if let input = session.lastInput {
+                    let nutr = AICoachService.shared.generateNutrition(input: input, language: i18n.lang)
+                    if var current = session.generatedPlan {
+                        current = TrainingPlan(
+                            title: current.title,
+                            summary: current.summary,
+                            weeks: current.weeks,
+                            days: current.days,
+                            nutrition: nutr,
+                            notes: current.notes,
+                            language: current.language
+                        )
+                        session.generatedPlan = current
+                    }
+                }
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.clockwise")
+                    Text(i18n.t("meal.regenerate"))
+                        .font(KraftFont.bebas(14)).tracking(1)
+                }
+                .foregroundColor(Theme.bg)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accent))
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 12)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(20)
+        .background(Theme.surface)
+        .cornerRadius(16)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
+        .padding(.horizontal, 20)
     }
 
     // MARK: - Assistent
@@ -120,48 +215,46 @@ public struct AICoachWizardView: View {
       die Übersicht fehlte ganz. Jetzt ist Schritt 4 Equipment + Aufwärmen +
       Ernährung und Schritt 5 die Übersicht — wie im Web.
     */
+    // MARK: - Ein Tipp statt fünf Schritten
+    /*
+      Aus dem Fragebogen ist eine Übersicht geworden.
+
+      Vorher lief der Nutzer vor JEDEM Plan durch fünf Schritte: Ziel,
+      Körper, Tage, Equipment, Übersicht. Beim zweiten Plan waren die
+      Antworten dieselben wie beim ersten, beim dritten auch — gefragt wurde
+      trotzdem jedes Mal. Und dieselben Fragen standen ein zweites Mal in der
+      Home-Challenge.
+
+      Die Antworten stehen jetzt im Profil (UserProfile). Hier steht nur
+      noch, was daraus folgt, und ein Knopf. Ändern führt an genau eine
+      Stelle: den Fragebogen, den auch die Einstellungen öffnen.
+    */
     private var wizard: some View {
         Group {
-            if session.isGenerating { aiLoading } else { wizardForm }
-        }
-    }
-
-    /// `.ai-loading` — pulsierender Würfel, Text, Hinweis.
-    private var aiLoading: some View {
-        VStack(spacing: 10) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 16).fill(Theme.accentDim)
-                RoundedRectangle(cornerRadius: 16).stroke(Theme.accent, lineWidth: 1)
-                Image(systemName: "die.face.5.fill")
-                    .font(.system(size: 26))
-                    .foregroundColor(Theme.accent)
+            if session.isGenerating {
+                AICoachGeneratingView()
+            } else if !profileStore.profile.isComplete {
+                ProfileGateView()
+            } else {
+                readyScreen
             }
-            .frame(width: 58, height: 58)
-            .scaleEffect(loadingPulse ? 1.08 : 1.0)
-            .opacity(loadingPulse ? 0.65 : 1.0)
-            .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: loadingPulse)
-            .onAppear { loadingPulse = true }
-            .onDisappear { loadingPulse = false }
-
-            Text(i18n.t("ai.loading"))
-                .font(KraftFont.bebas(19)).tracking(1)
-                .foregroundColor(Theme.text)
-            Text(i18n.t("ai.loadingHint"))
-                .font(KraftFont.inter(12.5))
-                .foregroundColor(Theme.muted)
         }
-        .multilineTextAlignment(.center)
-        .padding(.horizontal, 20)
-        .padding(.top, 60)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    private var wizardForm: some View {
+    private var readyScreen: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 18) {
-                wizardHeader
-                stepContent
-                wizardFooter
+            VStack(alignment: .leading, spacing: 16) {
+                AiIntroBox(i18n.t("ready.coachText"))
+
+                profileCard
+
+                if let error = session.errorMessage {
+                    errorCard(error)
+                }
+
+                KraftPrimaryButton(i18n.t("ready.generateCoach"), systemImage: "sparkles") {
+                    generatePlan()
+                }
             }
             .padding(20)
             .frame(maxWidth: 640)
@@ -169,344 +262,123 @@ public struct AICoachWizardView: View {
         }
     }
 
-    private var stepTitle: String {
-        switch session.currentStep {
-        case 1:  return i18n.t("ai.goal")
-        case 2:  return i18n.t("ai.biometricsTitle")
-        case 3:  return i18n.t("ai.days")
-        case 4:  return i18n.t("ai.equipment")
-        default: return i18n.t("ai.review")
-        }
-    }
-
-    private var wizardHeader: some View {
-        VStack(alignment: .leading, spacing: 10) {
+    private var profileCard: some View {
+        let p = profileStore.profile
+        return VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(i18n.t("ai.step", ["current": "\(session.currentStep)", "total": "5"]))
-                    .font(KraftFont.mono(11.5, .bold))
+                Text(i18n.t("ready.profileTitle"))
+                    .font(KraftFont.bebas(15)).tracking(1.5)
                     .foregroundColor(Theme.accent)
-                Spacer(minLength: 8)
-                Text(stepTitle)
-                    .font(KraftFont.bebas(15)).tracking(1.2)
-                    .textCase(.uppercase)
-                    .foregroundColor(Theme.muted)
-            }
-
-            // Die Segmente sind auch im Web anklickbar — zurück zu einem
-            // Schritt, den man schon ausgefüllt hat.
-            HStack(spacing: 6) {
-                ForEach(1...5, id: \.self) { s in
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(s <= session.currentStep ? Theme.accent : Theme.surface2)
-                        .frame(height: 5)
-                        .shadow(color: s <= session.currentStep ? Theme.accent.opacity(0.35) : .clear, radius: 5)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            guard s < session.currentStep else { return }
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            withAnimation(.easeOut(duration: 0.2)) { session.currentStep = s }
-                        }
-                }
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Theme.surface))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border, lineWidth: 1))
-    }
-
-    @ViewBuilder
-    private var stepContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            switch session.currentStep {
-            case 1: step1Goals
-            case 2: step2Profile
-            case 3: step3Schedule
-            case 4: step4Equipment
-            default: step5Review
-            }
-        }
-    }
-
-    private var wizardFooter: some View {
-        VStack(spacing: 0) {
-            Rectangle().fill(Theme.border).frame(height: 1)
-
-            HStack(spacing: 12) {
-                if session.currentStep > 1 {
-                    Button(action: {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        withAnimation(.easeOut(duration: 0.2)) { session.currentStep -= 1 }
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "arrow.left").font(.system(size: 11, weight: .bold))
-                            Text(i18n.t("ai.back")).font(KraftFont.inter(13, .semibold))
-                        }
-                        .foregroundColor(Theme.muted)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 12)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
+                Spacer()
+                Button(action: { showProfile = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "pencil").font(.system(size: 11, weight: .bold))
+                        Text(i18n.t("ready.edit")).font(KraftFont.inter(12.5, .semibold))
                     }
-                    .buttonStyle(.plain)
+                    .foregroundColor(Theme.accent)
                 }
-
-                // margin-left:auto — der Weiter-Knopf sitzt rechts, nicht auf
-                // halber Breite.
-                Spacer(minLength: 0)
-
-                if session.currentStep < 5 {
-                    Button(action: {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        withAnimation(.easeOut(duration: 0.2)) { session.currentStep += 1 }
-                    }) {
-                        HStack(spacing: 8) {
-                            Text(i18n.t("ai.next"))
-                                .font(KraftFont.bebas(14)).tracking(1)
-                            Image(systemName: "arrow.right").font(.system(size: 11, weight: .bold))
-                        }
-                        .foregroundColor(Theme.bg)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Theme.accent))
-                        .shadow(color: Theme.accent.opacity(0.2), radius: 8, y: 2)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.top, 14)
-        }
-        .padding(.top, 14)
-    }
-
-    // MARK: - Schritt 1: Ziel & Erfahrung
-
-    private var step1Goals: some View {
-        Group {
-            Text(i18n.t("ai.title")).kwStyle(.wizardHeadline)
-            AiIntroBox(i18n.t("ai.intro"))
-
-            SectionLabel(i18n.t("ai.goal"))
-            ChipGrid(count: TrainingGoal.allCases.count) {
-                ForEach(TrainingGoal.allCases, id: \.self) { g in
-                    WizardCardChip(g.localized(i18n.lang), isActive: session.goal == g) { session.goal = g }
-                }
+                .buttonStyle(.plain)
             }
 
-            SectionLabel(i18n.t("ai.experience"))
-            ChipGrid(count: ExperienceLevel.allCases.count) {
-                ForEach(ExperienceLevel.allCases, id: \.self) { e in
-                    WizardCardChip(e.localized(i18n.lang), isActive: session.experience == e) { session.experience = e }
-                }
+            VStack(alignment: .leading, spacing: 10) {
+                ReviewRow(i18n.t("ai.goal"), p.goal.localized(i18n.lang), highlight: true)
+                ReviewRow(i18n.t("ai.experience"), p.experience.localizedShort(i18n.lang))
+                ReviewRow(
+                    i18n.t("ai.biometricsTitle"),
+                    "\(p.age) · \(Int(p.heightCm)) cm · \(Int(p.weightKg)) kg"
+                )
+                ReviewRow(i18n.t("ai.days"), Weekdays.sorted(p.selectedDays).joined(separator: " "))
+                ReviewRow(i18n.t("ai.duration"), i18n.t("ai.minutes", ["n": "\(p.durationMinutes)"]))
+                ReviewRow(i18n.t("ai.weeks"), i18n.t("ai.weeksValue", ["n": "\(p.weeks)"]))
+                ReviewRow(i18n.t("gen.method"), i18n.method(p.method))
+                ReviewRow(i18n.t("ai.dietTitle"), p.diet.localized(i18n.lang), isLast: true)
             }
         }
+        .padding(16)
+        .kraftCard()
     }
 
-    // MARK: - Schritt 2: Körper & Physis
-
-    private var step2Profile: some View {
-        Group {
-            Text(i18n.t("ai.biometricsTitle")).kwStyle(.wizardHeadline)
-
-            SectionLabel(i18n.t("ai.sex"))
-            ChipGrid(count: 3) {
-                WizardCardChip(i18n.t("ai.sexMale"), isActive: session.sex == "male") { session.sex = "male" }
-                WizardCardChip(i18n.t("ai.sexFemale"), isActive: session.sex == "female") { session.sex = "female" }
-                WizardCardChip(i18n.t("ai.sexOther"), isActive: session.sex == "other") { session.sex = "other" }
+    private func errorCard(_ message: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 7) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 13, weight: .bold))
+                Text(message).font(KraftFont.inter(13, .semibold))
             }
+            .foregroundColor(Theme.orange)
 
-            // Alter, Größe und Gewicht stehen nebeneinander und lassen sich
-            // direkt eintippen statt nur über Plus/Minus.
-            HStack(alignment: .top, spacing: 9) {
-                EditableStepper(i18n.t("ai.age"), value: $session.age, range: 14...90)
-                EditableStepper(i18n.t("ai.height"), unit: "cm", value: heightBinding, range: 130...220)
-                EditableStepper(i18n.t("ai.weight"), unit: "kg", value: weightBinding, range: 40...160)
-            }
-
-            SectionLabel(i18n.t("ai.goalWeight"))
-            HStack(alignment: .top, spacing: 9) {
-                EditableStepper(i18n.t("ai.goalWeight"), unit: "kg",
-                                value: goalWeightBinding, range: 40...160)
-                // Was das Ziel bedeutet, steht daneben — sonst ist die Zahl
-                // nur eine zweite Gewichtsangabe.
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(goalWeightHint)
-                        .font(KraftFont.inter(12))
-                        .foregroundColor(Theme.muted)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if session.goalWeightKg != nil {
-                        Button(action: { session.goalWeightKg = nil }) {
-                            Text(i18n.t("ai.goalWeightClear"))
-                                .font(KraftFont.inter(11.5, .semibold))
-                                .foregroundColor(Theme.accent)
-                        }
-                        .buttonStyle(.plain)
-                    }
+            /*
+              Der Notausgang bleibt: Wenn der Dienst nicht antwortet, ist ein
+              gewürfelter Plan besser als kein Training. Er wird hier
+              angeboten und nicht still eingesetzt — bezahlt wird für den
+              KI-Plan, und was stattdessen kommt, muss der Nutzer wissen.
+            */
+            Button(action: { generatePlanLocally() }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "bolt.fill").font(.system(size: 13))
+                    Text(i18n.lang == "en" ? "Generate Offline Plan (Instant)" : "Offline-Plan sofort erstellen")
+                        .font(KraftFont.inter(12.5, .semibold))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 22)
+                .foregroundColor(Theme.accent)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 14)
+                .background(Theme.accentDim)
+                .cornerRadius(8)
             }
+            .buttonStyle(.plain)
         }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Theme.orange.opacity(0.1)))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.orange.opacity(0.5), lineWidth: 1))
     }
 
-    /*
-      Solange niemand daran gedreht hat, zeigt der Stepper das aktuelle
-      Gewicht — und `goalWeightKg` bleibt `nil`, also „kein Ziel“. Erst eine
-      Eingabe macht daraus ein Ziel.
-    */
-    private var goalWeightBinding: Binding<Int> {
-        Binding(
-            get: { Int((session.goalWeightKg ?? session.weightKg).rounded()) },
-            set: { session.goalWeightKg = Double($0) }
+    private var currentBiometrics: UserBiometrics {
+        UserBiometrics(
+            sex: session.sex,
+            age: session.age,
+            heightCm: session.heightCm,
+            weightKg: session.weightKg,
+            somatotype: session.somatotype,
+            activityLevel: session.activityLevel
         )
     }
 
-    private var goalWeightHint: String {
-        guard let goal = session.goalWeightKg else { return i18n.t("ai.goalWeightNone") }
-        let delta = goal - session.weightKg
-        if abs(delta) < 1 { return i18n.t("ai.goalWeightHold") }
-        let kg = String(format: "%.0f", abs(delta))
-        return i18n.t(delta > 0 ? "ai.goalWeightGain" : "ai.goalWeightLose", ["kg": kg])
-    }
 
-    private var heightBinding: Binding<Int> {
-        Binding(get: { Int(session.heightCm) }, set: { session.heightCm = Double($0) })
-    }
+    private func generatePlanLocally() {
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        session.isGenerating = true
+        session.errorMessage = nil
 
-    private var weightBinding: Binding<Int> {
-        Binding(get: { Int(session.weightKg) }, set: { session.weightKg = Double($0) })
-    }
+        let input = AICoachInput(
+            goal: session.goal,
+            experience: session.experience,
+            biometrics: currentBiometrics,
+            selectedDays: Array(session.selectedDays),
+            sessionDurationMinutes: session.durationMinutes,
+            weeks: session.weeks,
+            equipment: session.selectedEquipment.isEmpty
+                ? Set(EquipmentType.allCases) : session.selectedEquipment,
+            diet: session.diet,
+            includeWarmup: session.warmup != "no",
+            goalWeightKg: session.goalWeightKg,
+            method: session.method,
+            pushupLevel: session.pushupLevel,
+            pullupLevel: session.pullupLevel,
+            plankLevel: session.plankLevel,
+            trainingLocation: session.trainingLocation
+        )
 
-    // MARK: - Schritt 3: Tage, Dauer, Planlänge
-
-    private var step3Schedule: some View {
-        Group {
-            Text(i18n.t("ai.days")).kwStyle(.wizardHeadline)
-
-            FlowLayout(spacing: 8, lineSpacing: 8) {
-                ForEach(allWeekdays, id: \.self) { day in
-                    KraftChip(i18n.weekday(day), isActive: session.selectedDays.contains(day)) {
-                        if session.selectedDays.contains(day) {
-                            if session.selectedDays.count > 1 { session.selectedDays.remove(day) }
-                        } else {
-                            session.selectedDays.insert(day)
-                        }
-                    }
-                }
-            }
-
-            SectionLabel(i18n.t("ai.duration"))
-            ChipGrid(count: 4) {
-                // SESSION_MINUTES aus AiCoachTab.jsx
-                ForEach([30, 45, 60, 90], id: \.self) { m in
-                    WizardCardChip(i18n.t("ai.minutes", ["n": "\(m)"]), isActive: session.durationMinutes == m) {
-                        session.durationMinutes = m
-                    }
-                }
-            }
-
-            SectionLabel(i18n.t("ai.weeks"))
-            ChipGrid(count: 3) {
-                // WEEK_OPTIONS aus AiCoachTab.jsx ist [2, 4, 6]
-                ForEach([2, 4, 6], id: \.self) { w in
-                    WizardCardChip(i18n.t("ai.weeksValue", ["n": "\(w)"]), isActive: session.weeks == w) {
-                        session.weeks = w
-                    }
-                }
-            }
-
-            // Dieselben Methoden wie im Generator. Der KI-Coach hat bisher
-            // immer mit „Standard“ gerechnet, ohne danach zu fragen.
-            SectionLabel(i18n.t("gen.method"))
-            ChipGrid(count: TrainingMethod.allCases.count) {
-                ForEach(TrainingMethod.allCases) { m in
-                    WizardCardChip(i18n.method(m), isActive: session.method == m) {
-                        session.method = m
-                    }
-                }
-            }
+        let plan = AICoachService.shared.generatePlan(input: input, language: i18n.lang)
+        if !storeKit.isProUnlocked {
+            adManager.consumeAIPlanReward()
         }
-    }
-
-    // MARK: - Schritt 4: Equipment, Aufwärmen, Ernährung
-
-    private var step4Equipment: some View {
-        Group {
-            Text(i18n.t("ai.equipment")).kwStyle(.wizardHeadline)
-
-            ChipGrid(count: EquipmentType.allCases.count + 1) {
-                let allEq = EquipmentType.allCases
-                let isAllSelected = session.selectedEquipment.isEmpty || session.selectedEquipment.count == allEq.count
-                WizardCardChip(i18n.t("ai.equipmentAll"), isActive: isAllSelected) {
-                    session.selectedEquipment = isAllSelected ? [.bodyweight] : Set(allEq)
-                }
-                ForEach(allEq, id: \.self) { eq in
-                    WizardCardChip(
-                        i18n.equipment(eq),
-                        isActive: !isAllSelected && session.selectedEquipment.contains(eq)
-                    ) {
-                        if session.selectedEquipment.contains(eq) {
-                            session.selectedEquipment.remove(eq)
-                        } else {
-                            session.selectedEquipment.insert(eq)
-                        }
-                    }
-                }
-            }
-
-            SectionLabel(i18n.t("ai.warmupTitle"))
-            ChipGrid(count: 3) {
-                ForEach(["auto", "yes", "no"], id: \.self) { w in
-                    WizardCardChip(
-                        i18n.t("ai.warmup.\(w)"),
-                        subtitle: i18n.t("ai.warmupHint.\(w)"),
-                        isActive: session.warmup == w
-                    ) { session.warmup = w }
-                }
-            }
-
-            SectionLabel(i18n.t("ai.dietTitle"))
-            ChipGrid(count: DietType.allCases.count) {
-                ForEach(DietType.allCases, id: \.self) { d in
-                    WizardCardChip(d.localized(i18n.lang), isActive: session.diet == d) { session.diet = d }
-                }
-            }
-        }
-    }
-
-    // MARK: - Schritt 5: Übersicht
-
-    private var step5Review: some View {
-        Group {
-            Text(i18n.t("ai.review")).kwStyle(.wizardHeadline)
-            AiIntroBox(i18n.t("ai.reviewSummary"))
-
-            VStack(alignment: .leading, spacing: 12) {
-                ReviewRow(i18n.t("ai.goal"), session.goal.localized(i18n.lang), highlight: true)
-                ReviewRow(i18n.t("ai.experience"), session.experience.localized(i18n.lang))
-                ReviewRow(i18n.t("ai.sex"), sexLabel)
-                ReviewRow(i18n.t("ai.age"), "\(session.age) \(i18n.t("ai.years"))")
-                ReviewRow(i18n.t("ai.height"), "\(Int(session.heightCm)) cm")
-                ReviewRow(i18n.t("ai.weight"), "\(Int(session.weightKg)) kg")
-                ReviewRow(i18n.t("ai.goalWeight"), session.goalWeightKg.map {
-                    "\(Int($0.rounded())) kg"
-                } ?? i18n.t("ai.goalWeightNone"))
-                ReviewRow(i18n.t("ai.days"), Weekdays.sorted(session.selectedDays).map { i18n.weekday($0) }.joined(separator: ", "))
-                ReviewRow(i18n.t("ai.duration"), i18n.t("ai.minutes", ["n": "\(session.durationMinutes)"]))
-                ReviewRow(i18n.t("ai.weeks"), i18n.t("ai.weeksValue", ["n": "\(session.weeks)"]))
-                ReviewRow(i18n.t("gen.method"), i18n.method(session.method))
-                ReviewRow(i18n.t("ai.dietTitle"), session.diet.localized(i18n.lang), isLast: true)
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 16)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Theme.surface))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
-            .shadow(color: Color.black.opacity(0.25), radius: 10, y: 4)
-
-            KraftPrimaryButton(i18n.t("ai.submit"), systemImage: "sparkles") {
-                generatePlan()
-            }
-            .padding(.top, 2)
-        }
+        NotificationManager.shared.scheduleWorkoutDayReminders(
+            days: Array(session.selectedDays),
+            language: i18n.lang,
+            trainedDates: WorkoutHistoryStore.shared.trainedDates()
+        )
+        session.apply(plan: plan, input: input, language: i18n.lang)
+        session.isGenerating = false
     }
 
     private var sexLabel: String {
@@ -518,12 +390,17 @@ public struct AICoachWizardView: View {
     }
 
     /*
-      Erst die API, dann lokal.
+      Nur die API. Keinen lokalen Ersatzplan.
 
-      Der Server hält den OpenRouter-Schlüssel und liefert die besseren Pläne.
-      Er braucht aber ein Supabase-Token — und solange die App keine Anmeldung
-      hat, gibt es keins. Statt dann eine Fehlermeldung zu zeigen, erzeugt die
-      App den Plan selbst: lieber ein einfacherer Plan als gar keiner.
+      Vorher sprang bei jedem Fehler `AICoachService` ein und baute den Plan
+      auf dem Gerät. Das sah aus wie ein Erfolg, war aber keiner: Der Nutzer
+      bekam wortlos einen schwächeren, nicht-KI-Plan — die Fehlermeldung
+      daneben hat nie jemand angezeigt (`session.errorMessage` wurde gesetzt
+      und nirgends gelesen). Für eine Pro-Funktion ist das doppelt falsch:
+      bezahlt wird für den KI-Plan, geliefert wurde ein Würfelplan.
+
+      Jetzt gilt: klappt es nicht, sagt die App das — und der Nutzer behält
+      seine Eingaben und kann es erneut versuchen.
     */
     private func generatePlan() {
         session.isGenerating = true
@@ -533,8 +410,7 @@ public struct AICoachWizardView: View {
         let input = AICoachInput(
             goal: session.goal,
             experience: session.experience,
-            biometrics: UserBiometrics(sex: session.sex, age: session.age,
-                                       heightCm: session.heightCm, weightKg: session.weightKg),
+            biometrics: currentBiometrics,
             selectedDays: Array(session.selectedDays),
             sessionDurationMinutes: session.durationMinutes,
             weeks: session.weeks,
@@ -543,7 +419,11 @@ public struct AICoachWizardView: View {
             diet: session.diet,
             includeWarmup: session.warmup != "no",
             goalWeightKg: session.goalWeightKg,
-            method: session.method
+            method: session.method,
+            pushupLevel: session.pushupLevel,
+            pullupLevel: session.pullupLevel,
+            plankLevel: session.plankLevel,
+            trainingLocation: session.trainingLocation
         )
 
         Task {
@@ -564,30 +444,226 @@ public struct AICoachWizardView: View {
                 limitations: "",
                 warmup: session.warmup,
                 diet: session.diet.rawValue,
-                language: i18n.lang
+                excludedFoods: [],
+                allergies: [],
+                intolerances: [],
+                dietPreferences: "",
+                language: i18n.lang,
+                somatotype: session.somatotype.rawValue,
+                activityLevel: session.activityLevel.rawValue,
+                pushupLevel: session.pushupLevel.rawValue,
+                pullupLevel: session.pullupLevel.rawValue,
+                plankLevel: session.plankLevel.rawValue,
+                trainingLocation: session.trainingLocation.rawValue,
+                bmi: currentBiometrics.bmi,
+                bmr: currentBiometrics.bmr,
+                tdee: currentBiometrics.tdee
             )
 
-            do {
-                let raw = try await KraftAPI.shared.generatePlan(request)
-                if let plan = PlanMapper.trainingPlan(from: raw, language: i18n.lang) {
-                    session.apply(plan: plan, input: input, language: i18n.lang)
-                    session.isGenerating = false
-                    return
+            var attempts = 0
+            let maxAttempts = 3
+            var succeeded = false
+
+            while attempts < maxAttempts && !succeeded {
+                attempts += 1
+                do {
+                    let raw = try await KraftAPI.shared.generatePlan(request)
+                    if let plan = PlanMapper.trainingPlan(from: raw, language: i18n.lang, input: input) {
+                        if !storeKit.isProUnlocked {
+                            adManager.consumeAIPlanReward()
+                        }
+                        NotificationManager.shared.scheduleWorkoutDayReminders(
+                            days: Array(session.selectedDays),
+                            language: i18n.lang,
+                            trainedDates: WorkoutHistoryStore.shared.trainedDates()
+                        )
+                        session.apply(plan: plan, input: input, language: i18n.lang)
+                        succeeded = true
+                        session.isGenerating = false
+                        return
+                    }
+                } catch KraftAPI.APIError.unauthorized {
+                    session.errorMessage = i18n.t("ai.errorSignedOut")
+                    break
+                } catch KraftAPI.APIError.rateLimited {
+                    if attempts < maxAttempts {
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        continue
+                    }
+                    session.errorMessage = i18n.t("ai.errorLimit")
+                } catch {
+                    if attempts < maxAttempts {
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        continue
+                    }
+                    session.errorMessage = i18n.t("ai.errorOffline")
                 }
-                session.errorMessage = i18n.t("ai.fallbackReason", ["reason": i18n.t("ai.badResponse")])
-            } catch KraftAPI.APIError.unauthorized {
-                // Erwartet, solange es keine Anmeldung gibt — kein Fehler für den Nutzer.
-                session.errorMessage = i18n.t("ai.localFallback")
-            } catch KraftAPI.APIError.rateLimited {
-                session.errorMessage = i18n.t("ai.limitReached")
-            } catch {
-                session.errorMessage = i18n.t("ai.fallbackReason",
-                                              ["reason": error.localizedDescription])
             }
 
-            let local = AICoachService.shared.generatePlan(input: input, language: i18n.lang)
-            session.apply(plan: local, input: input, language: i18n.lang)
+            if !succeeded && session.errorMessage == nil {
+                session.errorMessage = i18n.t("ai.errorGarbled")
+            }
             session.isGenerating = false
+        }
+    }
+}
+
+// MARK: - KI-Coach Ladebildschirm mit Live-Facts & Artwork
+
+struct AICoachGeneratingView: View {
+    @ObservedObject private var i18n = I18n.shared
+    @State private var currentFactIndex = 0
+    @State private var progressPercent: Double = 0.05
+    @State private var timerSeconds: Double = 0.0
+    @State private var timer: Timer?
+
+    private let facts = FitnessFactsProvider.facts
+
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 16) {
+                // Titel
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(Theme.accent)
+                    Text("DEIN PERSÖNLICHER PLAN WIRD ERSTELLT …")
+                        .font(KraftFont.bebas(17)).tracking(1.2)
+                        .foregroundColor(Theme.text)
+                }
+                .padding(.top, 12)
+
+                /*
+                  Die Würfel statt des Standbilds. Kein Rahmen, keine Kachel,
+                  kein Schatten: Die Animation liegt auf dem App-Hintergrund,
+                  sonst sieht man ein Kästchen mit einer Animation darin
+                  statt einer Animation in der App.
+
+                  Die Tipps darunter bleiben — sie sind der Grund, warum die
+                  Wartezeit auszuhalten ist.
+                */
+                DiceLoaderView(size: 190)
+                    .padding(.vertical, 4)
+
+                // Animierter Ladebalken & Stufen-Text
+                VStack(spacing: 6) {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Theme.surface2)
+                                .frame(height: 6)
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Theme.accent, Theme.accent.opacity(0.7)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: max(14, geo.size.width * CGFloat(progressPercent)), height: 6)
+                                .animation(.linear(duration: 0.2), value: progressPercent)
+                        }
+                    }
+                    .frame(height: 6)
+                    .padding(.horizontal, 8)
+
+                    Text(currentStageText)
+                        .font(KraftFont.inter(11.5, .medium))
+                        .foregroundColor(Theme.accent)
+                        .transition(.opacity)
+                }
+                .padding(.horizontal, 16)
+
+                // Rotierende Fitness-Fact-Karte (alle 4 Sekunden neuer Fakt)
+                let fact = facts[currentFactIndex % facts.count]
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "lightbulb.fill")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(Theme.orange)
+                        Text(i18n.lang == "en" ? "DID YOU KNOW?" : "WUSSTEST DU SCHON?")
+                            .font(KraftFont.bebas(14)).tracking(1.2)
+                            .foregroundColor(Theme.orange)
+
+                        Spacer()
+
+                        Text(fact.category)
+                            .font(KraftFont.mono(9.5, .bold))
+                            .foregroundColor(Theme.muted)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Theme.surface2)
+                            .cornerRadius(4)
+                    }
+
+                    Text(fact.title(for: i18n.lang))
+                        .font(KraftFont.inter(13.5, .bold))
+                        .foregroundColor(Theme.text)
+
+                    Text(fact.fact(for: i18n.lang))
+                        .font(KraftFont.inter(12.5))
+                        .foregroundColor(Theme.muted)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    HStack {
+                        Spacer()
+                        Text("Tipp \(fact.id) von \(facts.count)")
+                            .font(KraftFont.mono(9.5))
+                            .foregroundColor(Theme.muted)
+                    }
+                }
+                .padding(14)
+                .background(RoundedRectangle(cornerRadius: 14).fill(Theme.surface))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.accent.opacity(0.35), lineWidth: 1))
+                .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 3)
+                .padding(.horizontal, 16)
+                .id(currentFactIndex)
+                .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.96)), removal: .opacity))
+            }
+            .padding(.bottom, 24)
+            .frame(maxWidth: 540)
+            .frame(maxWidth: .infinity)
+        }
+        .onAppear {
+            startTimer()
+        }
+        .onDisappear {
+            timer?.invalidate()
+            timer = nil
+        }
+    }
+
+    private var currentStageText: String {
+        if timerSeconds < 4 {
+            return i18n.lang == "en" ? "1. Analyzing biometrics & goals..." : "1. Analysiere Biometrie & Trainingsziele..."
+        } else if timerSeconds < 9 {
+            return i18n.lang == "en" ? "2. Selecting optimal exercises & splits..." : "2. Wähle optimale Übungsprogression & Splits..."
+        } else if timerSeconds < 15 {
+            return i18n.lang == "en" ? "3. Calculating macros & 7-day meal plan..." : "3. Berechne Makronährstoffe & Ernährungsplan..."
+        } else if timerSeconds < 22 {
+            return i18n.lang == "en" ? "4. Structuring training cycles & sets..." : "4. Strukturiere Trainingszyklen & Satzschemata..."
+        } else {
+            return i18n.lang == "en" ? "5. Finalizing your AI smart plan..." : "5. Finalisiere deinen KI-Plan..."
+        }
+    }
+
+    private func startTimer() {
+        timer?.invalidate()
+        timerSeconds = 0.0
+        progressPercent = 0.05
+        currentFactIndex = Int.random(in: 0..<facts.count)
+
+        timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
+            timerSeconds += 0.2
+            let targetProgress = min(0.96, 0.05 + (1.0 - exp(-timerSeconds / 10.0)) * 0.91)
+            progressPercent = targetProgress
+
+            if Int(timerSeconds * 10) % 40 == 0 {
+                withAnimation(.easeInOut(duration: 0.4)) {
+                    currentFactIndex = (currentFactIndex + 1) % facts.count
+                }
+            }
         }
     }
 }

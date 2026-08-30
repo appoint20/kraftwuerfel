@@ -423,327 +423,151 @@
 <div class="wrap">
 
   <header class="masthead">
-    <span class="eyebrow">Kraftwürfel · Technischer Bericht</span>
+    <span class="eyebrow">Kraftwürfel · Technischer Bericht · Update 6</span>
     <h1>Weg in den App&nbsp;Store</h1>
     <p class="lede">
-      Die drei gemeldeten Punkte sind behoben und im Build nachgewiesen. Der Grund für zwei
-      davon war derselbe: Das Projekt hatte genau ein Ziel. Sechs weitere Punkte stehen noch
-      zwischen dem heutigen Stand und einer Einreichung — der schwerste ist, dass niemand Pro
-      kaufen kann.
+      Die Ablehnungsrisiken aus Update&nbsp;5 sind behoben, dazu zwei Betriebsrisiken auf dem Server,
+      die vorher nur als Warnung im Log standen. Neu sind: <strong>Pläne lassen sich tageweise
+      bearbeiten</strong> statt nur komplett neu zu erzeugen, es gibt eine <strong>gerechnete
+      Bewertung</strong> jedes Plans, und man kann <strong>eigene Pläne bauen</strong>. Außerdem hat
+      die Kostenanalyse einen teuren Fehler gefunden: Das Modell schrieb bei jedem Aufruf einen
+      kompletten Ernährungsplan, den der Server unmittelbar danach wegwarf.
     </p>
     <div class="meta">
-      <span>25.08.2026</span>
-      <span>Xcode 16.1</span>
-      <span>iOS 16.2 · watchOS 10.0</span>
-      <span>9.211 Zeilen Swift</span>
+      <span>29.08.2026 · Update 6</span>
+      <span>iOS-App + kraftwuerfel-api</span>
+      <span>Xcode 16.1 · .NET 10</span>
+      <span>xcodebuild: BUILD SUCCEEDED</span>
+      <span>206 iOS-Tests · 111 API-Tests · 0 Fehler</span>
     </div>
   </header>
 
   <div class="tiles">
     <div class="tile">
-      <div class="k pos">1&nbsp;<span class="sub">→</span>&nbsp;3</div>
-      <div class="l">Ziele im Projekt</div>
+      <div class="k pos">317</div>
+      <div class="l">Tests grün (206 iOS + 111 API), 0 Fehler</div>
     </div>
     <div class="tile">
-      <div class="k">174</div>
-      <div class="l">Web-Dateien entfernt</div>
+      <div class="k neg">2</div>
+      <div class="l">Punkte vor dem Upload — beide in App Store Connect</div>
     </div>
     <div class="tile">
-      <div class="k pos">3<span class="sub">/3</span></div>
-      <div class="l">Gemeldete Punkte behoben</div>
+      <div class="k">~60<span class="sub">%</span></div>
+      <div class="l">weniger Ausgabe-Token je KI-Plan</div>
     </div>
     <div class="tile">
-      <div class="k neg">6</div>
-      <div class="l">Blocker offen</div>
-    </div>
-    <div class="tile">
-      <div class="k">~12<span class="sub"> Tage</span></div>
-      <div class="l">Bis einreichungsbereit</div>
+      <div class="k">0</div>
+      <div class="l">offene Ablehnungsrisiken im Code</div>
     </div>
   </div>
 
   <!-- ============================================================ -->
-  <section>
-    <span class="eyebrow">Ausgangslage</span>
-    <h2>Was hier eigentlich lag</h2>
+  <section id="urteil">
+    <span class="eyebrow">Kurzfassung</span>
+    <h2>Was den Go-Live noch aufhält</h2>
+
     <div class="prose">
       <p>
-        Das Repository enthielt zwei Apps, die sich gegenseitig im Weg standen: eine React-App
-        mit Vite, Supabase und Capacitor — und darin verschachtelt, unter
-        <code>ios/App/App/SwiftUI/</code>, die eigentliche SwiftUI-App. Das Xcode-Projekt war
-        weiterhin das Capacitor-Gerüst von 2018: <code>objectVersion&nbsp;48</code>, CocoaPods
-        für sechs Capacitor-Plugins, die keine einzige Swift-Datei benutzte, ein Aufbau, der nur
-        über <code>App.xcworkspace</code> baute, ein <code>AppDelegate</code>, das auf eine
-        leere Klasse zusammengeschrumpft war, dazu <code>Main.storyboard</code>,
-        <code>config.xml</code> und ein komplettes kompiliertes Web-Bundle, das bei jedem Build
-        mit in die <code>.app</code> kopiert wurde.
-      </p>
-      <p>
-        Alles davon ist raus. Die SwiftUI-App liegt jetzt flach im Stammverzeichnis, mit drei
-        Zielen statt einem.
+        Im Code nichts mehr. Die beiden verbliebenen Punkte sind Kontoarbeit in App Store Connect und
+        lassen sich nicht aus Xcode heraus erledigen.
       </p>
     </div>
 
-    <div class="compare">
+    <div class="stack" style="margin-top:26px">
       <div class="card">
-        <div class="card-head"><h3>Vorher</h3><span class="badge critical">Entfernt</span></div>
-<pre class="tree"><span class="dim">kraft/</span>
-├── <span class="hit">src/</span>            <span class="dim">React + Vite</span>
-├── <span class="hit">dist/  public/</span>  <span class="dim">Web-Build</span>
-├── <span class="hit">android/</span>        <span class="dim">Capacitor</span>
-├── <span class="hit">supabase/</span>       <span class="dim">Edge Functions</span>
-├── <span class="hit">docker/</span>  <span class="hit">Dockerfile</span>
-├── <span class="hit">node_modules/</span>   <span class="dim">220 MB</span>
-└── ios/App/
-    ├── <span class="hit">Podfile  Pods/</span>
-    ├── <span class="hit">App.xcworkspace</span>
-    └── App/
-        ├── <span class="hit">AppDelegate.swift</span>
-        ├── <span class="hit">config.xml</span>
-        ├── <span class="hit">public/</span>   <span class="dim">Web im Bündel</span>
-        └── <span class="dim">SwiftUI/</span>  <span class="dim">← die App</span></pre>
+        <div class="card-head">
+          <h3>Abonnements anlegen und <em>mit</em> dem Build einreichen</h3>
+          <span class="badge critical">offen</span>
+        </div>
+        <dl class="what">
+          <dt>Was</dt>
+          <dd>
+            <code>app.kraftwuerfel.pro.monthly</code> und <code>app.kraftwuerfel.pro.yearly</code>.
+            Fehlen sie, liefert <code>Product.products(for:)</code> eine leere Liste und die Bezahlseite
+            ist leer.
+          </dd>
+          <dt>Folge</dt>
+          <dd>
+            Eine Abo-App, in der sich nichts kaufen lässt, ist Richtlinie&nbsp;2.1 — und das ist der
+            erste Klick des Prüfers.
+          </dd>
+          <dt>Zu tun</dt>
+          <dd>
+            Anlegen, bepreisen, DE/EN lokalisieren, Screenshot der Bezahlseite hinterlegen. Abos werden
+            zusammen mit dem Build geprüft, nicht danach.
+          </dd>
+        </dl>
       </div>
 
       <div class="card">
-        <div class="card-head"><h3>Jetzt</h3><span class="badge done">Baut</span></div>
-<pre class="tree"><span class="dim">kraft/</span>
-├── <span class="new">Kraftwuerfel.xcodeproj</span>
-├── <span class="new">Kraftwuerfel/</span>          <span class="dim">iOS-App</span>
-│   ├── Models/  Services/
-│   ├── Theme/   Views/
-│   ├── <span class="new">Shared/</span>            <span class="dim">App + Widget</span>
-│   └── Fonts/  Assets.xcassets
-├── <span class="new">KraftwuerfelWidget/</span>    <span class="dim">Live Activity</span>
-├── <span class="new">KraftwuerfelWatch/</span>     <span class="dim">watchOS</span>
-├── Tools/                <span class="dim">pbxproj-Generator</span>
-└── docs/</pre>
+        <div class="card-head">
+          <h3>App-Datenschutzangaben deckungsgleich zum Manifest</h3>
+          <span class="badge critical">offen</span>
+        </div>
+        <dl class="what">
+          <dt>Was</dt>
+          <dd>
+            <code>PrivacyInfo.xcprivacy</code> deklariert Gesundheit, Fitness, E-Mail und Name — alle
+            verknüpft, keiner Tracking.
+          </dd>
+          <dt>Folge</dt>
+          <dd>Weicht der Store-Eintrag ab, scheitert der Upload im automatischen Abgleich.</dd>
+          <dt>Zu tun</dt>
+          <dd>
+            Genau diese vier Typen eintragen, Zweck „App-Funktionalität“, Tracking überall aus. Nichts
+            zusätzlich angeben.
+          </dd>
+        </dl>
       </div>
     </div>
 
     <div class="note">
-      <span class="eyebrow">Zum Backend</span>
+      <span class="eyebrow">Dazu empfohlen, aber kein Blocker</span>
       <p>
-        <code>supabase/</code> ist mitentfernt, wie abgestimmt — die Aufrufe laufen über den
-        eigenen Dienst <code>kraftwuerfel-api.onrender.com</code>, der in einem anderen
-        Repository liegt. Alles Gelöschte steckt weiterhin in der Git-Historie und ist mit
-        <code>git checkout HEAD~1 -- &lt;pfad&gt;</code> wiederherstellbar. Der Stand ist noch
-        <strong>nicht committet</strong>, damit die Löschung vor dem Festschreiben prüfbar bleibt.
+        Ein bestätigtes <strong>Testkonto</strong> in den Prüfhinweisen (KI-Coach und Challenge
+        brauchen eine Anmeldung), und für den Prüfzeitraum der <strong>bezahlte Render-Plan</strong> —
+        auf dem freien schläft der Dienst ein, und der erste Aufruf danach hat im Test knapp
+        14&nbsp;Sekunden gebraucht.
       </p>
     </div>
   </section>
 
   <!-- ============================================================ -->
-  <section>
-    <span class="eyebrow">Die drei gemeldeten Punkte</span>
-    <h2>Behoben</h2>
-
-    <div class="stack-lg" style="margin-top:26px">
-
-      <article class="card">
-        <div class="card-head">
-          <h3>Sperrbildschirm-Karte</h3>
-          <span class="badge done">Behoben</span>
-          <span class="badge info">im Build nachgewiesen</span>
-        </div>
-        <dl class="what">
-          <dt>Befund</dt>
-          <dd>
-            Bestätigt, und zusätzlich eine zweite Ursache: Es fehlte nicht nur die
-            Widget-Erweiterung, sondern <code>WorkoutActivityAttributes</code> lag ausschließlich
-            im App-Ziel. ActivityKit gleicht Attribute über den Typnamen ab — selbst mit
-            Erweiterung hätte eine Kopie dort beim ersten Feldwechsel auseinandergelaufen.
-          </dd>
-          <dt>Geändert</dt>
-          <dd>
-            Neues Ziel <code>KraftwuerfelWidget</code> mit <code>ActivityConfiguration</code>,
-            Sperrbildschirm-Karte und Dynamic Island in allen drei Zuständen. Der Attributtyp
-            liegt in <code>Kraftwuerfel/Shared/</code> und wird in beide Ziele übersetzt.
-            <code>ActivityKitManager</code> arbeitet jetzt mit <code>ActivityContent</code>
-            statt der veralteten <code>contentState</code>-API, hält den Zustand fest und sendet
-            Teil-Updates, statt bei jedem Aufruf einen frischen Zustand zu bauen — vorher hat
-            <code>updateRestTimer</code> stillschweigend alle Felder außer Pause und Satzzahl auf
-            Vorgabewerte zurückgesetzt.
-          </dd>
-          <dt>Nachweis</dt>
-          <dd class="mono">
-            KraftwuerfelWidget.appex in App.app/PlugIns/ · NSExtensionPointIdentifier =
-            com.apple.widgetkit-extension · Attributtyp in beiden Binaries · ActivityConfiguration
-            nur in der Erweiterung
-          </dd>
-        </dl>
-      </article>
-
-      <article class="card">
-        <div class="card-head">
-          <h3>Apple Watch</h3>
-          <span class="badge done">Behoben</span>
-          <span class="badge warn">Gerätetest offen</span>
-        </div>
-        <dl class="what">
-          <dt>Befund</dt>
-          <dd>
-            Bestätigt. <code>WatchContentView.swift</code> stand hinter
-            <code>#if os(watchOS) || canImport(WatchKit)</code> — und WatchKit lässt sich auch auf
-            iOS importieren, die Bedingung war also wahr. Die Ansicht wurde in die iPhone-App
-            übersetzt, wo sie niemand sehen konnte. Zwei weitere Fehler hätten auch mit Uhr
-            zugeschlagen: Jedes Senden stand hinter <code>guard isReachable</code> ohne Rückfall,
-            und die Pause ging als <em>Restsekunden</em> raus, obwohl Nachrichten nur bei
-            Zustandswechseln fließen — der Zähler auf der Uhr hätte stillgestanden.
-          </dd>
-          <dt>Geändert</dt>
-          <dd>
-            Neues Ziel <code>KraftwuerfelWatch</code> (watchOS 10, Einzel-Ziel-App), eingebettet
-            in die iPhone-App. <code>WatchWorkoutManager</code> führt eine echte
-            <code>HKWorkoutSession</code> mit <code>traditionalStrengthTraining</code> — das ist
-            genau der „Krafttraining“-Eintrag, den die Fitness-App anzeigt, solange die Einheit
-            läuft. <code>WatchSyncManager</code> läuft jetzt in beiden Zielen, sendet Zustand über
-            den Anwendungskontext (wird auch zugestellt, wenn die Gegenstelle schläft) und die
-            Pause als <em>Zeitpunkt</em>, aus dem die Uhr selbst herunterzählt.
-          </dd>
-          <dt>Nachweis</dt>
-          <dd class="mono">
-            watchOS-Quellen typgeprüft gegen WatchOS11.1.sdk, arm64_32-apple-watchos10.0 — 0
-            Fehler, 0 Warnungen. Vollständiger Build steht aus, siehe unten.
-          </dd>
-        </dl>
-      </article>
-
-      <article class="card">
-        <div class="card-head">
-          <h3>Erfundene Gesundheitsdaten</h3>
-          <span class="badge done">Behoben</span>
-          <span class="badge info">Ablehnungsrisiko entfernt</span>
-        </div>
-        <dl class="what">
-          <dt>Befund</dt>
-          <dd>
-            Schlimmer als gemeldet. Es liefen <em>zwei</em> Simulationen nebeneinander.
-            <code>HealthKitManager.startWorkoutSession()</code> — Start bei 125&nbsp;bpm plus
-            <code>Double.random(in: -2...2)</code> — wurde nie aufgerufen und war toter Code, aber
-            die Klasse forderte trotzdem <strong>Schreibrechte</strong> für aktive Energie und
-            Workouts an, ohne je etwas zu schreiben. Angezeigt hat tatsächlich
-            <code>LiveWorkoutView.simulateTick()</code>. Ungenutzte Health-Schreibrechte sind für
-            sich schon ein Prüfbefund.
-          </dd>
-          <dt>Geändert</dt>
-          <dd>
-            Die Simulation im Manager ist weg; <code>HealthKitManager</code> liest nur noch, und
-            nur die Herzfrequenz. Das iPhone schreibt gar nichts mehr — deshalb ist
-            <code>NSHealthUpdateUsageDescription</code> aus der iPhone-Info.plist entfernt.
-            Geschrieben wird auf der Uhr, wo gemessen wird. In der Live-Session haben echte Werte
-            Vorrang; liegt keiner vor, rechnet das Modell weiter und das Etikett steht sichtbar auf
-            „geschätzt“ — auf der Karte und auf dem Sperrbildschirm. Sobald die Uhr misst,
-            wechselt es auf „Apple Watch“.
-          </dd>
-          <dt>Nebenbei</dt>
-          <dd>
-            <code>UIBackgroundModes</code> enthielt <code>workout-processing</code>. Das ist ein
-            watchOS-Modus und heißt dort <code>WKBackgroundModes</code> — auf iOS war er
-            wirkungslos. Er steht jetzt im Uhren-Ziel. Und die HealthKit-Berechtigung
-            (<code>com.apple.developer.healthkit</code>) fehlte komplett: Ohne sie hätte HealthKit
-            auf dem Gerät ohnehin nichts geliefert, der Info.plist-Text allein reicht nicht.
-          </dd>
-        </dl>
-      </article>
-    </div>
-  </section>
-
-  <!-- ============================================================ -->
-  <section>
-    <span class="eyebrow">Reverse Engineering</span>
-    <h2>Architektur-Befunde</h2>
-    <p class="prose">
-      Nach Auswirkung sortiert. Die ersten vier sind mit dem Umbau erledigt; der Rest ist
-      benannt, aber nicht angefasst — das lag außerhalb des Auftrags.
-    </p>
+  <section id="serverfixes">
+    <span class="eyebrow">In diesem Update behoben</span>
+    <h2>Zwei Betriebsrisiken auf dem Server</h2>
 
     <ol class="findings">
       <li>
         <div>
-          <h3>Ein Ziel für drei Plattformen <span class="badge done">erledigt</span></h3>
+          <h3>Ohne <code>JWT_SECRET</code> lief der Dienst offen <span class="badge critical">war kritisch</span></h3>
           <p>
-            Die gemeinsame Ursache von zwei der drei gemeldeten Punkte. Eine Live Activity und
-            eine Uhren-App sind keine Codefrage, sondern eine Projektfrage: Beide brauchen ein
-            eigenes Bundle. Ohne das nimmt das System die Aufrufe entgegen und tut nichts —
-            ohne Fehlermeldung, was die Fehlersuche so teuer gemacht hat.
+            <code>AppConfig.RequireAuth</code> ist <code>false</code>, sobald der Schlüssel fehlt — dann
+            gab <code>RequireUser</code> für <em>jede</em> Anfrage <code>"local-dev"</code> zurück.
+            <code>/generate-plan</code> und <code>/challenge-plan</code> hätten damit für jeden
+            offengestanden, auf unsere OpenRouter-Rechnung. Verhindert hat das nichts: Es stand nur eine
+            Warnung im Log, und gemerkt hätte man es an der Abrechnung.
+          </p>
+          <p>
+            In Produktion bricht der Start jetzt ab. Lokal bleibt es eine Warnung, damit Arbeiten ohne
+            Schlüssel möglich ist.
           </p>
         </div>
       </li>
       <li>
         <div>
-          <h3>Capacitor-Gerüst als Fundament <span class="badge done">erledigt</span></h3>
+          <h3>Das Tageslimit zählte pro Instanz und pro Neustart <span class="badge warn">war teuer</span></h3>
           <p>
-            Eine reine SwiftUI-App baute über CocoaPods und ein Workspace, weil sechs
-            Capacitor-Plugins verlinkt waren, die kein Swift-Code je aufrief. Jeder Build kopierte
-            zusätzlich ein Web-Bundle ins Programmpaket.
+            <code>RateLimiter</code> hielt seinen Zähler im Arbeitsspeicher. Auf einer Instanz stimmte
+            das; bei zwei zählte jede für sich und das Limit war faktisch doppelt so hoch, nach jedem
+            Neustart stand es wieder auf null.
           </p>
-        </div>
-      </li>
-      <li>
-        <div>
-          <h3>Handgepflegte Projektdatei mit erfundenen IDs <span class="badge done">erledigt</span></h3>
           <p>
-            Objekt-IDs wie <code>504EC8001FED796500000001</code> sahen aus wie Xcode-IDs, waren
-            aber durchgezählt. Eine Datei einem Ziel zuzuordnen hieß, sechs Stellen konsistent zu
-            editieren — genau die Mechanik, durch die <code>WatchContentView.swift</code> in den
-            Sources des iPhone-Ziels landete. Ersetzt durch
-            <code>Tools/generate_xcodeproj.py</code>: Die Zielstruktur steht einmal als Daten, die
-            IDs kommen deterministisch aus dem Pfad.
-          </p>
-        </div>
-      </li>
-      <li>
-        <div>
-          <h3>Fehler werden verschluckt <span class="badge warn">teilweise</span></h3>
-          <p>
-            <code>refreshFromAPI()</code> nutzt <code>try?</code> und kehrt bei jedem Fehler
-            wortlos zurück; <code>sendMessage</code> wurde durchweg mit
-            <code>errorHandler: nil</code> aufgerufen. Nichts davon erreicht je einen Nutzer oder
-            ein Protokoll. Beim Sync ist das jetzt behoben, beim Katalog nicht.
-          </p>
-        </div>
-      </li>
-      <li>
-        <div>
-          <h3>Alles ist ein Singleton</h3>
-          <p>
-            Zwölf Dienste als <code>.shared</code>, auf die Ansichten direkt zugreifen. Nichts
-            davon lässt sich in einem Test ersetzen — was zusammen mit dem fehlenden Testziel
-            bedeutet, dass die Periodisierungslogik ungeprüft ausgeliefert wird. Es hat auch schon
-            einmal konkret geschadet: Ein <code>@ObservedObject</code> auf dem HealthKit-Manager
-            baute die gesamte Tab-Hülle im Sekundentakt neu auf.
-          </p>
-        </div>
-      </li>
-      <li>
-        <div>
-          <h3>Zwei Übersetzungssysteme, keins davon Apples</h3>
-          <p>
-            <code>I18n.swift</code> ist ein handgeschriebenes Wörterbuch mit 663 Zeilen; daneben
-            tragen die Aufzählungen in <code>AICoachService</code> ihre eigenen
-            <code>titleDe</code>/<code>titleEn</code>. Ohne String Catalog sieht Apples Werkzeugkette
-            nichts davon: keine Pluralregeln, keine Systemsprache, kein Export für Übersetzer.
-          </p>
-        </div>
-      </li>
-      <li>
-        <div>
-          <h3>Fünf Stores, fünfmal dieselbe Mechanik</h3>
-          <p>
-            <code>SavedPlansStore</code>, <code>FavoritesStore</code>, <code>ActivePlanStore</code>,
-            <code>GeneratorSettings</code> und <code>AICoachSession</code> bauen jeweils von Hand
-            dieselbe Kette aus <code>UserDefaults</code>, <code>JSONEncoder</code> und einem
-            Schlüssel als Zeichenkette. Ein Tippfehler im Schlüssel fällt erst beim Nutzer auf.
-          </p>
-        </div>
-      </li>
-      <li>
-        <div>
-          <h3><code>LiveWorkoutView</code>: 732 Zeilen in einer Struktur</h3>
-          <p>
-            Timer, Puls, Uhr-Sync, Live Activity, zwei Layoutmodi und das Satzprotokoll in einer
-            Ansicht. Sie ist der Ort, an dem alle drei gemeldeten Fehler zusammenliefen — kein
-            Zufall.
+            Der Zähler liegt jetzt in PostgreSQL, und Hochzählen und Prüfen passieren in einer einzigen
+            Anweisung (<code>INSERT … ON CONFLICT DO UPDATE … RETURNING</code>) — zwei gleichzeitige
+            Anfragen können nicht mehr denselben Zwischenstand lesen und beide durchgehen. Fällt die
+            Datenbank aus, lässt der Zähler durch statt zu sperren: Ein kaputter Zähler darf zahlende
+            Nutzer nicht aussperren.
           </p>
         </div>
       </li>
@@ -751,272 +575,351 @@
   </section>
 
   <!-- ============================================================ -->
-  <section>
-    <span class="eyebrow">Vor der Einreichung</span>
-    <h2>Was den Store noch verhindert</h2>
-    <p class="prose">
-      Der erste Eintrag ist der teuerste und wiegt schwerer als alle drei gemeldeten Punkte
-      zusammen: Im Release-Build gibt es keinen Weg, Pro zu bekommen.
-    </p>
+  <section id="kosten">
+    <span class="eyebrow">Kostenanalyse</span>
+    <h2>KI oder Algorithmus?</h2>
+
+    <div class="prose">
+      <p>
+        Die Frage war, ob sich die Plangenerierung präziser und billiger ohne Sprachmodell lösen lässt.
+        Die kurze Antwort: <strong>zum größten Teil ja, und ein Teil davon lief bereits so — nur wurde
+        dafür trotzdem bezahlt.</strong>
+      </p>
+    </div>
+
+    <div class="card" style="margin-top:26px">
+      <div class="card-head">
+        <h3>Der Fund: Der Ernährungsplan des Modells wurde weggeworfen</h3>
+        <span class="badge done">behoben</span>
+      </div>
+      <p>
+        Der Systemprompt verlangte einen vollständigen 7-Tage-Ernährungsplan: jeder Tag mit Frühstück,
+        Mittag, Abend und Snacks, jede Mahlzeit mit Zutaten, Mengen, Kalorien und Makros. Das Modell hat
+        das brav geschrieben — und <code>PlanValidator.Validate</code> hat es danach ausnahmslos durch
+        das Ergebnis von <code>NutritionEngine.Build7DayPlan()</code> ersetzt. Der Zweig, der die Ausgabe
+        des Modells verwendet hätte, ist in Produktion nie erreichbar, weil der Motor immer registriert ist.
+      </p>
+      <p>
+        Bezahlt wurde also für Ausgabe-Token, die unmittelbar danach verworfen wurden — und Ausgabe-Token
+        sind sowohl die teureren als auch die, die die Wartezeit bestimmen.
+      </p>
+    </div>
 
     <div class="table-scroll">
       <table>
         <thead>
-          <tr>
-            <th>Schwere</th>
-            <th>Punkt</th>
-            <th>Aufwand</th>
-          </tr>
+          <tr><th>Je Aufruf <code>/generate-plan</code></th><th>Vorher</th><th>Jetzt</th></tr>
         </thead>
         <tbody>
           <tr>
-            <td><span class="badge critical">Ablehnung</span></td>
-            <td>
-              <strong>Kein Kaufweg vorhanden</strong>
-              <span class="why">
-                Der „PRO holen“-Knopf in <code>KraftHeaderView</code> hat
-                <code>Button(action: {})</code> — eine leere Aktion. <code>purchasePro()</code> und
-                <code>restorePurchases()</code> werden aus keiner Ansicht aufgerufen, es gibt keinen
-                Kaufbildschirm und keinen „Käufe wiederherstellen“-Knopf. Der
-                <code>premiumGate</code> ist reiner Text. Im Debug-Build ist Pro über
-                <code>debugProOverride</code> standardmäßig an — deshalb ist es nie aufgefallen; im
-                Release-Build ist Pro dauerhaft aus. Richtlinien 3.1.1 und 3.1.2.
-              </span>
-            </td>
-            <td class="num">4 T</td>
+            <td><strong>Systemprompt</strong><span class="why">Regeln, Schema, Prüfliste</span></td>
+            <td class="num">11.136 Zeichen</td>
+            <td class="num">8.819 Zeichen <strong>(−21 %)</strong></td>
           </tr>
           <tr>
-            <td><span class="badge critical">Ablehnung</span></td>
-            <td>
-              <strong><code>PrivacyInfo.xcprivacy</code> fehlt</strong>
-              <span class="why">
-                Seit Mai 2024 Pflicht. Die App nutzt <code>UserDefaults</code> durchgehend — eine
-                API mit Begründungspflicht (CA92.1). Ohne das Manifest weist App&nbsp;Store Connect
-                den Upload zurück.
-              </span>
-            </td>
-            <td class="num">0,5 T</td>
+            <td><strong>Eingabe gesamt</strong><span class="why">System + Katalog (137 Übungen) + Nutzerdaten</span></td>
+            <td class="num">~4.660 Token</td>
+            <td class="num">~4.080 Token</td>
           </tr>
           <tr>
-            <td><span class="badge critical">Blocker</span></td>
-            <td>
-              <strong>Der KI-Coach ist nicht gesperrt</strong>
-              <span class="why">
-                Der PRO-Punkt am Tab ist Dekoration: <code>AICoachWizardView</code> prüft
-                <code>isProUnlocked</code> an keiner Stelle. Jeder kostenlose Nutzer bekommt die
-                bezahlte Funktion vollständig.
-              </span>
-            </td>
-            <td class="num">0,5 T</td>
+            <td><strong>Ausgabe</strong><span class="why">der teure und langsame Teil</span></td>
+            <td class="num">~4.000–6.000 Token</td>
+            <td class="num">~1.500–2.500 Token <strong>(−60 %)</strong></td>
           </tr>
           <tr>
-            <td><span class="badge warn">Blocker</span></td>
-            <td>
-              <strong><code>ITSAppUsesNonExemptEncryption</code> fehlt</strong>
-              <span class="why">
-                Ohne den Schlüssel bleibt jeder Upload an der Exportfrage hängen, statt in
-                TestFlight anzukommen.
-              </span>
-            </td>
-            <td class="num">10 min</td>
-          </tr>
-          <tr>
-            <td><span class="badge warn">Blocker</span></td>
-            <td>
-              <strong>Der „KI-Coach“ läuft nie über die KI</strong>
-              <span class="why">
-                <code>KraftAPI.accessToken</code> wird nirgends in der App gesetzt — es gibt keine
-                Anmeldung. <code>generatePlan</code> wirft deshalb <em>immer</em>
-                <code>.unauthorized</code> und fällt auf <code>AICoachService</code> zurück, einen
-                regelbasierten lokalen Generator. Was als KI verkauft wird, ist im Auslieferungsstand
-                keine. Entweder Anmeldung nachrüsten oder den Text ändern; als bezahlte Funktion
-                beworben ist das sonst Richtlinie 2.3.1.
-              </span>
-            </td>
-            <td class="num">5 T <span style="color:var(--muted)">/ 0,5 T</span></td>
-          </tr>
-          <tr>
-            <td><span class="badge warn">Risiko</span></td>
-            <td>
-              <strong>Kein einziger Test</strong>
-              <span class="why">
-                Die gelöschte Web-App hatte Vitest-Tests für <code>planLogic</code> und die
-                Planreihenfolge. Die Swift-Portierung hat kein Testziel und keine Testdatei — die
-                Zyklus-Progression, die den Kern des Produkts ausmacht, ist ungeprüft.
-              </span>
-            </td>
-            <td class="num">3 T</td>
-          </tr>
-          <tr>
-            <td><span class="badge info">Klärung</span></td>
-            <td>
-              <strong>iPad im Zielgerätesatz, ohne iPad</strong>
-              <span class="why">
-                <code>TARGETED_DEVICE_FAMILY = 1,2</code>, dabei nur Hochformat, kein iPad-Layout,
-                und HealthKit gibt es auf dem iPad gar nicht. Entweder iPad streichen oder gestalten
-                — unverändert lassen ist die schlechteste der drei Möglichkeiten.
-              </span>
-            </td>
-            <td class="num">0,5 T</td>
-          </tr>
-          <tr>
-            <td><span class="badge info">Risiko</span></td>
-            <td>
-              <strong>Übungskatalog am freien Render-Plan</strong>
-              <span class="why">
-                Der Dienst schläft ein; der erste Aufruf hat im Code-Kommentar 13,9&nbsp;s gebraucht.
-                Der Aufwärm-Ping mildert das, aber ein Ausfall bleibt für den Nutzer unsichtbar.
-              </span>
-            </td>
-            <td class="num">1 T</td>
+            <td><strong>Wartezeit</strong><span class="why">wird von der Ausgabelänge bestimmt</span></td>
+            <td class="num">dominiert durch Ernährung</td>
+            <td class="num">entsprechend kürzer</td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <h3 style="margin-top:44px">Was besser gerechnet als geraten wird</h3>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Aufgabe</th><th>Warum ein Algorithmus gewinnt</th><th>Stand</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Kalorien &amp; Makros</strong></td>
+            <td>Mifflin-St-Jeor plus Aktivitätsfaktor plus Zielabweichung. Reine Arithmetik — ein Modell würde sie schätzen und bei gleicher Eingabe zweimal etwas anderes sagen.</td>
+            <td><span class="badge done">läuft schon so</span></td>
+          </tr>
+          <tr>
+            <td><strong>Mahlzeitenauswahl</strong></td>
+            <td>Auswahl aus einem Rezeptkatalog mit hinterlegten Nährwerten, skaliert auf das Kalorienziel. Nährwerte aus einem Modell sind geraten, nicht nachgeschlagen.</td>
+            <td><span class="badge done">läuft schon so</span></td>
+          </tr>
+          <tr>
+            <td><strong>Übungsauswahl</strong></td>
+            <td>Ein Constraint-Problem: n Übungen aus k Kategorien, verfügbares Equipment, keine Dopplung. <code>PlanGenerator</code> löst das lokal, sofort, offline, kostenlos.</td>
+            <td><span class="badge info">vorhanden, ungenutzt im Coach</span></td>
+          </tr>
+          <tr>
+            <td><strong>Satz- und Wiederholungsschema</strong></td>
+            <td>Tabelle nach Ziel und Erfahrung. Eine Nachschlagetabelle ist genauer als eine Schätzung.</td>
+            <td><span class="badge info">vorhanden</span></td>
+          </tr>
+          <tr>
+            <td><strong>Plausibilität prüfen</strong></td>
+            <td>Wochenvolumen, Push/Pull-Verhältnis, Regenerationsabstände, Zeitbudget — alles zählbar.</td>
+            <td><span class="badge done">neu: PlanQualityScore</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:44px">Wofür das Modell wirklich gebraucht wird</h3>
+    <ul class="plain">
+      <li><strong>Freitext verstehen.</strong> „Empfindliche Knie, keine Sprünge“ auf Ausschlüsse abzubilden ist genau das, was Regeln schlecht können und Sprachmodelle gut.</li>
+      <li><strong>Sprache.</strong> Tagesnamen, Fokus-Beschreibungen, Zusammenfassung, Hinweise, Technik-Tipps je Übung. Ein Algorithmus liefert hier Textbausteine, die nach Textbausteinen klingen.</li>
+      <li><strong>Alles andere nicht.</strong> Struktur, Zahlen und Auswahl sind rechenbar.</li>
+    </ul>
+
+    <div class="note">
+      <span class="eyebrow">Empfehlung</span>
+      <p>
+        <strong>Hybrid statt Entweder-oder.</strong> Den Plan deterministisch bauen — Auswahl,
+        Satzschema, Progression, Ernährung — und das Modell nur noch für die zwei Dinge aufrufen, die es
+        besser kann: Freitext-Einschränkungen auswerten und die Texte schreiben. Das wäre eine Ausgabe
+        von einigen hundert statt einigen tausend Token, in einem Bruchteil der Zeit, mit einem Ergebnis,
+        das bei gleicher Eingabe reproduzierbar ist. Wer keine Einschränkungen angibt, käme ganz ohne
+        Netzaufruf aus — der lokale Generator existiert bereits und wird heute nur als Notfallpfad
+        benutzt.
+      </p>
+      <p>
+        Das ist eine Produktentscheidung und kein Fehler, deshalb hier als Empfehlung und nicht als
+        Änderung. Der teure Teil — die weggeworfene Ernährung — ist unabhängig davon behoben.
+      </p>
+    </div>
   </section>
 
   <!-- ============================================================ -->
-  <section>
-    <span class="eyebrow">Reihenfolge</span>
-    <h2>Zeitplan</h2>
-    <p class="prose">
-      Die Phasen sind nummeriert, weil sie voneinander abhängen: ohne eingerichtete Umgebung kein
-      Gerätetest, ohne Kaufweg keine sinnvolle Einreichung. Angaben in Personentagen, ein
-      Entwickler.
-    </p>
+  <section id="bearbeiten">
+    <span class="eyebrow">Neu</span>
+    <h2>Pläne tageweise bearbeiten</h2>
 
-    <div class="timeline">
+    <div class="prose">
+      <p>
+        Bisher gab es genau zwei Möglichkeiten: den Plan so nehmen, wie er kam, oder ihn komplett neu
+        erzeugen. Wer mit dem Montag unzufrieden war, verlor damit auch Mittwoch und Freitag, obwohl die
+        passten. Einzelne Übungen ließen sich nur neu würfeln, nicht auswählen.
+      </p>
+    </div>
 
-      <div class="phase is-done">
-        <div class="phase-head">
-          <h3>01 — Umbau und die drei Punkte</h3>
-          <span class="phase-when">erledigt</span>
+    <div class="stack" style="margin-top:26px">
+      <div class="card">
+        <div class="card-head">
+          <h3>Zwei Zyklen ein- und ausschaltbar</h3>
+          <span class="badge done">fertig</span>
         </div>
-        <ul>
-          <li>Web-App, Capacitor und Android entfernt; SwiftUI flach im Stammverzeichnis</li>
-          <li>Projekt neu erzeugt: App, Widget-Erweiterung, watchOS-App</li>
-          <li>Live Activity, Uhren-Anbindung und Gesundheitsdaten wie oben beschrieben</li>
-          <li>Build ohne Fehler und ohne Warnungen, App startet im Simulator</li>
-        </ul>
+        <p>
+          Ob ein Plan mit einem oder zwei Zyklen lief, ergab sich vorher daraus, ob das Modell zwei
+          unterschiedliche Wochen geliefert hatte — der Nutzer hatte keine Wahl. Jetzt entscheidet ein
+          Schalter. Beim Einschalten wird der zweite Zyklus erzeugt, falls es noch keinen gibt; beim
+          Ausschalten bleibt er liegen und wird nur nicht gezeigt. Wer zurückschaltet, bekommt seinen
+          alten zweiten Zyklus wieder statt eines neu gewürfelten.
+        </p>
       </div>
 
-      <div class="phase">
-        <div class="phase-head">
-          <h3>02 — Umgebung herstellen</h3>
-          <span class="phase-when">0,5 T</span>
+      <div class="card">
+        <div class="card-head">
+          <h3>Einzelnen Tag neu mischen</h3>
+          <span class="badge done">fertig</span>
         </div>
-        <ul>
-          <li><code>sudo xcode-select -s /Applications/Xcode.app/Contents/Developer</code></li>
-          <li>watchOS-Plattform in Xcode nachinstallieren (Settings → Components)</li>
-          <li>Erster vollständiger Build aller drei Ziele mit Signierung</li>
-        </ul>
+        <p>
+          „Tag neu mischen“ trifft genau diesen einen Tag. Gemischt wird innerhalb der Muskelgruppen,
+          die der Tag ohnehin trifft — abgeleitet aus den vorhandenen Übungen, nicht aus dem Freitext
+          <code>focus</code>, der vom Modell stammt und nicht zählbar ist. Ein Brust-Tag bleibt damit ein
+          Brust-Tag und bekommt nur andere Übungen. Sätze, Wiederholungen und Pausen des bisherigen
+          Stands bleiben stehen; der jeweils andere Zyklus wird ausgeschlossen, damit die beiden nicht
+          zusammenfallen.
+        </p>
       </div>
 
-      <div class="phase">
-        <div class="phase-head">
-          <h3>03 — Gerätetests</h3>
-          <span class="phase-when">3 T</span>
+      <div class="card">
+        <div class="card-head">
+          <h3>Einzelne Übung tauschen, würfeln, entfernen, hinzufügen</h3>
+          <span class="badge done">fertig</span>
         </div>
-        <ul>
-          <li>Sperrbildschirm und Dynamic Island am echten Gerät, inklusive Pausenzähler</li>
-          <li>Kopplung iPhone ↔ Uhr, Erreichbarkeit, Anwendungskontext bei schlafender Uhr</li>
-          <li><code>HKWorkoutSession</code>: erscheint „Krafttraining“ in der Fitness-App, füllen sich die Ringe, kommt die Einheit in Apple Health an</li>
-          <li>Puls-Etikett wechselt tatsächlich von „geschätzt“ auf „Apple Watch“</li>
-        </ul>
-      </div>
-
-      <div class="phase is-blocked">
-        <div class="phase-head">
-          <h3>04 — Kauf und Freischaltung</h3>
-          <span class="phase-when">4,5 T</span>
-          <span class="badge critical">Blocker</span>
-        </div>
-        <ul>
-          <li>Kaufbildschirm bauen, <code>purchasePro()</code> und <code>restorePurchases()</code> anbinden</li>
-          <li>Produkt in App Store Connect anlegen, im Sandkasten durchspielen</li>
-          <li>KI-Coach hinter das Pro-Gate legen</li>
-          <li>Gesperrten Zustand durchtesten — er lief bisher nie</li>
-        </ul>
-      </div>
-
-      <div class="phase">
-        <div class="phase-head">
-          <h3>05 — Einreichungspflichten</h3>
-          <span class="phase-when">1,5 T</span>
-        </div>
-        <ul>
-          <li><code>PrivacyInfo.xcprivacy</code> mit Begründung für <code>UserDefaults</code></li>
-          <li><code>ITSAppUsesNonExemptEncryption</code> setzen</li>
-          <li>Datenschutzangaben in App Store Connect, Bildmaterial, iPad-Entscheidung</li>
-        </ul>
-      </div>
-
-      <div class="phase">
-        <div class="phase-head">
-          <h3>06 — Absicherung</h3>
-          <span class="phase-when">3 T</span>
-        </div>
-        <ul>
-          <li>Testziel anlegen; <code>PlanGenerator</code>, <code>PlanProgress</code> und die Zyklus-Progression abdecken</li>
-          <li>Katalogfehler sichtbar machen statt zu verschlucken</li>
-          <li>TestFlight-Durchlauf</li>
-        </ul>
-      </div>
-
-      <div class="phase">
-        <div class="phase-head">
-          <h3>07 — Einreichung</h3>
-          <span class="phase-when">~12,5 T ab heute</span>
-        </div>
-        <ul>
-          <li>Ohne die Anmeldung für den Server-KI-Coach; mit ihr kommen 5 Tage dazu</li>
-        </ul>
+        <p>
+          Jede Übungszeile hat jetzt drei Knöpfe: gegen eine bestimmte andere tauschen (über den
+          Katalog mit Suche und Filtern), zufällig neu würfeln, oder entfernen. Der letzte Eintrag eines
+          Tages lässt sich nicht löschen — ein Trainingstag ohne Übung wäre keiner. Beim Tauschen bleiben
+          Sätze, Wiederholungen und Pause stehen: Getauscht wird die Übung, nicht die Vorgabe des Nutzers.
+        </p>
       </div>
     </div>
   </section>
 
   <!-- ============================================================ -->
-  <section>
-    <span class="eyebrow">Offenlegung</span>
-    <h2>Was ich nicht prüfen konnte</h2>
-    <p class="prose">
-      Damit klar ist, wo der Nachweis endet und die Erwartung anfängt:
-    </p>
-    <ul class="plain">
+  <section id="bewertung">
+    <span class="eyebrow">Neu</span>
+    <h2>Bewertung: wie gut ist dieser Plan?</h2>
+
+    <div class="prose">
+      <p>
+        Das konnte bisher niemand sagen. Der KI-Coach lieferte einen Plan, der Generator würfelte einen,
+        und beide sahen gleich überzeugend aus — ob der Rücken vier oder achtzehn Sätze pro Woche bekam,
+        stand nirgends.
+      </p>
+      <p>
+        Die Bewertung <strong>rechnet, sie fragt kein Modell</strong>. Bei gleichem Plan kommt immer
+        derselbe Wert heraus, sofort, ohne Netz und ohne Kosten. Sie läuft bei jeder Änderung mit: Man
+        sieht direkt, was das Hinzufügen einer Übung am Volumen ändert.
+      </p>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Dimension</th><th>Gewicht</th><th>Was gemessen wird</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Volumen</strong></td><td class="num">1,3</td><td>Harte Sätze je Muskelgruppe und Woche gegen den Korridor 6–22. Je Gruppe eine eigene Note, dann der Mittelwert — eine Summe von Abzügen war zu milde und gab einem Ein-Satz-Plan noch 80 von 100.</td></tr>
+          <tr><td><strong>Balance</strong></td><td class="num">1,2</td><td>Drücken zu Ziehen und Oberkörper zu Beinen. Ein Übergewicht des Drückens ist der häufigste Fehler in selbstgebauten Plänen.</td></tr>
+          <tr><td><strong>Regeneration</strong></td><td class="num">1,1</td><td>Dieselbe Muskelgruppe an echten Folgetagen schwer belastet. Gemessen über Wochentagsabstände, nicht über die Reihenfolge im Array — Mo und Mi stehen nebeneinander in der Liste, aber nicht im Kalender.</td></tr>
+          <tr><td><strong>Zielausrichtung</strong></td><td class="num">1,0</td><td>Wiederholungsbereich und Satzpause gegen das Ziel. Haltezeiten („30 Sek“) werden übersprungen statt als Wiederholungen gezählt.</td></tr>
+          <tr><td><strong>Zeitrahmen</strong></td><td class="num">1,0</td><td>Geschätzte Dauer gegen die Vorgabe des Nutzers. Entfällt, wenn keine Vorgabe vorliegt — gegen einen erfundenen Wert zu messen wäre schlechter als gar nicht.</td></tr>
+          <tr><td><strong>Abwechslung</strong></td><td class="num">0,8</td><td>Verschiedene Übungen gegen belegte Plätze, plus Bonus für einen echten zweiten Zyklus.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <span class="eyebrow">Darstellung</span>
+      <p>
+        Die Farbe allein trägt die Aussage nicht: Jede Note steht zusätzlich als Zahl und als Wort
+        daneben („Volumen 42 · Schwach“). Dazu bis zu sechs konkrete Hinweise — „Rücken bekommt nur
+        4&nbsp;Sätze pro Woche, für Aufbau sind 10–22 üblich“ statt eines allgemeinen Ratschlags — und
+        ein Balkendiagramm der Wochensätze mit eingezeichnetem Zielkorridor. Die Richtwerte sind als
+        Orientierung aus der Trainingsliteratur gekennzeichnet, nicht als medizinische Beratung.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="builder">
+    <span class="eyebrow">Neu</span>
+    <h2>Eigene Pläne bauen</h2>
+
+    <div class="prose">
+      <p>
+        Das fehlte ganz. Der Generator würfelt, der KI-Coach schlägt vor — aber wer genau wusste, was er
+        wollte, hatte keinen Weg dorthin.
+      </p>
+      <p>
+        Der Generator-Tab hat jetzt drei Reiter: <strong>Studio</strong>, <strong>Home</strong> und
+        <strong>Eigener</strong>. Im dritten stellt man den Plan Übung für Übung aus dem Katalog zusammen
+        — mit Suche, Filter nach Muskelgruppe und Gerät, eigenen Sätzen, Wiederholungen und Pausen,
+        Reihenfolge per Pfeiltasten. Die Bewertung läuft live mit. Der Entwurf überlebt Tabwechsel und
+        Neustart, und gespeichert wird in dieselbe Liste wie die gewürfelten Pläne.
+      </p>
+    </div>
+
+    <div class="note">
+      <span class="eyebrow">Nebenbei behoben</span>
+      <p>
+        Der gewählte Reiter lag als <code>@State</code> in der Ansicht und war beim nächsten Tabwechsel
+        weg — wer in der Home-Challenge stand, kam im Studio-Generator zurück. Er liegt jetzt in
+        <code>GeneratorSettings</code>, wie der gewürfelte Plan daneben, und überlebt auch den Neustart.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="rest">
+    <span class="eyebrow">Weiterhin offen</span>
+    <h2>Bekannt, nicht dringend</h2>
+
+    <ol class="findings">
       <li>
-        <strong>Die watchOS-Plattform ist auf diesem Rechner nicht installiert</strong> — nur das
-        SDK, keine Laufzeit. <code>actool</code> bricht deshalb schon beim Bildmaterial des
-        Uhren-Ziels ab, auch beim Bauen fürs Gerät. Die Uhren-Quellen sind gegen
-        <code>WatchOS11.1.sdk</code> typgeprüft (0 Fehler, 0 Warnungen), ein vollständiger Build
-        des Uhren-Ziels steht aus.
+        <div>
+          <h3>Gesundheitsdaten liegen unverschlüsselt in UserDefaults <span class="badge warn">notiert</span></h3>
+          <p>
+            <code>aiCoachSession</code> und <code>challengeSession</code> enthalten Geschlecht, Alter,
+            Größe und Gewicht und liegen in der App-Sandbox sowie im unverschlüsselten Backup. Für eine
+            Fitness-App üblich und kein Blocker; strenger wäre eine Datei mit
+            <code>NSFileProtectionComplete</code>. Die Sitzungs-Token liegen bereits richtig — Keychain,
+            gerätegebunden, nur bei entsperrtem Bildschirm.
+          </p>
+        </div>
       </li>
       <li>
-        <strong>Die Live Activity ist nicht zur Laufzeit gesehen worden.</strong> Nachgewiesen sind
-        Aufbau und Verdrahtung: Die Erweiterung liegt im Programmpaket, der Erweiterungspunkt
-        stimmt, der Attributtyp steckt in beiden Binaries, die
-        <code>ActivityConfiguration</code>-Symbole nur in der Erweiterung. Ob die Karte auf einem
-        echten Sperrbildschirm richtig aussieht, sagt erst Phase&nbsp;03.
+        <div>
+          <h3>Verzeichnis von Verarbeitungstätigkeiten fehlt <span class="badge warn">fällig</span></h3>
+          <p>
+            Nach Art.&nbsp;30 DSGVO auch für Kleinunternehmen Pflicht, sobald regelmäßig
+            Gesundheitsdaten verarbeitet werden. Internes Dokument, kein Einreichungshindernis — aber es
+            existiert bislang nicht. Ebenso zu dokumentieren ist die Prüfung, ob eine
+            Datenschutz-Folgenabschätzung nach Art.&nbsp;35 nötig ist (bei der zu erwartenden Nutzerzahl
+            spricht viel dagegen).
+          </p>
+        </div>
       </li>
       <li>
-        <strong>Herzfrequenz und Kalorien der Uhr sind nicht mit echter Hardware gelaufen.</strong>
-        <code>HKWorkoutSession</code> braucht eine Uhr; der Simulator liefert keine Sensorwerte.
+        <div>
+          <h3>Werbung bleibt aus, bis ein echtes Netzwerk eingebunden ist <span class="badge info">bewusst</span></h3>
+          <p>
+            <code>AdManager.adsEnabled = false</code>. Solange das gilt, sind KI-Coach und
+            Trainingsarchiv für alle offen — die Schranke hing an den simulierten Videos. Soll der Coach
+            stattdessen Pro-only sein, steht die Ansicht dafür bereits ungenutzt in
+            <code>AICoachWizardView.proGate</code>. Die Checkliste vor dem Einschalten (SDK, ATT,
+            Manifest, CMP, Altersfreigabe) steht in Update&nbsp;5.
+          </p>
+        </div>
       </li>
-      <li>
-        <strong>Der Simulator ließ sich nicht fernsteuern.</strong> Xcode ist installiert, aber
-        nicht ausgewählt — dafür wird <code>sudo xcode-select</code> gebraucht, was ein Passwort
-        verlangt. Installieren, Starten und Bildschirmfotos liefen über
-        <code>xcrun simctl</code>; Tippen war damit nicht möglich, weshalb die Live-Session nicht
-        durchgeklickt wurde.
-      </li>
-      <li>
-        <strong>Der Umbau ist nicht committet.</strong> 174 gelöschte und 35 verschobene Dateien
-        stehen im Arbeitsverzeichnis, damit die Löschung vor dem Festschreiben prüfbar bleibt.
-      </li>
-    </ul>
+    </ol>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="ablauf">
+    <span class="eyebrow">Reihenfolge</span>
+    <h2>Bis zum Upload</h2>
+
+    <div class="timeline">
+      <div class="phase is-done">
+        <div class="phase-head"><h3>01 — Code</h3><span class="phase-when">erledigt</span></div>
+        <ul>
+          <li>Ablehnungsrisiken aus Update 5 behoben (Werbe-Platzhalter, ATS, Rechtstexte)</li>
+          <li>Server: Startabbruch ohne <code>JWT_SECRET</code>, Tageslimit in PostgreSQL</li>
+          <li>Plan-Bearbeitung, Bewertung, eigener Plan-Builder</li>
+          <li>Verworfene Ernährungsausgabe aus dem Prompt entfernt</li>
+          <li>317 Tests grün</li>
+        </ul>
+      </div>
+      <div class="phase is-blocked">
+        <div class="phase-head"><h3>02 — Server ausrollen</h3><span class="phase-when">vor dem Upload</span></div>
+        <ul>
+          <li><code>/challenge-plan</code> deployen, Migration legt <code>rate_limits</code> automatisch an</li>
+          <li><code>JWT_SECRET</code> gesetzt? Ohne startet der Dienst in Produktion jetzt nicht mehr</li>
+          <li>Für den Prüfzeitraum auf den bezahlten Plan wechseln</li>
+        </ul>
+      </div>
+      <div class="phase is-blocked">
+        <div class="phase-head"><h3>03 — App Store Connect</h3><span class="phase-when">vor dem Upload</span></div>
+        <ul>
+          <li>Beide Abo-Produkte anlegen, bepreisen, lokalisieren</li>
+          <li>App-Datenschutzangaben passend zum Manifest</li>
+          <li>Testkonto in den Prüfhinweisen</li>
+          <li>Screenshots, Beschreibung, Altersfreigabe, Support- und Datenschutz-URL</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <div class="phase-head"><h3>04 — Einreichen</h3><span class="phase-when">danach</span></div>
+        <ul>
+          <li>Archiv bauen, hochladen, Abos <em>mit</em> dem Build einreichen</li>
+          <li>Auf einem echten Gerät gegen den Produktionsserver gegenprüfen</li>
+        </ul>
+      </div>
+    </div>
   </section>
 
   <footer>
-    Kraftwürfel · Bericht vom 25.08.2026 · Xcode 16.1 · Build ohne Fehler und Warnungen
+    Kraftwürfel · Update 6 · 29.08.2026 · iOS-App + kraftwuerfel-api ·
+    xcodebuild BUILD SUCCEEDED · 206 iOS-Tests, 111 API-Tests, 0 Fehler
   </footer>
 
 </div>

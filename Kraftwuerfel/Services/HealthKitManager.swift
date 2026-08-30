@@ -3,25 +3,31 @@ import Foundation
 import HealthKit
 
 /*
-  Apple Health auf dem iPhone — ausschließlich lesend.
+  Apple Health auf dem iPhone.
 
-  Die vorherige Fassung war der Ablehnungsgrund: `startWorkoutSession()` setzte
-  den Puls auf 125 und addierte jede Sekunde `Double.random(in: -2...2)`, die
-  Kalorien liefen mit einer festen Rate mit. Das sah aus wie eine Messung, war
-  aber eine Erfindung — und die Klasse forderte dazu Schreibrechte für aktive
-  Energie und Workouts an, also genau die Rechte, mit denen man solche Zahlen
-  in Apple Health hinterlegt.
+  Die allererste Fassung war ein Ablehnungsgrund: `startWorkoutSession()`
+  setzte den Puls auf 125 und addierte jede Sekunde `Double.random(in: -2...2)`,
+  die Kalorien liefen mit einer festen Rate mit. Das sah aus wie eine Messung,
+  war aber eine Erfindung — und die Klasse forderte dazu Schreibrechte an,
+  also genau die Rechte, mit denen man solche Zahlen in Health hinterlegt.
 
-  Zwei Dinge sind deshalb anders:
+  Daraus folgt die Regel, die hier über allem steht und die auch beim
+  Wiedereinführen der Schreibrechte gilt:
 
-  1. Hier wird nichts mehr erfunden. `liveHeartRate` ist entweder ein echter
-     Messwert oder `nil`. Die Schätzung, die die Live-Ansicht anzeigt, bleibt
-     dort, wo sie hingehört: sichtbar als Schätzung, in der Ansicht.
+      Geschrieben wird ausschließlich, was gemessen oder vom Nutzer selbst
+      eingetragen wurde. Nie ein Schätzwert.
 
-  2. Hier wird nichts mehr geschrieben. Das iPhone kann keine
-     `HKWorkoutSession` führen — nur watchOS kann das. Also speichert die Uhr
-     das Training (mit echten Sensorwerten), und das iPhone liest höchstens
-     mit. Siehe WatchWorkoutManager im watchOS-Ziel.
+  Konkret heißt das:
+
+  - **Gewicht und Körperfettanteil** trägt der Nutzer im Profil ein. Das sind
+    seine eigenen Angaben, und sie dürfen nach Health.
+  - **Trainings und aktive Energie** schreibt die Uhr, weil sie misst
+    (WatchWorkoutManager). Das iPhone schreibt eine Einheit nur mit echter
+    Dauer, und Energie nur dann, wenn sie von der Uhr kam —
+    `saveWorkout` nimmt gar keinen geschätzten Wert entgegen.
+  - **Puls** wird nur gelesen. `liveHeartRate` ist entweder ein echter
+    Messwert oder `nil`; die Schätzung der Live-Ansicht bleibt dort, wo sie
+    hingehört: sichtbar als Schätzung, in der Ansicht.
 */
 public final class HealthKitManager: ObservableObject {
 
@@ -33,7 +39,7 @@ public final class HealthKitManager: ObservableObject {
         /// Noch nicht gefragt.
         case notDetermined
         /// Gefragt — ob Lesen erlaubt wurde, verrät HealthKit absichtlich
-        /// nicht. Ob wirklich Werte kommen, zeigt sich erst an `liveHeartRate`.
+        /// nicht. Ob wirklich Werte kommen, zeigt sich erst an den Daten.
         case requested
     }
 
@@ -61,29 +67,215 @@ public final class HealthKitManager: ObservableObject {
         return liveHeartRate
     }
 
+    public var isAvailable: Bool { HKHealthStore.isHealthDataAvailable() }
+
+    // MARK: - Typen
+
+    private static var shareTypes: Set<HKSampleType> {
+        var types = Set<HKSampleType>()
+        if let t = HKQuantityType.quantityType(forIdentifier: .bodyMass) { types.insert(t) }
+        if let t = HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage) { types.insert(t) }
+        if let t = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) { types.insert(t) }
+        types.insert(HKObjectType.workoutType())
+        return types
+    }
+
+    private static var readTypes: Set<HKObjectType> {
+        var types = Set<HKObjectType>()
+        if let t = HKQuantityType.quantityType(forIdentifier: .heartRate) { types.insert(t) }
+        if let t = HKQuantityType.quantityType(forIdentifier: .bodyMass) { types.insert(t) }
+        if let t = HKQuantityType.quantityType(forIdentifier: .height) { types.insert(t) }
+        if let t = HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage) { types.insert(t) }
+        if let t = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) { types.insert(t) }
+        if let t = HKObjectType.characteristicType(forIdentifier: .dateOfBirth) { types.insert(t) }
+        if let t = HKObjectType.characteristicType(forIdentifier: .biologicalSex) { types.insert(t) }
+        types.insert(HKObjectType.workoutType())
+        return types
+    }
+
     // MARK: - Erlaubnis
 
     /*
-      Nur Lesen, und nur Herzfrequenz. Aktive Energie und Workouts standen
-      früher als Schreibrechte in der Anfrage, ohne dass je etwas geschrieben
-      wurde — ungenutzte Rechte fallen in der Prüfung auf und sind
-      gegenüber dem Nutzer nicht zu rechtfertigen.
+      Der eine Aufruf, der Apples Berechtigungsblatt zeigt. Lesen und
+      Schreiben stehen gemeinsam darin — Health fragt nur einmal, und ein
+      zweiter Aufruf für die zweite Hälfte würde dem Nutzer dasselbe Blatt
+      ein zweites Mal zeigen.
     */
     @discardableResult
-    public func requestReadAuthorization() async -> Bool {
-        guard HKHealthStore.isHealthDataAvailable(),
-              let heartRate = HKQuantityType.quantityType(forIdentifier: .heartRate)
-        else {
-            availability = .unavailable
+    public func requestAuthorization() async -> Bool {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            await MainActor.run { self.availability = .unavailable }
             return false
         }
 
         do {
-            try await store.requestAuthorization(toShare: [], read: [heartRate])
+            try await store.requestAuthorization(toShare: Self.shareTypes, read: Self.readTypes)
             await MainActor.run { self.availability = .requested }
             return true
         } catch {
             return false
+        }
+    }
+
+    /// Alter Name, damit bestehende Aufrufer (Live-Session) unverändert bleiben.
+    @discardableResult
+    public func requestReadAuthorization() async -> Bool {
+        await requestAuthorization()
+    }
+
+    // MARK: - Körperdaten lesen
+
+    /// Was Health über den Nutzer weiß, soweit er es freigegeben hat.
+    /// Jedes Feld einzeln optional: Health gibt oft nur einen Teil frei, und
+    /// eine fehlende Angabe ist kein Fehler.
+    public struct BodyMetrics: Equatable {
+        public var weightKg: Double?
+        public var heightCm: Double?
+        public var bodyFatPercent: Double?
+        public var age: Int?
+        public var sex: String?
+
+        public var isEmpty: Bool {
+            weightKg == nil && heightCm == nil && bodyFatPercent == nil && age == nil && sex == nil
+        }
+    }
+
+    /*
+      Füllt den Fragebogen vor, statt den Nutzer eintippen zu lassen, was sein
+      Telefon längst weiß. Fehlt ein Wert oder ist er nicht freigegeben,
+      bleibt das Feld auf seinem Standard — es wird nichts geraten.
+    */
+    public func readBodyMetrics() async -> BodyMetrics {
+        guard HKHealthStore.isHealthDataAvailable() else { return BodyMetrics() }
+
+        var result = BodyMetrics()
+
+        if let kg = await latestQuantity(.bodyMass, unit: .gramUnit(with: .kilo)) {
+            result.weightKg = (kg * 10).rounded() / 10
+        }
+        if let cm = await latestQuantity(.height, unit: .meterUnit(with: .centi)) {
+            result.heightCm = cm.rounded()
+        }
+        if let fraction = await latestQuantity(.bodyFatPercentage, unit: .percent()) {
+            result.bodyFatPercent = (fraction * 1000).rounded() / 10
+        }
+
+        // Merkmale sind synchron und werfen, wenn sie nicht freigegeben sind.
+        if let dob = try? store.dateOfBirthComponents(),
+           let date = Calendar.current.date(from: dob),
+           let years = Calendar.current.dateComponents([.year], from: date, to: Date()).year,
+           years > 0, years < 120 {
+            result.age = years
+        }
+        if let biological = try? store.biologicalSex().biologicalSex {
+            switch biological {
+            case .male:   result.sex = "male"
+            case .female: result.sex = "female"
+            case .other:  result.sex = "other"
+            default:      break
+            }
+        }
+
+        return result
+    }
+
+    private func latestQuantity(
+        _ identifier: HKQuantityTypeIdentifier,
+        unit: HKUnit
+    ) async -> Double? {
+        guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else { return nil }
+
+        return await withCheckedContinuation { continuation in
+            let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: nil,
+                limit: 1,
+                sortDescriptors: [sort]
+            ) { _, samples, _ in
+                guard let sample = (samples as? [HKQuantitySample])?.first else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                continuation.resume(returning: sample.quantity.doubleValue(for: unit))
+            }
+            store.execute(query)
+        }
+    }
+
+    // MARK: - Körperdaten schreiben
+
+    /*
+      Nur eigene Angaben des Nutzers. Aufgerufen wird das aus dem Profil,
+      wenn er sein Gewicht dort ändert — nicht aus einer Berechnung.
+    */
+    public func writeBodyMass(kilograms: Double, date: Date = Date()) async {
+        guard HKHealthStore.isHealthDataAvailable(), kilograms > 0,
+              let type = HKQuantityType.quantityType(forIdentifier: .bodyMass)
+        else { return }
+
+        let quantity = HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: kilograms)
+        let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date)
+        try? await store.save(sample)
+    }
+
+    public func writeBodyFat(percent: Double, date: Date = Date()) async {
+        guard HKHealthStore.isHealthDataAvailable(), percent > 0, percent < 100,
+              let type = HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage)
+        else { return }
+
+        let quantity = HKQuantity(unit: .percent(), doubleValue: percent / 100)
+        let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date)
+        try? await store.save(sample)
+    }
+
+    // MARK: - Training schreiben
+
+    /*
+      Eine abgeschlossene Einheit nach Health.
+
+      `measuredActiveEnergyKcal` ist bewusst optional und heißt „gemessen“:
+      Übergeben wird ausschließlich, was die Uhr gemessen hat. Die Schätzung
+      der Live-Ansicht hat hier keinen Weg hinein — genau dafür wurde die
+      alte Fassung abgelehnt.
+
+      Läuft die Uhr mit, schreibt sie die Einheit selbst
+      (WatchWorkoutManager). Dieser Weg ist für Sitzungen ohne Uhr da, und er
+      trägt dann eben nur Dauer und Zeitraum, keine Energie.
+    */
+    public func saveWorkout(
+        start: Date,
+        end: Date,
+        measuredActiveEnergyKcal: Double? = nil
+    ) async {
+        guard HKHealthStore.isHealthDataAvailable(), end > start else { return }
+
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = .traditionalStrengthTraining
+
+        let builder = HKWorkoutBuilder(healthStore: store, configuration: configuration, device: .local())
+
+        do {
+            try await builder.beginCollection(at: start)
+
+            if let kcal = measuredActiveEnergyKcal, kcal > 0,
+               let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
+                let quantity = HKQuantity(unit: .kilocalorie(), doubleValue: kcal)
+                let sample = HKCumulativeQuantitySample(
+                    type: energyType,
+                    quantity: quantity,
+                    start: start,
+                    end: end
+                )
+                try await builder.addSamples([sample])
+            }
+
+            try await builder.endCollection(at: end)
+            _ = try await builder.finishWorkout()
+        } catch {
+            // Health kann die Einheit ablehnen (keine Erlaubnis). Das Training
+            // selbst ist dadurch nicht ungültig — es steht weiter im
+            // Trainingsarchiv der App.
         }
     }
 
