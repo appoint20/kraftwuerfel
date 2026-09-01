@@ -321,6 +321,9 @@ public final class NotificationManager: ObservableObject {
     public func playCountdownTick(secondsRemaining: Int) {
         guard secondsRemaining >= 1 && secondsRemaining <= 5 else { return }
 
+        // Ohne das mischt sich der Ping nicht dazu, sondern verdrängt die Musik.
+        AudioSessionManager.configureForWorkout()
+
         // Haptik für jeden Countdown-Schritt
         let feedback = UIImpactFeedbackGenerator(style: secondsRemaining == 1 ? .heavy : .medium)
         feedback.impactOccurred()
@@ -331,6 +334,13 @@ public final class NotificationManager: ObservableObject {
 
     /// Wird aufgerufen, wenn die Pause im Vordergrund abläuft (0s -> Signalton + "LOS!")
     public func playRestFinishedCues(language: String = "de") {
+        /*
+          Der Hauptverdächtige: Der Sprachausgeber aktiviert die Audiositzung
+          und legt danach wieder auf. Auf der Voreinstellung `.soloAmbient`
+          hieß das jedes Mal: Musik aus, genau am Pausenende.
+        */
+        AudioSessionManager.configureForWorkout()
+
         // Haptisches Erfolgs-Feedback
         UINotificationFeedbackGenerator().notificationOccurred(.success)
 

@@ -63,6 +63,12 @@ public struct MainTabView: View {
             AdOverlayModal()
         }
         .task {
+            /*
+              Werbung erst nach der Anmeldung starten: Die Zustimmungs- und
+              Tracking-Abfragen sollen nicht über der Anmeldeschranke liegen,
+              wo der Nutzer noch gar nicht weiß, wofür die App da ist.
+            */
+            await GoogleAdsService.shared.startIfNeeded()
             KraftAPI.shared.warmUp()
             await ExerciseDatabase.refreshFromAPI()
             /*
@@ -76,6 +82,10 @@ public struct MainTabView: View {
         }
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(isPresented: $showPro) { ProSubscriptionView() }
+        // Gesperrte Stellen tief in der Ansicht bitten hierüber um die Pro-Seite.
+        .onReceive(NotificationCenter.default.publisher(for: .kraftShowPro)) { _ in
+            showPro = true
+        }
         .fullScreenCover(item: $activeLiveWorkout) { wrapper in
             LiveWorkoutView(
                 slots: wrapper.slots,

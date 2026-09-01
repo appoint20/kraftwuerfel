@@ -122,9 +122,20 @@ public final class MusicLibraryPlayer: NSObject, ObservableObject {
 
         playlists = collections.compactMap { collection in
             guard let playlist = collection as? MPMediaPlaylist else { return nil }
-            let items = playlist.items.filter { !$0.isCloudItem || $0.assetURL != nil }
-            // Leere Playlists (oder solche, von denen nichts auf dem Gerät
-            // liegt) wären Zeilen, hinter denen nichts passiert.
+            /*
+              Hier stand ein Filter auf `!isCloudItem || assetURL != nil` — also
+              „nur was wirklich auf dem Gerät liegt". Für jeden mit einem
+              Apple-Music-Abo ist das faktisch die ganze Mediathek: Cloud-Titel
+              haben erst nach dem Herunterladen eine `assetURL`. Damit fielen
+              sämtliche Titel weg, die Playlist galt als leer und flog raus —
+              und weil danach keine einzige Playlist übrig blieb, zeigte die
+              Ansicht überhaupt keinen Playlist-Bereich an.
+
+              MPMusicPlayerController spielt Cloud-Titel mit bestehendem Abo
+              ab. Sie auszublenden nimmt dem Nutzer also genau das, was er
+              hören will. Wirklich leere Playlists fliegen weiter raus.
+            */
+            let items = playlist.items
             guard !items.isEmpty else { return nil }
             return LibraryPlaylist(
                 id: playlist.persistentID,
@@ -142,6 +153,9 @@ public final class MusicLibraryPlayer: NSObject, ObservableObject {
     }
 
     public func setQueue(_ items: [MPMediaItem], startAt index: Int = 0) {
+        // Die Sitzung steht, bevor die erste Note läuft — sonst kann der
+        // erste Countdown-Ping sie wieder abwürgen.
+        AudioSessionManager.configureForWorkout()
         guard !items.isEmpty else { return }
         tracks = items
         savePlaylist()
@@ -285,7 +299,12 @@ public struct MediaPicker: UIViewControllerRepresentable {
     public func makeUIViewController(context: Context) -> MPMediaPickerController {
         let picker = MPMediaPickerController(mediaTypes: .music)
         picker.allowsPickingMultipleItems = true
-        picker.showsCloudItems = false   // nur wirklich vorhandene Titel
+        /*
+          Cloud-Titel mitzeigen. Vorher stand hier `false` mit der Begründung
+          „nur wirklich vorhandene Titel" — für Apple-Music-Abonnenten ist das
+          aber nahezu die gesamte Mediathek, und die Auswahl blieb leer.
+        */
+        picker.showsCloudItems = true
         picker.delegate = context.coordinator
         return picker
     }

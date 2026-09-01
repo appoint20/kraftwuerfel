@@ -28,17 +28,36 @@
 	  App Store Connect muss unter „App-Datenschutzangaben“ dieselben Angaben
 	  tragen, sonst stimmen App und Store-Eintrag nicht überein.
 
-	  Werbung: NSPrivacyTracking bleibt false und NSPrivacyTrackingDomains leer,
-	  weil kein Werbenetz eingebunden ist (siehe AdManager.adsEnabled). Wird das
-	  eingeschaltet, gehören hierher die Tracking-Domains, in die Info.plist eine
-	  NSUserTrackingUsageDescription und in den Code die ATT-Abfrage.
+	  Werbung: Seit der Einbindung des Google-Mobile-Ads-SDK (GoogleAdsService)
+	  steht NSPrivacyTracking auf true und die Tracking-Domains stehen unten.
+	  Dazu gehören die NSUserTrackingUsageDescription in der Info.plist und die
+	  ATT-Abfrage im Code — beide sind gesetzt. Die Zustimmung nach DSGVO holt
+	  Googles User Messaging Platform ein, BEVOR etwas geladen wird.
+
+	  Achtung: Sollte die Werbung je wieder abgeschaltet werden (App-ID aus der
+	  Info.plist entfernen), müssen diese beiden Werte zurückgesetzt werden —
+	  eine App, die Tracking meldet, ohne zu tracken, sammelt in der Prüfung
+	  Nachfragen ein.
 	-->
 
 	<key>NSPrivacyTracking</key>
-	<false/>
+	<true/>
 
+	<!--
+	  Die Domains, über die AdMob und die User Messaging Platform ausliefern
+	  und messen. Apple blockiert sie, solange keine ATT-Erlaubnis vorliegt —
+	  genau dafür ist die Liste da.
+	-->
 	<key>NSPrivacyTrackingDomains</key>
-	<array/>
+	<array>
+		<string>googleads.g.doubleclick.net</string>
+		<string>pagead2.googlesyndication.com</string>
+		<string>googlesyndication.com</string>
+		<string>googleadservices.com</string>
+		<string>doubleclick.net</string>
+		<string>admob.com</string>
+		<string>google-analytics.com</string>
+	</array>
 
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>

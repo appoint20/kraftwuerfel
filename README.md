@@ -2,10 +2,31 @@
 
 Native SwiftUI-Trainings-App für iPhone und Apple Watch, zweisprachig (Deutsch/Englisch).
 
-**Kostenlos:** Split wählen, Plan würfeln, Sätze/Wiederholungen/Pausen anpassen, einzelne
-Übungen neu würfeln, Live-Session mit Pausen-Timer.
+**Konto erforderlich.** Seit der Anmeldeschranke (`RootView`) führt kein Weg an Registrierung
+oder Anmeldung vorbei — Pläne, Fortschritt und das Pro-Abo hängen am Konto, nicht am Gerät.
+Der Fragebogen danach ist überspringbar; gefragt wird dann dort, wo die Antworten
+gebraucht werden.
 
-**Pro:** KI-Coach, Pläne speichern, Trainingspläne starten und verfolgen, Favoriten.
+**Kostenlos:** Split wählen, Plan würfeln, Sätze/Wiederholungen/Pausen anpassen, einzelne
+Übungen neu würfeln, Live-Session mit Pausen-Timer, ein Lieblingstag, Trainingspläne
+starten und verfolgen.
+
+**Pro:** Die Grenze steht an genau einer Stelle im Code — `ProFeature` in
+`Kraftwuerfel/Models/ProFeature.swift`. Die Sperren fragen sie ab, und die Verkaufsseite
+zeigt dieselbe Liste, damit beide nicht auseinanderlaufen:
+
+| Funktion | `ProFeature` |
+|---|---|
+| KI-Coach ohne belohnte Videos | `aiCoach` |
+| Pläne & Meal Guides speichern | `savedPlans` |
+| Trainingsarchiv im Fortschritt-Tab | `workoutHistory` |
+| Planbewertung (`PlanQualityScore`) | `planScore` |
+| Mehr als ein Lieblingstag | `unlimitedFavorites` |
+| Keine Werbung | `noAds` |
+
+Gesperrt wird das **Ansehen**, nicht das Aufzeichnen: Trainings und gespeicherte Pläne
+bleiben liegen, wenn ein Abo ausläuft. Ein abgelaufenes Abo ist kein Grund, die Arbeit des
+Nutzers wegzuwerfen — wer wieder abschließt, findet alles vor.
 
 ## Aufbau
 
@@ -111,8 +132,13 @@ liegt im Schlüsselbund, nicht in UserDefaults.
 ## Impressum und Datenschutz
 
 Beides steht in `Kraftwuerfel/Views/Settings/LegalView.swift`. Die Angaben zum
-Betreiber sind **Platzhalter in spitzen Klammern** — solange einer davon steht,
-blendet die App oben einen Warnhinweis ein. Vor der Einreichung ausfüllen.
+Betreiber (Name, Anschrift, Kontakt, Verantwortlicher, Umsatzsteuer) stehen als
+Konstanten oben in der Datei und sind ausgefüllt — hier stand früher der Hinweis,
+es seien Platzhalter, und dieser Hinweis war schlicht veraltet.
+
+Der Datenschutztext beschreibt unter anderem den Apple-Health-Zugriff. Er muss
+mitgezogen werden, sobald sich dort etwas ändert: Seit dem Schreibzugriff (Gewicht,
+Körperfettanteil, abgeschlossene Trainings) genügt „liest die Herzfrequenz" nicht mehr.
 
 ## Gesundheitsdaten
 

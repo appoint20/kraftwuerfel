@@ -132,13 +132,21 @@ public struct ProSubscriptionView: View {
                 .fill(Theme.border)
                 .frame(height: 1)
 
-            // Vorteile-Checkliste
+            /*
+              Die Liste kommt aus ProFeature, nicht aus eigenen Textbausteinen.
+
+              Vorher standen hier fünf fest verdrahtete Zeilen, die niemand
+              nachzog, wenn sich die Grenze zwischen kostenlos und Pro
+              verschob. Die Verkaufsseite versprach dann Dinge, die längst
+              kostenlos waren — oder verschwieg welche, die es nicht mehr
+              sind. Jetzt zeigt sie genau das, was die Sperren auch prüfen.
+            */
             VStack(alignment: .leading, spacing: 12) {
-                benefitRow(i18n.t("proScreen.benefit.ai"))
-                benefitRow(i18n.t("proScreen.benefit.ads"))
-                benefitRow(i18n.t("proScreen.benefit.save"))
-                benefitRow(i18n.t("proScreen.benefit.plans"))
-                benefitRow(i18n.t("proScreen.benefit.watch"))
+                ForEach(Array(ProFeature.allCases.enumerated()), id: \.element) { index, feature in
+                    // Der erste Eintrag (Werbefreiheit) trägt die Karte —
+                    // er bekommt deshalb sichtbar mehr Gewicht als der Rest.
+                    benefitRow(feature, isLead: index == 0)
+                }
             }
         }
         .padding(20)
@@ -157,18 +165,38 @@ public struct ProSubscriptionView: View {
         )
     }
 
-    private func benefitRow(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "checkmark")
-                .font(.system(size: 12, weight: .bold))
+    /// Symbol, Name und ein Satz dazu, was die Funktion für den Nutzer tut —
+    /// ein Häkchen mit vier Wörtern verkauft nichts.
+    private func benefitRow(_ feature: ProFeature, isLead: Bool = false) -> some View {
+        HStack(alignment: .top, spacing: 11) {
+            Image(systemName: feature.icon)
+                .font(.system(size: isLead ? 16 : 13, weight: .bold))
                 .foregroundColor(Theme.accent)
-                .padding(.top, 2)
+                .frame(width: 22)
+                .padding(.top, 1)
 
-            Text(text)
-                .font(KraftFont.inter(13, .medium))
-                .foregroundColor(Theme.text)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(feature.localized(i18n.lang))
+                    .font(isLead ? KraftFont.bebas(17) : KraftFont.inter(13.5, .semibold))
+                    .tracking(isLead ? 0.8 : 0)
+                    .foregroundColor(Theme.text)
+                Text(feature.localizedSubtitle(i18n.lang))
+                    .font(KraftFont.inter(isLead ? 12.5 : 11.5))
+                    .foregroundColor(isLead ? Theme.text.opacity(0.75) : Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
+        .padding(isLead ? 11 : 0)
+        .background(
+            isLead
+                ? AnyView(RoundedRectangle(cornerRadius: 11).fill(Theme.accentDim))
+                : AnyView(Color.clear)
+        )
+        .overlay(
+            isLead
+                ? AnyView(RoundedRectangle(cornerRadius: 11).stroke(Theme.accent.opacity(0.4), lineWidth: 1))
+                : AnyView(Color.clear)
+        )
     }
 
     // MARK: - Anmelde-Pflicht vor Pro-Kauf

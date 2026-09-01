@@ -150,6 +150,30 @@ public struct MusicPlayerSheet: View {
     */
     @ViewBuilder
     private var playlistSection: some View {
+        /*
+          Ohne diesen Zweig war „du hast keine Wiedergabelisten" von „die App
+          zeigt sie nicht an" nicht zu unterscheiden: Der Bereich verschwand
+          ersatzlos, und genau so sah der Fehler aus, als noch alle
+          Cloud-Titel herausgefiltert wurden.
+        */
+        if music.playlists.isEmpty && music.isAuthorized {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "music.note.list")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(Theme.muted)
+                Text(i18n.lang == "en"
+                     ? "No playlists found in your library."
+                     : "Keine Wiedergabelisten in deiner Mediathek gefunden.")
+                    .font(KraftFont.inter(12))
+                    .foregroundColor(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surface))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.border, lineWidth: 1))
+        }
+
         if !music.playlists.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {

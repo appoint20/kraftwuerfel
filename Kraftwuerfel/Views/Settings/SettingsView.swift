@@ -6,13 +6,11 @@ import SwiftUI
 public struct SettingsView: View {
     @ObservedObject private var i18n = I18n.shared
     @ObservedObject private var auth = AuthService.shared
-    @ObservedObject private var storeKit = StoreKitManager.shared
     @ObservedObject private var challengeStore = ChallengeStore.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var showAuth = false
     @State private var showProfile = false
-    @State private var showPro = false
     @State private var showGuide = false
     @State private var showChallengeSettings = false
     @State private var legalPage: LegalPage?
@@ -32,7 +30,6 @@ public struct SettingsView: View {
                     challengeSection
                     accountSection
                     languageSection
-                    proSection
                     legalSection
                     versionLine
                 }
@@ -47,7 +44,6 @@ public struct SettingsView: View {
         .sheet(isPresented: $showChallengeSettings) { ChallengeSettingsView() }
         .sheet(isPresented: $showAuth) { AuthView() }
         .sheet(isPresented: $showProfile) { ProfileSettingsView() }
-        .sheet(isPresented: $showPro) { ProSubscriptionView() }
         .sheet(item: $legalPage) { page in LegalView(page: page) }
         .kraftDialog(isPresented: $showDeleteConfirm) {
             KraftDialog(
@@ -253,32 +249,6 @@ public struct SettingsView: View {
 
     // MARK: - Pro
 
-    private var proSection: some View {
-        SettingsSection(title: i18n.t("settings.pro")) {
-            if storeKit.isProUnlocked {
-                SettingsRow(
-                    icon: "checkmark.seal.fill",
-                    title: i18n.t("settings.proActive"),
-                    subtitle: nil
-                )
-            } else {
-                SettingsButtonRow(
-                    icon: "sparkles",
-                    title: i18n.t("nav.getPro"),
-                    subtitle: i18n.t("settings.proHint")
-                ) {
-                    showPro = true
-                }
-            }
-
-            SettingsButtonRow(
-                icon: "arrow.clockwise",
-                title: i18n.t("settings.restorePurchases")
-            ) {
-                Task { await storeKit.restorePurchases() }
-            }
-        }
-    }
 
     // MARK: - Rechtliches
 

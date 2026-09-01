@@ -21,32 +21,28 @@ public final class AdManager: ObservableObject {
     // MARK: - Hauptschalter
 
     /*
-      AUS, und das muss so bleiben, bis ein echtes Werbenetz eingebunden ist.
+      An, sobald eine AdMob-App-ID in der Info.plist steht.
 
-      Was dieser Manager anzeigt, ist keine Werbung: `startAdPlayback` blendet
-      eine eigene Ansicht mit der Aufschrift „SPONSOR AD“ und einem
-      5-Sekunden-Zähler ein, hinter dem nichts steckt — kein SDK, kein
-      Inventar, kein Werbetreibender. Für die App-Prüfung ist das
-      Platzhalterinhalt (Richtlinie 2.1) und ein sicherer Ablehnungsgrund.
-      Beim KI-Coach kommt erschwerend dazu, dass eine Funktion hinter dem
-      Ansehen dieser Platzhalter freigeschaltet wurde.
+      Hier stand eine feste `false` — und das war richtig, solange „Werbung"
+      eine eigene Ansicht mit der Aufschrift „SPONSOR AD" und einem Zähler
+      war, hinter dem nichts steckte. Das ist Platzhalterinhalt
+      (App-Store-Richtlinie 2.1) und ein sicherer Ablehnungsgrund; beim
+      KI-Coach erschwerend, weil eine Funktion hinter dem Ansehen dieser
+      Platzhalter freigeschaltet wurde.
 
-      Solange der Schalter aus ist:
-      - Banner und Vollbild-Einblendung zeichnen nichts,
-      - alle `trigger…`-Aufrufe kehren sofort zurück,
-      - `requiredRewardedVideos` ist 0, die Freischaltung fällt also auf statt
-        zu — eine Bezahlschranke, die sich auf dem beworbenen Weg nicht öffnen
-        lässt, wäre schlimmer als gar keine.
-
-      Beim Einschalten sind zusätzlich fällig: ATT-Abfrage samt
-      NSUserTrackingUsageDescription, NSPrivacyTrackingDomains im
-      Datenschutzmanifest, die Werbe-Datentypen in den App-Datenschutzangaben
-      und der Satz „Wir setzen keine Werbe-SDKs“ in der Datenschutzerklärung.
+      Jetzt steckt das Google-Mobile-Ads-SDK dahinter (GoogleAdsService), und
+      der Schalter fragt schlicht, ob es eingerichtet ist. Fehlt die App-ID,
+      bleibt alles wie vorher aus: keine Banner, keine Einblendungen, und
+      `requiredRewardedVideos` ist 0 — eine Schranke, die sich auf dem
+      beworbenen Weg nicht öffnen lässt, wäre schlimmer als gar keine.
     */
-    public static let adsEnabled = false
+    public static var adsEnabled: Bool { GoogleAdsService.isConfigured }
 
     // MARK: - Konfiguration
-    public var requiredRewardedVideos: Int { Self.adsEnabled ? 3 : 0 }
+    /// Zwei Videos für eine KI-Analyse. Ohne eingeschaltetes Werbenetz 0 —
+    /// eine Schranke, die sich auf dem beworbenen Weg nicht öffnen lässt,
+    /// wäre schlimmer als gar keine.
+    public var requiredRewardedVideos: Int { Self.adsEnabled ? 2 : 0 }
 
     // MARK: - Zustand
     @Published public var rewardedVideosWatched: Int = 0
@@ -89,7 +85,10 @@ public final class AdManager: ObservableObject {
         startAdPlayback(
             title: "Sponsor Video (\(rewardedVideosWatched + 1)/\(requiredRewardedVideos))",
             subtitle: "Schau das Video an, um deinen KI-Plan kostenlos freizuschalten.",
-            duration: 5
+            duration: 5,
+            // Freischalten nur gegen ein belohntes Video: Nur dort bestätigt
+            // Google, dass der Nutzer es wirklich zu Ende gesehen hat.
+            isRewarded: true
         ) { [weak self] in
             guard let self else { return }
             self.rewardedVideosWatched = min(self.requiredRewardedVideos, self.rewardedVideosWatched + 1)
@@ -164,7 +163,8 @@ public final class AdManager: ObservableObject {
         startAdPlayback(
             title: "Trainingsarchiv Freischaltung",
             subtitle: "Schau ein kurzes Video an, um dein gesamtes Tagebuch-Archiv für 24h freizuschalten.",
-            duration: 5
+            duration: 5,
+            isRewarded: true
         ) { [weak self] in
             guard let self else { return }
             self.historyUnlockedUntil = Date().addingTimeInterval(86400) // 24 Stunden
@@ -214,43 +214,70 @@ public final class AdManager: ObservableObject {
 
     private var activeAdTimer: Timer?
 
-    private func startAdPlayback(title: String, subtitle: String, duration: Int, onDone: (() -> Void)?) {
+    /*
+      Zeigt echte Werbung, wenn welche vorliegt.
+
+      `isRewarded` entscheidet über die Art: Für das Freischalten muss es ein
+      belohntes Video sein — nur dort bestätigt Google, dass der Nutzer es zu
+      Ende gesehen hat. Für Übergänge genügt eine Vollbild-Einblendung.
+
+      Liegt gerade keine Werbung bereit (kein Netz, kein Inventar), läuft
+      `onDone` trotzdem. Ein Nutzer, der wegen eines leeren Werbeservers
+      nicht weitertrainieren kann, ist der schlechtere Handel.
+    */
+    private func showRealAd(isRewarded: Bool, onDone: (() -> Void)?) -> Bool {
+        let ads = GoogleAdsService.shared
+        if isRewarded {
+            return ads.showRewarded { onDone?() }
+        }
+        let shown = ads.showInterstitial()
+        if shown { onDone?() }
+        return shown
+    }
+
+    private func startAdPlayback(
+        title: String,
+        subtitle: String,
+        duration: Int,
+        isRewarded: Bool = false,
+        onDone: (() -> Void)?
+    ) {
         // Letzte Sperre: auch ein vergessener Aufruf zeigt nichts an.
         guard Self.adsEnabled else {
             onDone?()
             return
         }
 
-        activeAdTimer?.invalidate()
-        activeAdTimer = nil
+        /*
+          Entweder echte Werbung — oder gar keine.
 
-        self.adModalTitle = title
-        self.adModalSubtitle = subtitle
-        self.adCountdown = duration
-        self.isAdPlaying = true
-        self.isShowingAdModal = true
-        self.onAdCompletedCallback = onDone
+          Hier stand kurzzeitig ein Rückfall auf die eigene „SPONSOR AD"-
+          Ansicht, wenn das SDK nichts bereithielt. Das ist genau der
+          Platzhalterinhalt, dessentwegen die Werbung ursprünglich
+          abgeschaltet wurde (App-Store-Richtlinie 2.1): eine nachgebaute
+          Anzeige ohne Werbetreibenden dahinter, und beim KI-Coach eine
+          Funktion, die sich nur darüber öffnen ließ.
 
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+          Liegt nichts vor (kein Netz, kein Inventar, Zustimmung abgelehnt),
+          bekommt der Nutzer den Vorteil eben umsonst. Das kostet ein paar
+          Einblendungen; die Alternative kostet die Zulassung.
+        */
+        /*
+          Entweder echte Werbung — oder gar keine.
 
-        activeAdTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
-            guard let self else {
-                timer.invalidate()
-                return
-            }
-            Task { @MainActor in
-                if self.adCountdown > 1 {
-                    self.adCountdown -= 1
-                } else {
-                    timer.invalidate()
-                    self.activeAdTimer = nil
-                    self.isAdPlaying = false
-                    self.isShowingAdModal = false
-                    self.onAdCompletedCallback?()
-                    self.onAdCompletedCallback = nil
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                }
-            }
+          Hier stand die eigene „SPONSOR AD"-Ansicht mit einem Zähler, hinter
+          dem nichts steckte. Genau dieser Platzhalterinhalt war der Grund,
+          die Werbung ganz abzuschalten (App-Store-Richtlinie 2.1) — eine
+          nachgebaute Anzeige ohne Werbetreibenden, und beim KI-Coach eine
+          Funktion, die sich nur darüber öffnen ließ. Sie kommt mit dem
+          echten SDK nicht zurück.
+
+          Liegt nichts vor (kein Netz, kein Inventar, Zustimmung abgelehnt),
+          bekommt der Nutzer den Vorteil eben umsonst. Das kostet ein paar
+          Einblendungen; die Alternative kostet die Zulassung.
+        */
+        if !showRealAd(isRewarded: isRewarded, onDone: onDone) {
+            onDone?()
         }
     }
 

@@ -12,6 +12,15 @@ import SwiftUI
 */
 public struct PlanScoreCard: View {
     @ObservedObject private var i18n = I18n.shared
+    /*
+      Die Sperre sitzt in der Karte, nicht bei den Aufrufern.
+
+      Die Bewertung wird an drei Stellen gezeigt (KI-Plan, Plan-Baukasten,
+      laufender Trainingsplan). Läge die Pro-Prüfung dort, wäre sie dreimal
+      geschrieben — und die vierte Stelle, die später dazukommt, hätte sie
+      vergessen. So kann die Karte gar nicht ungesperrt erscheinen.
+    */
+    @ObservedObject private var storeKit = StoreKitManager.shared
 
     public let score: PlanQualityScore
     /// Zugeklappt in Listen, aufgeklappt in der Detailansicht.
@@ -26,6 +35,54 @@ public struct PlanScoreCard: View {
     }
 
     public var body: some View {
+        if storeKit.isProUnlocked {
+            unlockedCard
+        } else {
+            lockedCard
+        }
+    }
+
+    /*
+      Gesperrt wird die Note gezeigt, nicht versteckt: Wer sieht, dass es
+      eine Bewertung gibt und wofür sie steht, versteht wenigstens, was ihm
+      fehlt. Eine leere Fläche verkauft nichts und erklärt nichts.
+    */
+    private var lockedCard: some View {
+        Button(action: { NotificationCenter.default.post(name: .kraftShowPro, object: nil) }) {
+            HStack(spacing: 12) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(Theme.accent)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(ProFeature.planScore.localized(i18n.lang))
+                        .font(KraftFont.bebas(16)).tracking(0.8)
+                        .foregroundColor(Theme.text)
+                    Text(ProFeature.planScore.localizedSubtitle(i18n.lang))
+                        .font(KraftFont.inter(12))
+                        .foregroundColor(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer(minLength: 0)
+
+                Text(i18n.t("pro.badge"))
+                    .font(KraftFont.mono(9.5, .bold))
+                    .foregroundColor(Theme.bg)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Theme.accent))
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Theme.surface))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var unlockedCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             headerRow
 

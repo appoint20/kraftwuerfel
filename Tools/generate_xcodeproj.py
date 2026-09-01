@@ -82,6 +82,31 @@ FONT_DIR = f"{APP_DIR}/Fonts"
 SKIP_WATCH = os.environ.get("KRAFT_SKIP_WATCH") == "1"
 
 
+# ---------------------------------------------------------------- Pakete
+
+"""
+Swift-Package-Abhängigkeiten der App.
+
+Der Generator konnte bisher keine erzeugen — die Projektdatei kannte weder
+`packageReferences` noch `packageProductDependencies`. Damit ließ sich kein
+SDK einbinden, ohne die erzeugte Datei von Hand nachzubearbeiten, was beim
+nächsten Lauf wieder verloren gewesen wäre.
+
+Nur das App-Ziel bekommt Pakete. Die Widget- und Uhren-Erweiterung brauchen
+keines, und das Google-Mobile-Ads-SDK unterstützt watchOS ohnehin nicht.
+"""
+SWIFT_PACKAGES = [
+    {
+        "name": "GoogleMobileAds",
+        "url": "https://github.com/googleads/swift-package-manager-google-mobile-ads.git",
+        # Bewusst „ab Version": Google liefert Fehlerbehebungen in Nebenversionen.
+        "requirement": {"kind": "upToNextMajorVersion", "minimumVersion": "11.0.0"},
+        # Produkte, die das App-Ziel verlinkt.
+        "products": ["GoogleMobileAds"],
+    },
+]
+
+
 # ---------------------------------------------------------------- IDs
 
 def oid(*parts: str) -> str:
@@ -89,6 +114,11 @@ def oid(*parts: str) -> str:
     also erzeugt ein erneuter Lauf keinen Rausch im Diff."""
     digest = hashlib.md5("::".join(parts).encode("utf-8")).hexdigest()
     return digest[:24].upper()
+
+
+def all_package_products() -> list[str]:
+    """Alle Produktnamen über alle Pakete, in stabiler Reihenfolge."""
+    return [product for pkg in SWIFT_PACKAGES for product in pkg["products"]]
 
 
 def quote(value: str) -> str:
@@ -413,6 +443,10 @@ def generate() -> str:
     add(f"\t\t{oid('embed', 'watch')} /* {watch.product_name} in Embed Watch Content */ = "
         f"{{isa = PBXBuildFile; fileRef = {watch.product_uuid}; "
         f"settings = {{ATTRIBUTES = (RemoveHeadersOnCopy, ); }}; }};")
+    # Verlinkte Paketprodukte brauchen ebenfalls einen PBXBuildFile-Eintrag.
+    for product in all_package_products():
+        add(f"\t\t{oid('pkgbuildfile', product)} /* {product} in Frameworks */ = "
+            f"{{isa = PBXBuildFile; productRef = {oid('pkgprod', product)} /* {product} */; }};")
     add("/* End PBXBuildFile section */")
 
     # ---- PBXContainerItemProxy
@@ -482,10 +516,39 @@ def generate() -> str:
         add("\t\t\tisa = PBXFrameworksBuildPhase;")
         add("\t\t\tbuildActionMask = 2147483647;")
         add("\t\t\tfiles = (")
+        # Nur die App verlinkt Pakete; die Erweiterungen brauchen keine.
+        if target is app:
+            for product in all_package_products():
+                add(f"\t\t\t\t{oid('pkgbuildfile', product)} /* {product} in Frameworks */,")
         add("\t\t\t);")
         add("\t\t\trunOnlyForDeploymentPostprocessing = 0;")
         add("\t\t};")
     add("/* End PBXFrameworksBuildPhase section */")
+
+    # ---- XCRemoteSwiftPackageReference / XCSwiftPackageProductDependency
+    if SWIFT_PACKAGES:
+        add("\n/* Begin XCRemoteSwiftPackageReference section */")
+        for pkg in SWIFT_PACKAGES:
+            req = pkg["requirement"]
+            add(f'\t\t{oid("pkgref", pkg["url"])} /* XCRemoteSwiftPackageReference "{pkg["name"]}" */ = {{')
+            add("\t\t\tisa = XCRemoteSwiftPackageReference;")
+            add(f'\t\t\trepositoryURL = "{pkg["url"]}";')
+            add("\t\t\trequirement = {")
+            for key, value in req.items():
+                add(f"\t\t\t\t{key} = {quote(str(value))};")
+            add("\t\t\t};")
+            add("\t\t};")
+        add("/* End XCRemoteSwiftPackageReference section */")
+
+        add("\n/* Begin XCSwiftPackageProductDependency section */")
+        for pkg in SWIFT_PACKAGES:
+            for product in pkg["products"]:
+                add(f'\t\t{oid("pkgprod", product)} /* {product} */ = {{')
+                add("\t\t\tisa = XCSwiftPackageProductDependency;")
+                add(f'\t\t\tpackage = {oid("pkgref", pkg["url"])} /* XCRemoteSwiftPackageReference "{pkg["name"]}" */;')
+                add(f"\t\t\tproductName = {quote(product)};")
+                add("\t\t};")
+        add("/* End XCSwiftPackageProductDependency section */")
 
     # ---- PBXGroup
     add("\n/* Begin PBXGroup section */")
@@ -564,6 +627,11 @@ def generate() -> str:
         add("\t\t\t);")
         add(f"\t\t\tname = {quote(target.name)};")
         add(f"\t\t\tproductName = {quote(target.name)};")
+        if target is app and SWIFT_PACKAGES:
+            add("\t\t\tpackageProductDependencies = (")
+            for product in all_package_products():
+                add(f"\t\t\t\t{oid('pkgprod', product)} /* {product} */,")
+            add("\t\t\t);")
         add(f"\t\t\tproductReference = {target.product_uuid} /* {target.product_name} */;")
         add(f'\t\t\tproductType = "{target.product_type}";')
         add("\t\t};")
@@ -597,6 +665,11 @@ def generate() -> str:
     add(f"\t\t\tmainGroup = {oid('group', 'main')};")
     add(f"\t\t\tproductRefGroup = {oid('group', 'Products')} /* Products */;")
     add('\t\t\tprojectDirPath = "";')
+    if SWIFT_PACKAGES:
+        add("\t\t\tpackageReferences = (")
+        for pkg in SWIFT_PACKAGES:
+            add(f'\t\t\t\t{oid("pkgref", pkg["url"])} /* XCRemoteSwiftPackageReference "{pkg["name"]}" */,')
+        add("\t\t\t);")
     add('\t\t\tprojectRoot = "";')
     add("\t\t\ttargets = (")
     for target in targets:
@@ -796,6 +869,66 @@ def write_schemes(targets, tests=None):
         )
 
 
+def submission_preflight() -> list[str]:
+    """
+    Was einer Einreichung im App Store noch im Weg steht.
+
+    Der Generator baut die Projektdatei — er kann nicht wissen, ob die
+    Inhalte darin fertig sind. Diese Prüfung schaut deshalb in die Dateien,
+    die erfahrungsgemäß beim Einreichen vergessen werden, und nennt sie beim
+    Namen. Sie bricht nichts ab: Wer bewusst mit Test-IDs baut, soll das
+    können — er soll es nur nicht versehentlich hochladen.
+    """
+    blockers: list[str] = []
+
+    plist = (ROOT / APP_DIR / "Info.plist").read_text(encoding="utf-8")
+
+    # AdMob: Googles öffentliche Test-IDs dürfen nicht in den Store.
+    if "ca-app-pub-3940256099942544" in plist:
+        blockers.append(
+            "AdMob: In Info.plist steht Googles TEST-App-ID. Vor dem Hochladen die "
+            "echte GADApplicationIdentifier eintragen und KWAdUnitRewarded / "
+            "KWAdUnitInterstitial setzen. (Release-Builds liefern mit der Test-ID "
+            "sicherheitshalber gar keine Werbung aus.)"
+        )
+    # Auf den <key>-Eintrag prüfen, nicht auf den blossen Namen: Der steht auch
+    # im Kommentar darüber, und danach zu suchen meldet fälschlich „ist da".
+    if "<key>KWAdUnitRewarded</key>" not in plist:
+        blockers.append(
+            "AdMob: KWAdUnitRewarded fehlt in Info.plist — ohne echten Block läuft "
+            "das belohnte Video gegen Googles Testinventar."
+        )
+    if "<key>KWAdUnitInterstitial</key>" not in plist:
+        blockers.append(
+            "AdMob: KWAdUnitInterstitial fehlt in Info.plist — dasselbe für die "
+            "Vollbild-Einblendung."
+        )
+
+    # Tracking-Angaben müssen zur tatsächlichen Einbindung passen.
+    manifest = (ROOT / APP_DIR / "PrivacyInfo.xcprivacy").read_text(encoding="utf-8")
+    ads_linked = "GoogleMobileAds" in str(SWIFT_PACKAGES)
+    tracking_declared = "<key>NSPrivacyTracking</key>\n\t<true/>" in manifest.replace("  ", "\t")
+    if ads_linked and "NSUserTrackingUsageDescription" not in plist:
+        blockers.append(
+            "Datenschutz: Werbe-SDK eingebunden, aber NSUserTrackingUsageDescription "
+            "fehlt — ohne den Text zeigt iOS die ATT-Abfrage nicht an."
+        )
+    if not ads_linked and tracking_declared:
+        blockers.append(
+            "Datenschutz: NSPrivacyTracking steht auf true, obwohl kein Werbe-SDK "
+            "eingebunden ist. Eine App, die Tracking meldet, ohne zu tracken, "
+            "sammelt in der Prüfung Nachfragen ein."
+        )
+
+    # Impressum: Platzhalter in spitzen Klammern.
+    legal = (ROOT / APP_DIR / "Views/Settings/LegalView.swift").read_text(encoding="utf-8")
+    for line in legal.splitlines():
+        if "operator" in line and "<" in line and ">" in line and "static let" in line:
+            blockers.append(f"Impressum: Platzhalter in {line.strip()}")
+
+    return blockers
+
+
 def main() -> int:
     pbxproj = generate()
 
@@ -818,6 +951,15 @@ def main() -> int:
               f"{len(target.resources):2} Ressourcen")
     if SKIP_WATCH:
         print("  ACHTUNG: ohne watchOS-Ziel erzeugt (KRAFT_SKIP_WATCH=1) — nur zum Prüfen.")
+
+    blockers = submission_preflight()
+    if blockers:
+        print("\n  Vor der Einreichung noch offen:")
+        for item in blockers:
+            print(f"    • {item}")
+    else:
+        print("\n  Einreichungsprüfung: nichts offen.")
+
     return 0
 
 

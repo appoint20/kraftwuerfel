@@ -15,6 +15,7 @@
 		707CE6D5D7DEC6B4839FACFB /* PlanGenerator.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 6ACD914D305578CBCD228707; };
 		3EE30B4D3CAF10ADCA20ADA7 /* PlanNames.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 922A9D24DAD9D5E9BB2C2E7B; };
 		43E649F8D436BEB422AA1718 /* PlanQualityScore.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 9C3E1B727AA13E09A9CC46BB; };
+		03578C362669E4A6CC582D37 /* ProFeature.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = B56B8E01883573F2034383C0; };
 		E42ABEFCFB88DC2E0BD9E4AF /* SavedItems.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 1CD021657C1A1309D38F8CB1; };
 		673A961D5AD58572FC6DD12E /* TrainingPlan.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 1650B3D3ECC653B2E5F8C3A6; };
 		B990741927F7A23F4DF620E3 /* UserProfile.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = E4CB41DAFE339D54642D5811; };
@@ -23,6 +24,7 @@
 		7816E9151DEF589A671673C4 /* ActivePlanStore.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 6AB5B72EFC66E2A97D698FCB; };
 		EC0616005660237177DAAEF7 /* ActivityKitManager.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 3BFD82DEB5FAB45B4AFE5E2F; };
 		A4177A977D95F1B2782C2504 /* AdManager.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 143D0536A1C6868D5EAC73D3; };
+		896A64903BEF5B2D9EB48D04 /* AudioSessionManager.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = B3C3A6E5A16F99C1A3694919; };
 		0720976ECC6DBD85E15DDC28 /* AuthService.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = CD025517398B53CC99AFC955; };
 		7A8A227A85B7F05282F2A648 /* BackendStatus.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = D5D59444305CF41724CD8A71; };
 		15ED6240176FE31BEF456B3F /* ChallengeSession.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = CFF53B7670911F2A402F1262; };
@@ -31,6 +33,7 @@
 		C169AAFCAB7EF4699347D63C /* FavoritesStore.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 43ACD2D987A7F679E9972D40; };
 		A12A87B4498D9F1D0BF9B276 /* FitnessFactsProvider.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 1AA6AA630C0CD022607D90E5; };
 		F441D7DF04BE90FF88DE6DA6 /* GeneratorSettings.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = D350BC2E8BCAB7F73F153DE6; };
+		ADF7D7A2CD3AAF7BEA3F640A /* GoogleAdsService.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = CAB15F2D8EDB67DB4D5A59B4; };
 		0B03B68C07DDE19DAF5FA8A6 /* HealthKitManager.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = DEC1C987A9B8B96159EF8F08; };
 		6816E0AC454D8A08508EEBE0 /* Keychain.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 6A932516C25EFC8CB6613B44; };
 		D11BB61CEB1770EC646530C4 /* KraftAPI.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = F4A975003A431FEB0F392944; };
@@ -163,6 +166,7 @@
 		6CE3360A7682961CC0DE9210 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D507BA12DA360B6936CA1DD9; };
 		ABCDB4BB515BC514D167E03B /* KraftwuerfelWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6104AD744B804C53DAD395D5; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		979FE6DF5A4264332CF77E2E /* KraftwuerfelWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = EE0911BAC1EFE74CAB082F7D; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CC970CA7CF451E39ADCEB4E0 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = F361807605C33B89606B239E /* GoogleMobileAds */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -231,6 +235,7 @@
 		6ACD914D305578CBCD228707 /* PlanGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanGenerator.swift; sourceTree = "<group>"; };
 		922A9D24DAD9D5E9BB2C2E7B /* PlanNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanNames.swift; sourceTree = "<group>"; };
 		9C3E1B727AA13E09A9CC46BB /* PlanQualityScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanQualityScore.swift; sourceTree = "<group>"; };
+		B56B8E01883573F2034383C0 /* ProFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProFeature.swift; sourceTree = "<group>"; };
 		1CD021657C1A1309D38F8CB1 /* SavedItems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedItems.swift; sourceTree = "<group>"; };
 		1650B3D3ECC653B2E5F8C3A6 /* TrainingPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlan.swift; sourceTree = "<group>"; };
 		E4CB41DAFE339D54642D5811 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
@@ -240,6 +245,7 @@
 		143D0536A1C6868D5EAC73D3 /* AdManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdManager.swift; sourceTree = "<group>"; };
 		B242F77CD447EBA8F2C1826C /* AICoachService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoachService.swift; sourceTree = "<group>"; };
 		A3439344959F7B91B1E319F2 /* AICoachSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoachSession.swift; sourceTree = "<group>"; };
+		B3C3A6E5A16F99C1A3694919 /* AudioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionManager.swift; sourceTree = "<group>"; };
 		CD025517398B53CC99AFC955 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		D5D59444305CF41724CD8A71 /* BackendStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendStatus.swift; sourceTree = "<group>"; };
 		CFF53B7670911F2A402F1262 /* ChallengeSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeSession.swift; sourceTree = "<group>"; };
@@ -248,6 +254,7 @@
 		43ACD2D987A7F679E9972D40 /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
 		1AA6AA630C0CD022607D90E5 /* FitnessFactsProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessFactsProvider.swift; sourceTree = "<group>"; };
 		D350BC2E8BCAB7F73F153DE6 /* GeneratorSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratorSettings.swift; sourceTree = "<group>"; };
+		CAB15F2D8EDB67DB4D5A59B4 /* GoogleAdsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAdsService.swift; sourceTree = "<group>"; };
 		DEC1C987A9B8B96159EF8F08 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
 		6A932516C25EFC8CB6613B44 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
 		F4A975003A431FEB0F392944 /* KraftAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KraftAPI.swift; sourceTree = "<group>"; };
@@ -365,6 +372,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC970CA7CF451E39ADCEB4E0 /* GoogleMobileAds in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -390,6 +398,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F0B4539FDFC492B8A2D4F632 /* XCRemoteSwiftPackageReference "GoogleMobileAds" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F361807605C33B89606B239E /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F0B4539FDFC492B8A2D4F632 /* XCRemoteSwiftPackageReference "GoogleMobileAds" */;
+			productName = GoogleMobileAds;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin PBXGroup section */
 		398AC4DB3E63216EDC83A3DC /* Kraftwuerfel */ = {
@@ -437,6 +464,7 @@
 				6ACD914D305578CBCD228707 /* PlanGenerator.swift */,
 				922A9D24DAD9D5E9BB2C2E7B /* PlanNames.swift */,
 				9C3E1B727AA13E09A9CC46BB /* PlanQualityScore.swift */,
+				B56B8E01883573F2034383C0 /* ProFeature.swift */,
 				1CD021657C1A1309D38F8CB1 /* SavedItems.swift */,
 				1650B3D3ECC653B2E5F8C3A6 /* TrainingPlan.swift */,
 				E4CB41DAFE339D54642D5811 /* UserProfile.swift */,
@@ -460,6 +488,7 @@
 				143D0536A1C6868D5EAC73D3 /* AdManager.swift */,
 				B242F77CD447EBA8F2C1826C /* AICoachService.swift */,
 				A3439344959F7B91B1E319F2 /* AICoachSession.swift */,
+				B3C3A6E5A16F99C1A3694919 /* AudioSessionManager.swift */,
 				CD025517398B53CC99AFC955 /* AuthService.swift */,
 				D5D59444305CF41724CD8A71 /* BackendStatus.swift */,
 				CFF53B7670911F2A402F1262 /* ChallengeSession.swift */,
@@ -468,6 +497,7 @@
 				43ACD2D987A7F679E9972D40 /* FavoritesStore.swift */,
 				1AA6AA630C0CD022607D90E5 /* FitnessFactsProvider.swift */,
 				D350BC2E8BCAB7F73F153DE6 /* GeneratorSettings.swift */,
+				CAB15F2D8EDB67DB4D5A59B4 /* GoogleAdsService.swift */,
 				DEC1C987A9B8B96159EF8F08 /* HealthKitManager.swift */,
 				6A932516C25EFC8CB6613B44 /* Keychain.swift */,
 				F4A975003A431FEB0F392944 /* KraftAPI.swift */,
@@ -738,6 +768,9 @@
 			);
 			name = Kraftwuerfel;
 			productName = Kraftwuerfel;
+			packageProductDependencies = (
+				F361807605C33B89606B239E /* GoogleMobileAds */,
+			);
 			productReference = 4ED5F5CA262931A7040BA961 /* Kraftwuerfel.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -829,6 +862,9 @@
 			mainGroup = 2A44C54E23411059C3A1A1E1;
 			productRefGroup = C863DA5204F95EC573510473 /* Products */;
 			projectDirPath = "";
+			packageReferences = (
+				F0B4539FDFC492B8A2D4F632 /* XCRemoteSwiftPackageReference "GoogleMobileAds" */,
+			);
 			projectRoot = "";
 			targets = (
 				7DF4BA67D084C718F5E787AF /* Kraftwuerfel */,
@@ -909,6 +945,7 @@
 				707CE6D5D7DEC6B4839FACFB /* PlanGenerator.swift */,
 				3EE30B4D3CAF10ADCA20ADA7 /* PlanNames.swift */,
 				43E649F8D436BEB422AA1718 /* PlanQualityScore.swift */,
+				03578C362669E4A6CC582D37 /* ProFeature.swift */,
 				E42ABEFCFB88DC2E0BD9E4AF /* SavedItems.swift */,
 				673A961D5AD58572FC6DD12E /* TrainingPlan.swift */,
 				B990741927F7A23F4DF620E3 /* UserProfile.swift */,
@@ -917,6 +954,7 @@
 				7816E9151DEF589A671673C4 /* ActivePlanStore.swift */,
 				EC0616005660237177DAAEF7 /* ActivityKitManager.swift */,
 				A4177A977D95F1B2782C2504 /* AdManager.swift */,
+				896A64903BEF5B2D9EB48D04 /* AudioSessionManager.swift */,
 				0720976ECC6DBD85E15DDC28 /* AuthService.swift */,
 				7A8A227A85B7F05282F2A648 /* BackendStatus.swift */,
 				15ED6240176FE31BEF456B3F /* ChallengeSession.swift */,
@@ -925,6 +963,7 @@
 				C169AAFCAB7EF4699347D63C /* FavoritesStore.swift */,
 				A12A87B4498D9F1D0BF9B276 /* FitnessFactsProvider.swift */,
 				F441D7DF04BE90FF88DE6DA6 /* GeneratorSettings.swift */,
+				ADF7D7A2CD3AAF7BEA3F640A /* GoogleAdsService.swift */,
 				0B03B68C07DDE19DAF5FA8A6 /* HealthKitManager.swift */,
 				6816E0AC454D8A08508EEBE0 /* Keychain.swift */,
 				D11BB61CEB1770EC646530C4 /* KraftAPI.swift */,

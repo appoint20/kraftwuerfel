@@ -218,7 +218,22 @@ public struct SavedPlansView: View {
 
     @ViewBuilder
     private var workoutsList: some View {
-        if saved.plans.isEmpty {
+        /*
+          Gespeicherte Workouts sind eine Pro-Funktion — genau wie KI-Pläne
+          und Meal Guides daneben. Dieser Abschnitt war als einziger offen:
+          Wer Pro hatte, speicherte Pläne, und nach Ablauf des Abos standen
+          sie weiter da. Genau das war zu sehen.
+
+          Die Daten bleiben liegen und werden NICHT gelöscht. Ein abgelaufenes
+          Abo ist kein Grund, die Arbeit des Nutzers wegzuwerfen — wer wieder
+          abschließt, findet seine Pläne vor.
+        */
+        if !storeKit.isProUnlocked {
+            proSavedGate(
+                title: i18n.t("saved.tabWorkouts"),
+                desc: ProFeature.savedPlans.localizedSubtitle(i18n.lang)
+            )
+        } else if saved.plans.isEmpty {
             EmptySavedState(icon: "bookmark.slash", text: i18n.t("saved.emptyWorkouts"))
         } else {
             VStack(spacing: 10) {

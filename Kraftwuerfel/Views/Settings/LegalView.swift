@@ -218,7 +218,14 @@ public enum LegalContent {
                 Benutzerkontos, die Synchronisation des Pro-Status und die Generierung von individuellen \
                 Trainings- und Ernährungsplänen erforderlich sind.
 
-                Wir setzen keine Werbe-SDKs, keine Tracking-Tools und keine Analyse-Cookies ein.
+                Werbung: Für Nutzerinnen und Nutzer ohne Pro-Abo bindet die App Google AdMob ein \
+                (Google Ireland Limited). Dabei können Gerätekennungen und Nutzungsdaten an Google \
+                übertragen und dort auch außerhalb der EU verarbeitet werden. Vor dem ersten Laden \
+                fragen wir Deine Einwilligung über Googles User Messaging Platform ab (Art. 6 Abs. 1 \
+                lit. a DSGVO) sowie zusätzlich Apples Tracking-Erlaubnis. Lehnst Du ab, siehst Du \
+                weiterhin Werbung, aber keine personalisierte. Mit einem Pro-Abo entfällt die \
+                Werbung vollständig — dann wird das Werbe-SDK gar nicht erst geladen. \
+                Analyse-Cookies und geräteübergreifendes Tracking durch uns selbst gibt es nicht.
                 """
             ),
             Section(
@@ -309,11 +316,27 @@ public enum LegalContent {
             Section(
                 heading: "5. Apple Health & Lokale Speicherung",
                 body: """
-                • Apple Health (HealthKit): Die App kann optional während eines Workouts Deine Herzfrequenz \
-                anzeigen. Diese Daten verbleiben zu 100 % lokal auf Deinem Endgerät und werden zu keinem \
-                Zeitpunkt an unsere Server übertragen.
-                • Lokale Speicherung: Gespeicherte Pläne, Einstellungen und Würfelergebnisse werden \
-                lokal in UserDefaults bzw. im iOS-Schlüsselbund (Keychain für Sitzungs-Tokens) abgelegt.
+                • Apple Health (HealthKit) — Lesen: Mit Deiner Erlaubnis liest die App Deine Herzfrequenz \
+                (Anzeige während der Live-Session) sowie Gewicht, Größe, Körperfettanteil, Geburtsdatum \
+                und Geschlecht. Letztere werden ausschließlich dazu verwendet, den Fragebogen nach der \
+                Registrierung vorauszufüllen, damit Du sie nicht abtippen musst.
+                • Apple Health (HealthKit) — Schreiben: Mit Deiner Erlaubnis schreibt die App Dein Gewicht \
+                und Deinen Körperfettanteil (Deine eigenen Eingaben aus dem Profil) sowie abgeschlossene \
+                Trainings nach Apple Health. Aktive Energie wird nur geschrieben, wenn sie von einer Apple \
+                Watch gemessen wurde. Geschätzte oder gerechnete Werte — etwa die Puls- und Kalorien\u{00AD}schätzung \
+                der Live-Session ohne Uhr — werden ausdrücklich NIE nach Apple Health geschrieben.
+                • Health-Daten verbleiben zu 100 % lokal auf Deinem Endgerät und werden zu keinem \
+                Zeitpunkt an unsere Server übertragen. Du kannst jede einzelne Berechtigung jederzeit in \
+                der Health-App unter „Datenzugriff & Geräte" widerrufen.
+                • Lokale Speicherung: Dein Profil (Körperdaten, Ziel, Ausrüstung, Ernährungsform), \
+                gespeicherte Pläne, das Trainingsarchiv, Einstellungen und Würfelergebnisse werden \
+                lokal in UserDefaults bzw. im iOS-Schlüsselbund (Keychain für Sitzungs-Tokens) abgelegt. \
+                Das Profil enthält Gesundheitsdaten im Sinne von Art. 9 DSGVO und wird beim Löschen \
+                Deines Kontos vollständig mit entfernt.
+                • Mitteilungen: Auf Wunsch erinnert Dich die App an Deinen Trainingstagen um 09:00 Uhr \
+                und 30 Minuten nach einer beendeten Einheit an Deinen Protein-Shake. Diese Erinnerungen \
+                werden ausschließlich lokal auf Deinem Gerät geplant; es findet kein Versand über \
+                Push-Server statt und wir erfahren nicht, ob oder wann sie erscheinen.
                 """
             ),
             Section(
@@ -422,7 +445,14 @@ public enum LegalContent {
                 (Art. 5 GDPR). We only process data required to provide your account, sync your Pro status, \
                 and generate customized workout and nutrition plans.
 
-                We do not use advertising SDKs, tracking tools, or analytics cookies.
+                Advertising: for users without a Pro subscription the app embeds Google AdMob \
+                (Google Ireland Limited). This can transmit device identifiers and usage data to \
+                Google, including processing outside the EU. Before anything is loaded we ask for \
+                your consent via Google's User Messaging Platform (Art. 6(1)(a) GDPR) and \
+                additionally for Apple's tracking permission. If you decline you still see ads, but \
+                not personalised ones. With a Pro subscription ads disappear entirely — the ad SDK \
+                is then never loaded at all. We use no analytics cookies and do no cross-device \
+                tracking of our own.
                 """
             ),
             Section(
@@ -500,10 +530,25 @@ public enum LegalContent {
             Section(
                 heading: "5. Apple Health & Local Storage",
                 body: """
-                • Apple Health (HealthKit): The app can optionally display your heart rate during workouts. \
-                This data stays 100% on your local device and is never sent to our servers.
-                • Local Storage: Favorites, generated plans, and settings are stored locally in \
-                UserDefaults and Keychain (secure session tokens).
+                • Apple Health (HealthKit) — reading: With your permission the app reads your heart rate \
+                (shown during the live session) as well as weight, height, body fat, date of birth and \
+                sex. The latter are used solely to pre-fill the questionnaire after registration so you \
+                do not have to type them.
+                • Apple Health (HealthKit) — writing: With your permission the app writes your weight and \
+                body fat (your own entries from your profile) and finished workouts to Apple Health. \
+                Active energy is only written when it was measured by an Apple Watch. Estimated or \
+                calculated values — such as the heart rate and calorie estimate shown during a live \
+                session without a watch — are explicitly NEVER written to Apple Health.
+                • Health data stays 100% on your local device and is never sent to our servers. You can \
+                revoke each individual permission at any time in the Health app under "Data Access & Devices".
+                • Local storage: your profile (body data, goal, equipment, diet), saved plans, the training \
+                archive, settings and dice results are stored locally in UserDefaults and the iOS Keychain \
+                (session tokens). Your profile contains health data within the meaning of Art. 9 GDPR and \
+                is removed in full when you delete your account.
+                • Notifications: if you allow it, the app reminds you at 09:00 on your training days and \
+                30 minutes after a finished session to have your protein shake. These reminders are \
+                scheduled locally on your device only; nothing is sent through push servers and we do not \
+                learn whether or when they appear.
                 """
             ),
             Section(

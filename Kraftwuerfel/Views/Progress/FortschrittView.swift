@@ -555,9 +555,18 @@ public struct FortschrittView: View {
     // MARK: - Trainingstagebuch (Liste)
 
     private var workoutHistoryDiary: some View {
-        let isFullArchiveUnlocked = storeKit.isProUnlocked || adManager.isHistoryArchiveUnlocked
-        let displayLogs = isFullArchiveUnlocked ? history.logs : Array(history.logs.prefix(3))
-        let lockedCount = max(0, history.logs.count - 3)
+        /*
+          Das Trainingsarchiv ist eine Pro-Funktion.
+
+          Vorher waren die letzten drei Einheiten frei und der Rest gesperrt.
+          Die Einheiten werden weiterhin für JEDEN mitgeschrieben — gesperrt
+          ist das Ansehen, nicht das Aufzeichnen. Wer später abschließt,
+          findet seine Vergangenheit vor, statt bei null anzufangen; und wer
+          das Abo auslaufen lässt, verliert nichts.
+        */
+        let isFullArchiveUnlocked = storeKit.isProUnlocked
+        let displayLogs = isFullArchiveUnlocked ? history.logs : []
+        let lockedCount = isFullArchiveUnlocked ? 0 : history.logs.count
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack {

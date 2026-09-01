@@ -28,6 +28,26 @@
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!--
+	  AdMob.
+
+	  Die App-ID ist Googles TEST-ID. Das ist Absicht: Mit der echten ID in
+	  einem Entwicklungsbuild erzeugt jeder Testlauf ungültige Impressionen,
+	  und Google sperrt dafür Konten. Vor dem Ausliefern hier die echte
+	  App-ID aus der AdMob-Konsole eintragen und zusätzlich
+	  KWAdUnitRewarded / KWAdUnitInterstitial setzen — solange die beiden
+	  fehlen, benutzt GoogleAdsService ebenfalls Googles Testblöcke.
+	-->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
+
+	<!--
+	  Ohne diesen Text zeigt iOS die Tracking-Abfrage gar nicht erst an, und
+	  ohne Abfrage gibt es nur nicht-personalisierte Werbung.
+	-->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Damit wir dir Werbung zeigen können, die zu dir passt, statt beliebiger Anzeigen. Du kannst das ablehnen — die App funktioniert unverändert und du siehst dann allgemeine Werbung.</string>
+
 	<key>NSAppleMusicUsageDescription</key>
 	<string>Kraftwürfel spielt Titel aus deiner Mediathek während der Live-Session ab.</string>
 	<key>NSHealthShareUsageDescription</key>

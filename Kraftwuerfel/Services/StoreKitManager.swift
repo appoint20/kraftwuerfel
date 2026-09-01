@@ -47,14 +47,33 @@ public final class StoreKitManager: ObservableObject {
 
     #if DEBUG
     /*
-      Nur im Debug-Build: schaltet Pro zum Ausprobieren frei. Standard ist an,
-      damit das Testen im Simulator wie bisher funktioniert — im Release-Build
-      existiert die Eigenschaft gar nicht, dort zählt allein die Berechtigung.
+      Nur im Debug-Build: schaltet Pro zum Ausprobieren frei.
+
+      Zwei Dinge waren an der vorherigen Fassung falsch, und beide zusammen
+      ergaben den Eindruck, das Speichern sei kaputt.
+
+      Erstens stand der Standard auf AN. Damit war `isProUnlocked` in jedem
+      Entwicklungsbuild wahr, sobald jemand angemeldet war — jede Pro-Sperre
+      sah offen aus, unabhängig davon, ob ein Abo lief. Gespeicherte Pläne
+      blieben sichtbar, obwohl das Abo abgelaufen war. Es funktionierte
+      alles; nur stand die Tür in der Entwicklung immer offen.
+
+      Zweitens lag der Schalter in UserDefaults und überlebte damit jeden
+      Neustart. Wer ihn einmal zum Prüfen anschaltete, hatte ihn Wochen
+      später immer noch an und wusste es nicht.
+
+      Er kommt deshalb jetzt aus einem Startargument und wird nirgends
+      gespeichert: Er gilt für genau einen Programmlauf und ist im Schema
+      sichtbar, statt unsichtbar in den Voreinstellungen zu liegen.
+
+          Product → Scheme → Run → Arguments → "-KraftDebugPro"
+
+      Im Release-Build existiert die Eigenschaft gar nicht; dort zählt
+      allein die Berechtigung von Apple.
     */
-    private static let debugOverrideKey = "kraftwuerfel:debugPro"
-    @Published public var debugProOverride: Bool = UserDefaults.standard.object(forKey: "kraftwuerfel:debugPro") as? Bool ?? true {
+    @Published public var debugProOverride: Bool = ProcessInfo.processInfo.arguments.contains("-KraftDebugPro") {
         didSet {
-            UserDefaults.standard.set(debugProOverride, forKey: Self.debugOverrideKey)
+            // Absichtlich ohne Speichern — siehe oben.
             Task { await refreshEntitlements() }
         }
     }
