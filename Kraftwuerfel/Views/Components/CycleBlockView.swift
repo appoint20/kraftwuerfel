@@ -68,6 +68,7 @@ public struct CycleBlockView: View {
 
             ForEach(Array(slots.enumerated()), id: \.element.id) { idx, slot in
                 HStack(spacing: 10) {
+                    ExerciseVisual(exercise: slot.exercise, size: 36)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(i18n.exerciseName(slot.exercise))
                             .kwStyle(.rowName)

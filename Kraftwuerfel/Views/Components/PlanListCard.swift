@@ -172,6 +172,7 @@ public struct PlanSlotRows: View {
         VStack(spacing: 0) {
             ForEach(Array(slots.enumerated()), id: \.element.id) { idx, slot in
                 HStack(spacing: 10) {
+                    ExerciseVisual(exercise: slot.exercise, size: 32)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(i18n.exerciseName(slot.exercise)).kwStyle(.rowName).lineLimit(1)
                         Text(i18n.category(slot.exercise.category)).kwStyle(.rowCat)

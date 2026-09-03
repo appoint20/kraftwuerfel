@@ -60,7 +60,7 @@ public enum Strings {
         "greeting.sentence.24": "Bleib dran, {name} – es lohnt sich!",
         "greeting.sentence.25": "Willkommen zurück in der Schmerzzone des Wachstums, {name}.",
         "auth.nameLabel": "DEIN VORNAME / NAME",
-        "auth.namePlaceholder": "z. B. Shivm",
+        "auth.namePlaceholder": "z. B. Max",
         "auth.emailLabel": "E-MAIL",
         "auth.passwordLabel": "PASSWORT",
         "auth.passwordConfirmLabel": "PASSWORT WIEDERHOLEN",
@@ -348,6 +348,7 @@ public enum Strings {
         "saved.saveFailed": "Nicht gespeichert",
         "saved.open": "Öffnen",
         "saved.close": "Schließen",
+        "exercise.imageHint": "Tippen zeigt das Bild groß",
         "saved.days": "{n} Tage",
         "saved.weeks": "{n} Wochen",
         "meal.perDay": "kcal / Tag",
@@ -561,6 +562,11 @@ public enum Strings {
         "saved.setActiveBody": "„{name}“ wird dein laufender Trainingsplan. Du verfolgst ihn dann im Trainingsplan-Tab mit Wochen und Zyklen.",
         "saved.setActiveReplace": "„{name}“ ersetzt deinen laufenden Trainingsplan. Der bisherige Fortschritt geht dabei verloren.",
 
+        "ai.gateTitle": "{done} von {total} Videos gesehen",
+        "ai.gateText": "Der KI-Coach ist eine Pro-Funktion. Kostenlos schaltest du je einen Plan mit kurzen Videos frei — das gilt auch für jeden weiteren Plan.",
+        "ai.gateWatch": "VIDEO ANSEHEN",
+        "ai.gateSkipWithPro": "Mit Pro ohne Videos — jederzeit",
+
         // Anmeldeschranke beim Start
         "gate.title": "WILLKOMMEN",
         "gate.subtitle": "Melde dich an, um deine Pläne, Fortschritte und den KI-Coach auf allen Geräten zu behalten.",
@@ -618,8 +624,8 @@ public enum Strings {
         "profile.incompleteTitle": "Profil noch nicht ausgefüllt",
         "profile.incompleteText": "Beantworte den Fragebogen einmal, dann erstellt der Coach deinen Plan ohne weitere Fragen.",
         "profile.incompleteCta": "FRAGEBOGEN AUSFÜLLEN",
-        "profile.limitations": "Verletzungen oder Einschränkungen (optional)",
-        "profile.limitationsHint": "z. B. „empfindliche Knie, keine Sprünge“",
+        "profile.limitations": "Wünsche & Einschränkungen für den Coach (optional)",
+        "profile.limitationsHint": "z. B. „empfindliche Knie, keine Sprünge, kurze Pausen bitte“",
         "profile.selfAssessment": "SELBSTEINSCHÄTZUNG",
 
         // Ein-Tipp-Erzeugung
@@ -665,7 +671,7 @@ public enum Strings {
         "greeting.sentence.24": "Stay consistent, {name} – it always pays off!",
         "greeting.sentence.25": "Welcome back to the growth zone, {name}.",
         "auth.nameLabel": "YOUR FIRST NAME / NAME",
-        "auth.namePlaceholder": "e.g. Shivm",
+        "auth.namePlaceholder": "e.g. Alex",
         "auth.emailLabel": "EMAIL",
         "auth.passwordLabel": "PASSWORD",
         "auth.passwordConfirmLabel": "CONFIRM PASSWORD",
@@ -945,6 +951,7 @@ public enum Strings {
         "saved.saveFailed": "Not saved",
         "saved.open": "Open",
         "saved.close": "Close",
+        "exercise.imageHint": "Tap to see the image full screen",
         "saved.days": "{n} days",
         "saved.weeks": "{n} weeks",
         "meal.perDay": "kcal / day",
@@ -1155,6 +1162,11 @@ public enum Strings {
         "saved.setActiveBody": "\"{name}\" becomes your running training plan. You'll track it in the Training Plan tab with weeks and cycles.",
         "saved.setActiveReplace": "\"{name}\" replaces your running training plan. Your current progress will be lost.",
 
+        "ai.gateTitle": "{done} of {total} videos watched",
+        "ai.gateText": "The AI coach is a Pro feature. For free you unlock one plan at a time with short videos — that applies to every further plan too.",
+        "ai.gateWatch": "WATCH VIDEO",
+        "ai.gateSkipWithPro": "Skip the videos with Pro — any time",
+
         // Sign-in wall at launch
         "gate.title": "WELCOME",
         "gate.subtitle": "Sign in to keep your plans, your progress and the AI coach across all your devices.",
@@ -1212,8 +1224,8 @@ public enum Strings {
         "profile.incompleteTitle": "Profile not filled in yet",
         "profile.incompleteText": "Answer the questionnaire once and the coach will build your plan without asking again.",
         "profile.incompleteCta": "FILL IN QUESTIONNAIRE",
-        "profile.limitations": "Injuries or limitations (optional)",
-        "profile.limitationsHint": "e.g. \"sensitive knees, no jumping\"",
+        "profile.limitations": "Notes & limitations for the coach (optional)",
+        "profile.limitationsHint": "e.g. \"sensitive knees, no jumping, keep rests short\"",
         "profile.selfAssessment": "SELF-ASSESSMENT",
 
         // One-tap generation

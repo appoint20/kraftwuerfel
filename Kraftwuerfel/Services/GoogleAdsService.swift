@@ -43,16 +43,60 @@ public final class GoogleAdsService: NSObject, ObservableObject {
     */
     private enum TestUnit {
         static let rewarded = "ca-app-pub-3940256099942544/1712485313"
+        /// Googles Testblock für Rewarded Interstitial — anderes Format,
+        /// andere Kennung.
+        static let rewardedInterstitial = "ca-app-pub-3940256099942544/6978759866"
         static let interstitial = "ca-app-pub-3940256099942544/4411468910"
+        static let banner = "ca-app-pub-3940256099942544/2934735716"
     }
 
-    private var rewardedUnitId: String {
-        Bundle.main.object(forInfoDictionaryKey: "KWAdUnitRewarded") as? String ?? TestUnit.rewarded
+    private static func configuredUnit(_ key: String) -> String? {
+        let value = (Bundle.main.object(forInfoDictionaryKey: key) as? String) ?? ""
+        return value.isEmpty ? nil : value
     }
 
-    private var interstitialUnitId: String {
-        Bundle.main.object(forInfoDictionaryKey: "KWAdUnitInterstitial") as? String ?? TestUnit.interstitial
+    /*
+      Der belohnte Block ist eine Rewarded INTERSTITIAL, keine klassische
+      Rewarded-Anzeige — so ist er in der AdMob-Konsole angelegt.
+
+      Der Unterschied ist nicht kosmetisch: `GADRewardedAd.load` lehnt eine
+      Rewarded-Interstitial-Kennung ab, weil das Format nicht passt. Geladen
+      wird deshalb über `GADRewardedInterstitialAd`.
+
+      Bleibt die Kennung leer, heißt `nil` für den Aufrufer „gibt es nicht" —
+      AdManager verlangt dann keine Videos, statt eine Schranke aufzustellen,
+      die sich nicht öffnen lässt.
+    */
+    public static var rewardedUnitId: String? {
+        if let configured = configuredUnit("KWAdUnitRewarded") { return configured }
+        #if DEBUG
+        return TestUnit.rewardedInterstitial
+        #else
+        return nil
+        #endif
     }
+
+    private static var interstitialUnitId: String? {
+        if let configured = configuredUnit("KWAdUnitInterstitial") { return configured }
+        #if DEBUG
+        return TestUnit.interstitial
+        #else
+        return nil
+        #endif
+    }
+
+    /// Der Banner unten am Bildschirm für Gratis-Nutzer.
+    public static var bannerUnitId: String? {
+        if let configured = configuredUnit("KWAdUnitBanner") { return configured }
+        #if DEBUG
+        return TestUnit.banner
+        #else
+        return nil
+        #endif
+    }
+
+    /// Ob der KI-Coach überhaupt Videos verlangen kann.
+    public static var hasRewardedUnit: Bool { rewardedUnitId != nil }
 
     /// Googles öffentliche Test-App-ID. Steht sie im Release-Build, ist die
     /// echte schlicht vergessen worden.
@@ -87,7 +131,7 @@ public final class GoogleAdsService: NSObject, ObservableObject {
     @Published public private(set) var isReady = false
     @Published public private(set) var hasConsent = false
 
-    private var rewardedAd: GADRewardedAd?
+    private var rewardedAd: GADRewardedInterstitialAd?
     private var interstitialAd: GADInterstitialAd?
     private var isStarting = false
 
@@ -160,13 +204,13 @@ public final class GoogleAdsService: NSObject, ObservableObject {
     }
 
     private func loadRewarded() async {
-        guard isReady, rewardedAd == nil else { return }
-        rewardedAd = try? await GADRewardedAd.load(withAdUnitID: rewardedUnitId, request: GADRequest())
+        guard isReady, rewardedAd == nil, let unit = Self.rewardedUnitId else { return }
+        rewardedAd = try? await GADRewardedInterstitialAd.load(withAdUnitID: unit, request: GADRequest())
     }
 
     private func loadInterstitial() async {
-        guard isReady, interstitialAd == nil else { return }
-        interstitialAd = try? await GADInterstitialAd.load(withAdUnitID: interstitialUnitId, request: GADRequest())
+        guard isReady, interstitialAd == nil, let unit = Self.interstitialUnitId else { return }
+        interstitialAd = try? await GADInterstitialAd.load(withAdUnitID: unit, request: GADRequest())
     }
 
     // MARK: - Zeigen
@@ -178,6 +222,10 @@ public final class GoogleAdsService: NSObject, ObservableObject {
       Belohntes Video. `onReward` läuft NUR, wenn Google die Belohnung
       bestätigt — also wenn das Video zu Ende gesehen wurde. Wer wegtippt,
       bekommt nichts; sonst wäre die Schranke keine.
+
+      Google verlangt für Rewarded Interstitials einen Hinweis VOR der
+      Anzeige. Den liefert die Aufruferseite: Der KI-Coach zeigt eine Karte
+      mit „Video ansehen" und dem Fortschritt, angetippt wird also bewusst.
     */
     @discardableResult
     public func showRewarded(onReward: @escaping () -> Void) -> Bool {
@@ -244,5 +292,50 @@ extension GoogleAdsService: GADFullScreenContentDelegate {
 
     public nonisolated func adDidDismissFullScreenContent(_ ad: GADFullScreenPresentingAd) {
         Task { @MainActor in await preload() }
+    }
+}
+
+
+/*
+  Der echte AdMob-Banner.
+
+  Hier stand eine selbstgebaute Zeile mit der Aufschrift „Anzeige · Trainiere
+  smarter mit Kraftwuerfel" — also eine nachgebaute Werbung ohne
+  Werbetreibenden dahinter. Das ist Platzhalterinhalt
+  (App-Store-Richtlinie 2.1) und wäre mit eingeschalteter Werbung tatsächlich
+  ausgeliefert worden.
+
+  Adaptiv statt fester 320×50: Der Banner nimmt die Breite des Geräts und
+  bestimmt daraus die Höhe, die Google für diese Breite empfiehlt. Ein fester
+  Banner sieht auf einem großen Telefon verloren aus.
+*/
+public struct AdMobBanner: UIViewRepresentable {
+    private let unitId: String
+    private let width: CGFloat
+
+    public init(unitId: String, width: CGFloat) {
+        self.unitId = unitId
+        self.width = width
+    }
+
+    public func makeUIView(context: Context) -> GADBannerView {
+        let size = GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(width)
+        let banner = GADBannerView(adSize: size)
+        banner.adUnitID = unitId
+        banner.rootViewController = GoogleAdsService.topViewController()
+        banner.load(GADRequest())
+        return banner
+    }
+
+    public func updateUIView(_ banner: GADBannerView, context: Context) {
+        // Die Wurzelansicht kann sich ändern (Blatt auf, Blatt zu).
+        if banner.rootViewController == nil {
+            banner.rootViewController = GoogleAdsService.topViewController()
+        }
+    }
+
+    /// Die von Google empfohlene Höhe für diese Breite.
+    public static func height(forWidth width: CGFloat) -> CGFloat {
+        GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(width).size.height
     }
 }

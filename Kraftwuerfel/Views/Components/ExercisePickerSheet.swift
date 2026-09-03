@@ -284,7 +284,7 @@ public struct ExercisePickerSheet: View {
                         .foregroundColor(selected ? Theme.accent : (blocked ? Theme.border : Theme.muted))
                 }
 
-                ExerciseVisual(category: exercise.category, size: 38)
+                ExerciseVisual(exercise: exercise, category: exercise.category, size: 38, tappable: false)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(exercise.localizedName(language: i18n.lang))

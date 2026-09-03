@@ -18,6 +18,8 @@ struct KraftwuerfelWatchApp: App {
     @StateObject private var sync = WatchSyncManager.shared
     @StateObject private var workout = WatchWorkoutManager.shared
 
+    @Environment(\.scenePhase) private var scenePhase
+
     init() {
         // Die Gegenstelle muss stehen, bevor das iPhone den ersten Zustand
         // schickt — sonst geht der Start der Sitzung verloren.
@@ -30,6 +32,18 @@ struct KraftwuerfelWatchApp: App {
                 .environmentObject(sync)
                 .environmentObject(workout)
                 .task { await workout.requestAuthorization() }
+        }
+        /*
+          Jedes Mal nachfragen, wenn die App wieder nach vorn kommt.
+
+          Im Hintergrund kann die Uhr Nachrichten verpassen — und weil Zustand
+          bisher nur bei Änderungen auf dem iPhone floss, blieb ein verpasster
+          Wechsel für den Rest des Trainings verpasst. Genau das war die
+          „verlorene Verbindung", die sich nur durch Schließen der App und einen
+          abgehakten Satz am iPhone lösen ließ.
+        */
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { WatchSyncManager.shared.requestState() }
         }
     }
 }

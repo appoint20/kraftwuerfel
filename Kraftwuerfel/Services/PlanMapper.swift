@@ -81,11 +81,22 @@ public enum PlanMapper {
                             $0.name.localizedCaseInsensitiveContains(name) || name.localizedCaseInsensitiveContains($0.name)
                         }
                         guard let exercise else { return nil }
+                        /*
+                          Die Satzpause wird gekappt, nicht übernommen.
+
+                          Der Server begrenzt sie inzwischen selbst, aber ein
+                          Plan kann aus dem Cache stammen, der noch vor dieser
+                          Änderung entstanden ist — dort stehen weiterhin bis
+                          zu 180 Sekunden. Und ein gespeicherter Plan lebt
+                          länger als ein Serverstand.
+                        */
+                        let maxRest = input?.restSeconds ?? 180
+                        let rawRest = ex["rest"] as? Int ?? 60
                         return ExerciseSlot(
                             exercise: exercise,
                             sets: ex["sets"] as? Int ?? 3,
                             reps: ex["reps"] as? String ?? PlanGenerator.defaultReps,
-                            restSeconds: ex["rest"] as? Int ?? 60,
+                            restSeconds: min(rawRest, maxRest),
                             note: ex["note"] as? String ?? ""
                         )
                     }

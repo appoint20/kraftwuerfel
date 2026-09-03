@@ -73,6 +73,17 @@ public final class StoreKitManager: ObservableObject {
     */
     @Published public var debugProOverride: Bool = ProcessInfo.processInfo.arguments.contains("-KraftDebugPro") {
         didSet {
+            /*
+              Beim Einschalten sofort wirken, nicht erst nach dem Nachfragen.
+
+              `refreshEntitlements()` läuft asynchron. Wurde der Schalter kurz
+              zuvor ausgeschaltet, konnte dessen Nachfrage danach landen und
+              `isProUnlocked` wieder auf false setzen — der Schalter stand auf
+              an, die App zeigte trotzdem die kostenlose Fassung. Dass der
+              Schalter gilt, ist eine rein lokale Entscheidung und braucht
+              StoreKit nicht.
+            */
+            if debugProOverride { isProUnlocked = true }
             // Absichtlich ohne Speichern — siehe oben.
             Task { await refreshEntitlements() }
         }
@@ -229,10 +240,21 @@ public final class StoreKitManager: ObservableObject {
 
         var unlocked = false
         var winningJws: String?
+        /*
+          Ob wir überhaupt etwas über dieses Konto erfahren haben.
+
+          `Transaction.currentEntitlements` liefert eine leere Folge in zwei
+          völlig verschiedenen Fällen: „kein Abo" und „konnte gerade nicht
+          nachsehen" (kein App-Store-Konto auf dem Gerät, Start noch nicht
+          durch, Netzproblem). Diese beiden auseinanderzuhalten ist der Kern
+          der Sache — siehe unten bei `syncEntitlementToServer`.
+        */
+        var sawAnyEntitlement = false
 
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result else { continue }
             guard Self.allProductIds.contains(transaction.productID) else { continue }
+            sawAnyEntitlement = true
             if transaction.revocationDate != nil { continue }
             if let expiry = transaction.expirationDate, expiry <= Date() { continue }
             unlocked = true
@@ -240,8 +262,23 @@ public final class StoreKitManager: ObservableObject {
             break
         }
 
-        isProUnlocked = unlocked
-        await syncEntitlementToServer(unlocked: unlocked, jws: winningJws)
+        /*
+          Der Server ist der zweite, gleichwertige Nachweis.
+
+          Er setzt `is_premium` nur nach geprüfter Apple-Signatur — die
+          Angabe ist also nicht schlechter als die lokale Prüfung, nur an
+          einer anderen Stelle. Ohne sie war ein zahlender Nutzer auf einem
+          zweiten Gerät (oder direkt nach einer Neuinstallation, bevor
+          StoreKit geantwortet hat) schlicht „kostenlos".
+        */
+        let serverSaysPremium = AuthService.shared.account?.isPremium == true
+        isProUnlocked = unlocked || serverSaysPremium
+
+        await syncEntitlementToServer(
+            unlocked: unlocked,
+            jws: winningJws,
+            sawAnyEntitlement: sawAnyEntitlement
+        )
     }
 
     /*
@@ -254,15 +291,38 @@ public final class StoreKitManager: ObservableObject {
       diese Funktion aufgerufen wird. Das hier ist Abgleich, keine zweite
       Freischaltung.
     */
-    private func syncEntitlementToServer(unlocked: Bool, jws: String?) async {
+    private func syncEntitlementToServer(
+        unlocked: Bool,
+        jws: String?,
+        sawAnyEntitlement: Bool
+    ) async {
         guard let token = KraftAPI.shared.accessToken, !token.isEmpty else { return }
 
         do {
             if unlocked, let jws {
                 _ = try await KraftAPI.shared.verifySubscription(accessToken: token, signedTransactionInfo: jws)
-            } else {
-                _ = try await KraftAPI.shared.clearSubscription(accessToken: token)
+                return
             }
+
+            /*
+              Gelöscht wird nur mit Beleg.
+
+              Hier stand `else { clearSubscription() }` — der Pro-Status im
+              Konto wurde also gelöscht, sobald auf DIESEM Gerät gerade keine
+              Berechtigung zu finden war. Eine leere Antwort von StoreKit
+              heißt aber nicht „kein Abo": Sie kommt genauso, wenn kein
+              App-Store-Konto angemeldet ist, wenn der Start noch nicht durch
+              ist oder das Netz klemmt. Ein zahlender Nutzer verlor damit
+              seinen Serverstatus, weil er sein Telefon zurückgesetzt hatte.
+
+              Jetzt wird nur zurückgesetzt, wenn wir tatsächlich eine
+              Berechtigung gesehen haben und sie abgelaufen oder widerrufen
+              ist. Im Zweifel bleibt der Serverstand stehen — Apple bleibt
+              ohnehin die letzte Instanz, und ein zu großzügiger Status ist
+              der harmlosere Fehler.
+            */
+            guard sawAnyEntitlement else { return }
+            _ = try await KraftAPI.shared.clearSubscription(accessToken: token)
         } catch {
             // Best-effort — der lokale Pro-Status bleibt davon unberührt.
         }

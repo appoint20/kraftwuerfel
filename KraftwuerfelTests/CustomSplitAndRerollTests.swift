@@ -276,34 +276,10 @@ final class SingleRerollTests: XCTestCase {
     }
 
     /*
-      Die Animation gehört zum Fehlerbild: `runReel(count:)` ließ jede Karte
-      Zufallsnamen durchlaufen. `runReel(only:)` markiert genau einen Index
-      als laufend — die übrigen Karten zeigen weiter ihre echten Namen.
+      Hier standen zwei Tests für ReelController — die Würfel-Animation des
+      Studio-Tabs. Der Tab ist entfallen (dieselbe Würfelstrecke steht im
+      Trainingsplan), und mit ihm die Klasse. Was die Tests absicherten, war
+      die Animation, nicht die Auswahl der Übungen; die Auswahl selbst prüfen
+      die Tests darüber weiterhin.
     */
-    @MainActor
-    func testDieAnimationLaeuftNurAufEinerKarte() {
-        let reel = ReelController()
-
-        reel.runReel(only: 2)
-
-        XCTAssertEqual(reel.rollingIdx, [2])
-        XCTAssertEqual(reel.scramble.keys.count, 1)
-        XCTAssertNotNil(reel.scramble[2])
-        XCTAssertNil(reel.scramble[0], "Karte 0 darf keinen Zufallsnamen zeigen")
-        XCTAssertNil(reel.scramble[1], "Karte 1 darf keinen Zufallsnamen zeigen")
-
-        reel.stopEverything()
-    }
-
-    @MainActor
-    func testDerVolleDurchlaufMarkiertWeiterhinAlleKarten() {
-        let reel = ReelController()
-
-        // Beim kompletten Neuwürfeln ist genau das richtig.
-        reel.runReel(count: 4)
-
-        XCTAssertEqual(reel.rollingIdx, [0, 1, 2, 3])
-        reel.stopEverything()
-        XCTAssertTrue(reel.rollingIdx.isEmpty)
-    }
 }

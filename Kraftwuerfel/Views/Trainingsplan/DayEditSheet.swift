@@ -139,6 +139,8 @@ public struct DayEditSheet: View {
                     .frame(width: 18, alignment: .leading)
                     .padding(.top, 2)
 
+                ExerciseVisual(exercise: slot.exercise, size: 40)
+
                 VStack(alignment: .leading, spacing: 3) {
                     Text(slot.exercise.localizedName(language: i18n.lang))
                         .font(KraftFont.inter(14, .semibold))

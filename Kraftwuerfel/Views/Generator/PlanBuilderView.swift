@@ -209,7 +209,7 @@ public struct PlanBuilderView: View {
     private func slotCard(index: Int, slot: ExerciseSlot) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                ExerciseVisual(category: slot.exercise.category, size: 40)
+                ExerciseVisual(exercise: slot.exercise, category: slot.exercise.category, size: 40)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(i18n.exerciseName(slot.exercise))
@@ -327,7 +327,12 @@ public struct PlanBuilderView: View {
     private var actionRow: some View {
         VStack(spacing: 10) {
             if let onStartLiveWorkout {
-                KraftGradientButton(i18n.t("live.startTraining"), systemImage: "play.fill") {
+                /*
+                  Mint wie überall sonst. Der Verlauf (Mint nach Orange) stammt
+                  aus der Würfel-Arena; hier stand er allein und ließ denselben
+                  Knopf je nach Bildschirm anders aussehen.
+                */
+                KraftPrimaryButton(i18n.t("live.startTraining"), systemImage: "play.fill") {
                     let title = settings.builderName.trimmingCharacters(in: .whitespacesAndNewlines)
                     onStartLiveWorkout(
                         slots,

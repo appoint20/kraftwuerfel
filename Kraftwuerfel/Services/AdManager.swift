@@ -39,10 +39,24 @@ public final class AdManager: ObservableObject {
     public static var adsEnabled: Bool { GoogleAdsService.isConfigured }
 
     // MARK: - Konfiguration
-    /// Zwei Videos für eine KI-Analyse. Ohne eingeschaltetes Werbenetz 0 —
-    /// eine Schranke, die sich auf dem beworbenen Weg nicht öffnen lässt,
-    /// wäre schlimmer als gar keine.
-    public var requiredRewardedVideos: Int { Self.adsEnabled ? 2 : 0 }
+    /*
+      Zwei Videos für eine KI-Analyse — aber nur, wenn es überhaupt Videos gibt.
+
+      Zwei Bedingungen, und beide aus demselben Grund: Eine Schranke, die sich
+      auf dem beworbenen Weg nicht öffnen lässt, ist schlimmer als gar keine.
+
+      - Ohne eingeschaltetes Werbenetz: 0.
+      - Ohne belohnten Anzeigenblock: ebenfalls 0. In der AdMob-Konsole ist
+        bisher nur ein Banner und eine Vollbild-Einblendung angelegt; solange
+        kein belohnter Block dazukommt, gäbe es nichts anzusehen, und der
+        KI-Coach wäre für Gratis-Nutzer verschlossen statt kostenpflichtig.
+
+      Sobald der Block existiert und `KWAdUnitRewarded` in der Info.plist
+      steht, greift die Schranke von selbst.
+    */
+    public var requiredRewardedVideos: Int {
+        Self.adsEnabled && GoogleAdsService.hasRewardedUnit ? 2 : 0
+    }
 
     // MARK: - Zustand
     @Published public var rewardedVideosWatched: Int = 0

@@ -163,6 +163,39 @@ public struct TrainingsplanView: View {
       Datenbank.
     */
     @ViewBuilder
+    private func generatedPlanScore(_ plans: [String: [[ExerciseSlot]]]) -> some View {
+        let days: [DayPlan] = Weekdays.sorted(selectedDays).compactMap { weekday in
+            guard let cycles = plans[weekday], let first = cycles.first, !first.isEmpty else { return nil }
+            return DayPlan(
+                weekday: weekday,
+                name: PlanNames.planName(for: "\(planSalt):\(weekday)"),
+                focus: "",
+                warmup: [],
+                cycle1Slots: first,
+                cycle2Slots: cycles.count > 1 ? cycles[1] : []
+            )
+        }
+
+        if !days.isEmpty {
+            let scored = PlanQualityScore.evaluate(
+                plan: TrainingPlan(
+                    title: settings.split.localized(i18n.lang),
+                    summary: "",
+                    weeks: durationWeeks,
+                    days: days,
+                    nutrition: nil,
+                    notes: []
+                ),
+                goal: profileStore.profile.goal,
+                targetMinutes: profileStore.profile.durationMinutes
+            )
+            if scored.overall > 0 {
+                PlanScoreCard(score: scored).padding(.top, 16)
+            }
+        }
+    }
+
+    @ViewBuilder
     private func activePlanScore(_ plan: ActivePlan) -> some View {
         let scored = PlanQualityScore.evaluate(
             plan: plan.asTrainingPlan(),
@@ -576,6 +609,17 @@ public struct TrainingsplanView: View {
 
     @ViewBuilder
     private func generatedSection(_ plans: [String: [[ExerciseSlot]]]) -> some View {
+        /*
+          Die Bewertung auch beim frisch gewürfelten Plan.
+
+          Sie stand nur im laufenden Plan — also erst NACH dem Start. Wer noch
+          keinen gestartet hat, sah sie nie, und das ist genau der Zustand, in
+          dem sich ein Gratis-Nutzer beim Ausprobieren befindet: Er konnte
+          nicht wissen, dass es die Bewertung überhaupt gibt. Gesperrt zeigt
+          die Karte, was sie kann und was Pro dafür kostet.
+        */
+        generatedPlanScore(plans)
+
         SectionLabel(i18n.t("tp.tapDay", ["cycles": "\(cycles) "]))
             .padding(.top, 20).padding(.bottom, 10)
 

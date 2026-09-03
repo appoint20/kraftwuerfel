@@ -1,8 +1,16 @@
 import SwiftUI
 
 /*
-  AdBannerView — Diskreter Werbebanner für Free-User mit Upgrade-Option.
-  Wird für Pro-User (`isProUnlocked == true`) komplett ausgeblendet.
+  Der Werbebanner am unteren Rand — für Gratis-Nutzer, für Pro unsichtbar.
+
+  Hier stand bis zuletzt keine Werbung, sondern eine nachgebaute: eine Zeile
+  mit „AD" und dem Text „Anzeige · Trainiere smarter mit Kraftwuerfel". Das
+  ist Platzhalterinhalt (App-Store-Richtlinie 2.1) und wäre mit
+  eingeschalteter Werbung tatsächlich so ausgeliefert worden.
+
+  Jetzt lädt hier ein echter AdMob-Banner. Der Knopf „WERBEFREI" daneben
+  bleibt — er ist unsere eigene Oberfläche, keine vorgetäuschte Anzeige, und
+  die naheliegendste Stelle, an der jemand über das Abo nachdenkt.
 */
 public struct AdBannerView: View {
     @ObservedObject private var storeKit = StoreKitManager.shared
@@ -12,24 +20,18 @@ public struct AdBannerView: View {
     public init() {}
 
     public var body: some View {
-        if AdManager.adsEnabled && !storeKit.isProUnlocked {
+        if AdManager.adsEnabled && !storeKit.isProUnlocked, let unit = GoogleAdsService.bannerUnitId {
             HStack(spacing: 10) {
-                HStack(spacing: 6) {
-                    Text("AD")
-                        .font(KraftFont.mono(9, .bold))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(Theme.muted.opacity(0.3))
-                        .foregroundColor(Theme.muted)
-                        .cornerRadius(4)
-
-                    Text(i18n.lang == "en" ? "Sponsored · Train smarter with Kraftwuerfel" : "Anzeige · Trainiere smarter mit Kraftwuerfel")
-                        .font(KraftFont.inter(11, .medium))
-                        .foregroundColor(Theme.muted)
-                        .lineLimit(1)
+                /*
+                  Die Breite kommt vom Layout, weil die empfohlene Höhe daran
+                  hängt. Ohne feste Höhe zieht der Banner die ganze Ansicht
+                  auf oder wird abgeschnitten.
+                */
+                GeometryReader { geo in
+                    AdMobBanner(unitId: unit, width: geo.size.width)
+                        .frame(width: geo.size.width, height: geo.size.height)
                 }
-
-                Spacer()
+                .frame(height: AdMobBanner.height(forWidth: UIScreen.main.bounds.width - 76))
 
                 Button(action: {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -45,14 +47,11 @@ public struct AdBannerView: View {
                         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.accent.opacity(0.4), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
+                .fixedSize()
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(Theme.surface)
-            .cornerRadius(10)
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.border, lineWidth: 1))
-            .padding(.horizontal, 16)
-            .padding(.bottom, 6)
+            .padding(.vertical, 6)
+            .padding(.bottom, 2)
             .sheet(isPresented: $showPro) {
                 ProSubscriptionView()
             }

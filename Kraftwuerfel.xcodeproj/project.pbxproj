@@ -47,6 +47,7 @@
 		9B23AF3F45E73AB7934A978C /* StoreKitManager.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = C7D8268CBD4C2ACC7F18D32E; };
 		E5ADA02285BDF5256673F263 /* UserProfileStore.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = E1743CE880E3A2D228A7920E; };
 		6F097DADBD1610ECD572CC7B /* WatchSyncManager.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 6485158FFFF82410CC3324D0; };
+		8241A7BD556F9004BAC1FEAF /* WorkoutCuePlayer.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 75E7558CA9194842316D0D2A; };
 		CF33780800FFB30D8195DDB6 /* WorkoutHistoryStore.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 7984D1E032ABDA259EAA93E0; };
 		6FDE4AC8C01F34582D453E9D /* Strings.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 6B695DCB56CD168F29819869; };
 		D4417134B4E4351651BB6184 /* WorkoutActivityAttributes.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = D3DC348A43020326DDAAAF85; };
@@ -65,6 +66,7 @@
 		4B20F56303D854E24CEDE65C /* DayBlockView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = BCFC48B1608491954E1279B7; };
 		CC8A6F6DC26E0D4466725871 /* DiceLoaderView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 8134183974FA6BD6F814ED33; };
 		04028B997046ED25191465E3 /* DiceThrowOverlay.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 12782BDCB4D47B0E5E565BA9; };
+		09B223B2FFD71C2B2B3DC343 /* ExerciseImageViewer.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 5B09089D84932AE7419407B9; };
 		5A2763876A2978A00CA3A84E /* ExercisePickerSheet.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = CDA3C9DD145C048E1148D231; };
 		1CED78126FA304CA9C061A23 /* ExerciseVisual.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = C49FB041E11744EAFA6801C2; };
 		F1E0C41854293A2E7426AFEF /* Futuristic3DDiceArenaView.swift in Kraftwuerfel */ = {isa = PBXBuildFile; fileRef = 0C27A27B7452817A59070904; };
@@ -161,6 +163,7 @@
 		5271B8E1C2D95B4C74A73FDD /* ReminderScheduleTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = EE61D95805B69D0E78034110; };
 		51B9C4874DEE88709AEF7B72 /* SavedStoresTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = B8DB5418027F4C7396382644; };
 		CC7E15704306A85D0A5B4937 /* SerializationTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = 2F95A6C960BFDC9CDD4F20A0; };
+		62864CAC0DABDC1F7A59D496 /* SessionTimingTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = EE6E9DBA08B10B86FC4D73FC; };
 		9873C88A1C55CCFE6E0A7243 /* StabilitySprintTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = A86E1A1BC0183C80217FC2AF; };
 		16736D7CBFFE68D2C98B29A8 /* WeekdayOrderTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = 61519F843B0F319BD839B3C7; };
 		6CE3360A7682961CC0DE9210 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D507BA12DA360B6936CA1DD9; };
@@ -268,6 +271,7 @@
 		C7D8268CBD4C2ACC7F18D32E /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
 		E1743CE880E3A2D228A7920E /* UserProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileStore.swift; sourceTree = "<group>"; };
 		6485158FFFF82410CC3324D0 /* WatchSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSyncManager.swift; sourceTree = "<group>"; };
+		75E7558CA9194842316D0D2A /* WorkoutCuePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCuePlayer.swift; sourceTree = "<group>"; };
 		7984D1E032ABDA259EAA93E0 /* WorkoutHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryStore.swift; sourceTree = "<group>"; };
 		6B695DCB56CD168F29819869 /* Strings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
 		D3DC348A43020326DDAAAF85 /* WorkoutActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutActivityAttributes.swift; sourceTree = "<group>"; };
@@ -286,6 +290,7 @@
 		BCFC48B1608491954E1279B7 /* DayBlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayBlockView.swift; sourceTree = "<group>"; };
 		8134183974FA6BD6F814ED33 /* DiceLoaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiceLoaderView.swift; sourceTree = "<group>"; };
 		12782BDCB4D47B0E5E565BA9 /* DiceThrowOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiceThrowOverlay.swift; sourceTree = "<group>"; };
+		5B09089D84932AE7419407B9 /* ExerciseImageViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseImageViewer.swift; sourceTree = "<group>"; };
 		CDA3C9DD145C048E1148D231 /* ExercisePickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePickerSheet.swift; sourceTree = "<group>"; };
 		C49FB041E11744EAFA6801C2 /* ExerciseVisual.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseVisual.swift; sourceTree = "<group>"; };
 		0C27A27B7452817A59070904 /* Futuristic3DDiceArenaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Futuristic3DDiceArenaView.swift; sourceTree = "<group>"; };
@@ -358,6 +363,7 @@
 		EE61D95805B69D0E78034110 /* ReminderScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderScheduleTests.swift; sourceTree = "<group>"; };
 		B8DB5418027F4C7396382644 /* SavedStoresTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedStoresTests.swift; sourceTree = "<group>"; };
 		2F95A6C960BFDC9CDD4F20A0 /* SerializationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SerializationTests.swift; sourceTree = "<group>"; };
+		EE6E9DBA08B10B86FC4D73FC /* SessionTimingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimingTests.swift; sourceTree = "<group>"; };
 		A86E1A1BC0183C80217FC2AF /* StabilitySprintTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StabilitySprintTests.swift; sourceTree = "<group>"; };
 		61519F843B0F319BD839B3C7 /* WeekdayOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayOrderTests.swift; sourceTree = "<group>"; };
 		E8926494CC96D26C58F69370 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -511,6 +517,7 @@
 				C7D8268CBD4C2ACC7F18D32E /* StoreKitManager.swift */,
 				E1743CE880E3A2D228A7920E /* UserProfileStore.swift */,
 				6485158FFFF82410CC3324D0 /* WatchSyncManager.swift */,
+				75E7558CA9194842316D0D2A /* WorkoutCuePlayer.swift */,
 				7984D1E032ABDA259EAA93E0 /* WorkoutHistoryStore.swift */,
 			);
 			path = Services;
@@ -577,6 +584,7 @@
 				BCFC48B1608491954E1279B7 /* DayBlockView.swift */,
 				8134183974FA6BD6F814ED33 /* DiceLoaderView.swift */,
 				12782BDCB4D47B0E5E565BA9 /* DiceThrowOverlay.swift */,
+				5B09089D84932AE7419407B9 /* ExerciseImageViewer.swift */,
 				CDA3C9DD145C048E1148D231 /* ExercisePickerSheet.swift */,
 				C49FB041E11744EAFA6801C2 /* ExerciseVisual.swift */,
 				0C27A27B7452817A59070904 /* Futuristic3DDiceArenaView.swift */,
@@ -719,6 +727,7 @@
 				EE61D95805B69D0E78034110 /* ReminderScheduleTests.swift */,
 				B8DB5418027F4C7396382644 /* SavedStoresTests.swift */,
 				2F95A6C960BFDC9CDD4F20A0 /* SerializationTests.swift */,
+				EE6E9DBA08B10B86FC4D73FC /* SessionTimingTests.swift */,
 				A86E1A1BC0183C80217FC2AF /* StabilitySprintTests.swift */,
 				61519F843B0F319BD839B3C7 /* WeekdayOrderTests.swift */,
 			);
@@ -977,6 +986,7 @@
 				9B23AF3F45E73AB7934A978C /* StoreKitManager.swift */,
 				E5ADA02285BDF5256673F263 /* UserProfileStore.swift */,
 				6F097DADBD1610ECD572CC7B /* WatchSyncManager.swift */,
+				8241A7BD556F9004BAC1FEAF /* WorkoutCuePlayer.swift */,
 				CF33780800FFB30D8195DDB6 /* WorkoutHistoryStore.swift */,
 				6FDE4AC8C01F34582D453E9D /* Strings.swift */,
 				D4417134B4E4351651BB6184 /* WorkoutActivityAttributes.swift */,
@@ -995,6 +1005,7 @@
 				4B20F56303D854E24CEDE65C /* DayBlockView.swift */,
 				CC8A6F6DC26E0D4466725871 /* DiceLoaderView.swift */,
 				04028B997046ED25191465E3 /* DiceThrowOverlay.swift */,
+				09B223B2FFD71C2B2B3DC343 /* ExerciseImageViewer.swift */,
 				5A2763876A2978A00CA3A84E /* ExercisePickerSheet.swift */,
 				1CED78126FA304CA9C061A23 /* ExerciseVisual.swift */,
 				F1E0C41854293A2E7426AFEF /* Futuristic3DDiceArenaView.swift */,
@@ -1087,6 +1098,7 @@
 				5271B8E1C2D95B4C74A73FDD /* ReminderScheduleTests.swift */,
 				51B9C4874DEE88709AEF7B72 /* SavedStoresTests.swift */,
 				CC7E15704306A85D0A5B4937 /* SerializationTests.swift */,
+				62864CAC0DABDC1F7A59D496 /* SessionTimingTests.swift */,
 				9873C88A1C55CCFE6E0A7243 /* StabilitySprintTests.swift */,
 				16736D7CBFFE68D2C98B29A8 /* WeekdayOrderTests.swift */,
 			);

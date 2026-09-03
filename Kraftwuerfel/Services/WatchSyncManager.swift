@@ -69,6 +69,18 @@ public final class WatchSyncManager: NSObject, ObservableObject {
     public var onPauseToggleRequestedRemotely: (() -> Void)?
     /// Wird gerufen, wenn die Pause vorzeitig auf der Watch übersprungen wurde.
     public var onSkipRestRequestedRemotely: (() -> Void)?
+    /// Wird gerufen, wenn auf der Watch „Training beenden" gedrückt wurde.
+    public var onEndWorkoutRequestedRemotely: (() -> Void)?
+    /*
+      Wird gerufen, wenn die Gegenstelle nach dem aktuellen Stand fragt.
+
+      Das ist der Ausweg aus der verlorenen Verbindung: Zustand floss bisher
+      ausschließlich dann, wenn sich auf dem iPhone etwas änderte. Startete die
+      Uhr neu oder verpasste sie den Kontext, wartete sie endlos — bis man am
+      iPhone einen Satz abhakte und damit zufällig eine neue Nachricht auslöste.
+      Fragen konnte sie nicht. Jetzt schon.
+    */
+    public var onStateRequestedRemotely: (() -> Void)?
 
     private var session: WCSession? {
         WCSession.isSupported() ? WCSession.default : nil
@@ -79,6 +91,22 @@ public final class WatchSyncManager: NSObject, ObservableObject {
         guard let session else { return }
         session.delegate = self
         session.activate()
+    }
+
+    /*
+      Den zuletzt hinterlegten Anwendungskontext übernehmen.
+
+      `didReceiveApplicationContext` feuert nur bei NEUEN Kontexten. Eine
+      gerade gestartete App bekommt also nichts, obwohl WatchConnectivity den
+      letzten Stand längst vorrätig hält — er steht in `receivedApplicationContext`
+      und wurde bisher nie gelesen. Genau deshalb stand die Uhr nach einem
+      Neustart leer da, während auf dem iPhone ein Training lief.
+    */
+    private func applyStoredContext() {
+        guard let session, session.activationState == .activated else { return }
+        let stored = session.receivedApplicationContext
+        guard !stored.isEmpty else { return }
+        apply(stored)
     }
 
     /// Ein Messwert gilt dreißig Sekunden, um Messpausen des optischen Sensors abzufedern.
@@ -230,6 +258,32 @@ public final class WatchSyncManager: NSObject, ObservableObject {
             "timestamp": Date().timeIntervalSince1970
         ])
     }
+
+    /// Das ganze Training von der Uhr aus beenden.
+    public func requestEndWorkout() {
+        fire([
+            "type": "end_workout",
+            "timestamp": Date().timeIntervalSince1970
+        ])
+    }
+
+    /*
+      Das iPhone nach dem aktuellen Stand fragen.
+
+      Zwei Wege, weil beide für sich lückenhaft sind: `sendMessage` weckt die
+      iOS-App auch aus dem Hintergrund, kommt aber nur an, wenn die Gegenstelle
+      gerade erreichbar ist. Ist sie das nicht, hilft der zuletzt hinterlegte
+      Kontext — der liegt lokal und braucht die Gegenstelle gar nicht.
+    */
+    public func requestState() {
+        applyStoredContext()
+        guard let session, session.activationState == .activated, session.isReachable else { return }
+        session.sendMessage(
+            ["type": "request_state", "timestamp": Date().timeIntervalSince1970],
+            replyHandler: nil,
+            errorHandler: nil
+        )
+    }
     #endif
 
     public func completeSetRemotely() {
@@ -289,6 +343,24 @@ public final class WatchSyncManager: NSObject, ObservableObject {
             case "skip_rest":
                 self.onSkipRestRequestedRemotely?()
 
+            case "end_workout":
+                self.onEndWorkoutRequestedRemotely?()
+
+            case "request_state":
+                /*
+                  Die Uhr fragt. Läuft gerade ein Training, schickt die
+                  Live-Ansicht ihren vollen Stand; läuft keins, muss die Uhr das
+                  ausdrücklich erfahren — sonst zeigt sie den letzten Stand
+                  eines längst beendeten Trainings weiter an.
+                */
+                #if os(iOS)
+                if let handler = self.onStateRequestedRemotely {
+                    handler()
+                } else {
+                    self.endLiveSession()
+                }
+                #endif
+
             case "complete_set":
                 self.onSetCompletedRemotely?()
 
@@ -334,12 +406,33 @@ extension WatchSyncManager: WCSessionDelegate {
             #if os(iOS)
             self.isWatchPaired = session.isPaired
             self.isWatchAppInstalled = session.isWatchAppInstalled
+            #else
+            // Frisch gestartete Uhr: erst den hinterlegten Stand, dann fragen.
+            self.applyStoredContext()
+            self.requestState()
             #endif
         }
     }
 
+    /*
+      Erreichbarkeit hat gewechselt.
+
+      Der Moment, in dem die Verbindung zurückkommt, ist genau der, in dem
+      beide Seiten auseinanderliegen können. Bisher wurde hier nur ein Flag
+      gesetzt und sonst nichts — der Stand blieb so lange falsch, bis auf dem
+      iPhone zufällig etwas passierte. Jetzt gleicht jede Seite von sich aus ab:
+      das iPhone schiebt seinen Stand nach, die Uhr fragt danach.
+    */
     public func sessionReachabilityDidChange(_ session: WCSession) {
-        DispatchQueue.main.async { self.isCounterpartReachable = session.isReachable }
+        DispatchQueue.main.async {
+            self.isCounterpartReachable = session.isReachable
+            guard session.isReachable else { return }
+            #if os(iOS)
+            if self.isLiveSessionActive { self.onStateRequestedRemotely?() }
+            #else
+            self.requestState()
+            #endif
+        }
     }
 
     public func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {

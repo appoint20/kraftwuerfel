@@ -166,10 +166,13 @@ final class LiveWorkoutAndMusicTests: XCTestCase {
     */
     func testGeneratorModes() {
         let modes = GeneratorMode.allCases
-        XCTAssertEqual(modes.count, 3)
-        XCTAssertTrue(modes.contains(.generator))
+        /*
+          Zwei statt drei: Der Studio-Würfel ist entfallen, weil dieselbe
+          Würfelstrecke im Trainingsplan steht — dort läuft der Plan danach
+          auch über Wochen weiter, hier endete er in einer Sackgasse.
+        */
+        XCTAssertEqual(modes.count, 2)
         XCTAssertTrue(modes.contains(.challenge))
-        // Selbst zusammenstellen — fehlte bis dahin ganz.
         XCTAssertTrue(modes.contains(.builder))
     }
 
@@ -198,8 +201,30 @@ final class LiveWorkoutAndMusicTests: XCTestCase {
 
     func testWipeSetztDenGeneratorTabZurueck() {
         let settings = GeneratorSettings.shared
-        settings.mode = .challenge
+        settings.mode = .builder
         settings.wipe()
-        XCTAssertEqual(settings.mode, .generator)
+        XCTAssertEqual(settings.mode, .challenge)
+    }
+
+    /*
+      Ein gespeicherter Stand aus der Zeit des Studio-Tabs darf die übrigen
+      Einstellungen nicht mitreißen.
+
+      Der Modus lag als Aufzählungstyp im Schnappschuss. Mit dem entfernten
+      Fall hätte der Decoder beim Rohwert „generator" geworfen — und weil der
+      ganze Schnappschuss mit `try?` gelesen wird, wären eigene Übungen,
+      Baukasten-Plan und Zyklus-Wahl stillschweigend weg gewesen.
+    */
+    func testEinAlterStudioStandVerliertKeineEinstellungen() {
+        let settings = GeneratorSettings.shared
+        let vorher = settings.mode
+        defer { settings.mode = vorher }
+
+        XCTAssertNil(
+            GeneratorMode(rawValue: "generator"),
+            "der Fall ist weg — genau deshalb darf er nicht typisiert gelesen werden"
+        )
+        // Unbekannter Rohwert landet auf der Home-Challenge statt im Nichts.
+        XCTAssertEqual(GeneratorMode(rawValue: "generator") ?? .challenge, .challenge)
     }
 }

@@ -47,25 +47,38 @@ public struct AuthView: View {
         VStack(spacing: 0) {
             header
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 16) {
-                    authCard
+            /*
+              Die Karte steht in der Mitte, nicht oben.
 
-                    if let error = auth.lastError {
-                        errorCard(error)
-                    }
+              `minHeight` mit `.center` statt fester Abstände: Auf einem
+              großen Telefon sitzt die Karte damit mittig, auf einem kleinen
+              (oder bei offener Tastatur) füllt sie den Platz und der
+              ScrollView übernimmt — ein hart zentrierter Aufbau würde die
+              obersten Felder hinter die Tastatur schieben.
+            */
+            GeometryReader { geo in
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 16) {
+                        authCard
 
-                    if auth.awaitingEmailConfirmation {
-                        confirmationCard(i18n.t("auth.confirmEmail"))
-                    }
+                        if let error = auth.lastError {
+                            errorCard(error)
+                        }
 
-                    if auth.resetEmailSent {
-                        confirmationCard(i18n.t("auth.resetPasswordSent"))
+                        if auth.awaitingEmailConfirmation {
+                            confirmationCard(i18n.t("auth.confirmEmail"))
+                        }
+
+                        if auth.resetEmailSent {
+                            confirmationCard(i18n.t("auth.resetPasswordSent"))
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 24)
+                    .frame(maxWidth: 480)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: geo.size.height, alignment: .center)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 40)
             }
         }
         .background(Theme.bg.ignoresSafeArea())
@@ -123,17 +136,37 @@ public struct AuthView: View {
 
     private var authCard: some View {
         VStack(alignment: .leading, spacing: 18) {
-            // Modus-Umschalter oben in der Karte (nur zwischen Registrieren & Anmelden)
+            /*
+              Das Zeichen der App über den Eingabefeldern.
+
+              LogoIcon zeichnet in Theme.bg — es ist für eine mintfarbene
+              Kachel gemacht, nicht für den dunklen Grund der Karte. Ohne die
+              Kachel darunter wäre es schwarz auf schwarz und schlicht nicht
+              da. Die Größe steht am Symbol selbst; ein `.frame` von außen
+              vergrößert nur das leere Feld drumherum.
+            */
+            VStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Theme.accent)
+                        .frame(width: 64, height: 64)
+                        .shadow(color: Theme.accent.opacity(0.28), radius: 12, y: 4)
+                    LogoIcon(size: 44)
+                }
+
+                Text(cardTitle)
+                    .font(KraftFont.bebas(22))
+                    .tracking(1.2)
+                    .foregroundColor(Theme.text)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 2)
+
+            // Modus-Umschalter unter dem Zeichen (nur zwischen Registrieren & Anmelden)
             if mode != .forgotPassword {
                 modeSegmentControl
             }
-
-            Text(cardTitle)
-                .font(KraftFont.mono(11, .bold))
-                .tracking(1.5)
-                .foregroundColor(Theme.muted)
-                .textCase(.uppercase)
-                .padding(.top, 4)
 
             if mode == .forgotPassword {
                 Text(i18n.t("auth.forgotPasswordHint"))

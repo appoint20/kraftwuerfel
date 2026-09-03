@@ -982,6 +982,14 @@ public struct AICoachInput: Codable, Hashable {
     public var pullupLevel: PullupLevel
     public var plankLevel: PlankLevel
     public var trainingLocation: TrainingLocation
+    /*
+      Die längste gewünschte Satzpause.
+
+      Mit Vorgabewert, damit die vorhandenen Aufrufe unverändert bleiben —
+      und mit 180 als Vorgabe, weil das dem bisherigen Verhalten entspricht:
+      Wer nichts angibt, bekommt wie zuvor keine Begrenzung.
+    */
+    public var restSeconds: Int = 180
 
     public var weightDelta: Double? {
         guard let goalWeightKg else { return nil }
@@ -1003,7 +1011,8 @@ public struct AICoachInput: Codable, Hashable {
         pushupLevel: PushupLevel = .intermediate,
         pullupLevel: PullupLevel = .beginner,
         plankLevel: PlankLevel = .under60s,
-        trainingLocation: TrainingLocation = .gym
+        trainingLocation: TrainingLocation = .gym,
+        restSeconds: Int = 180
     ) {
         self.goal = goal
         self.experience = experience
@@ -1020,6 +1029,7 @@ public struct AICoachInput: Codable, Hashable {
         self.pullupLevel = pullupLevel
         self.plankLevel = plankLevel
         self.trainingLocation = trainingLocation
+        self.restSeconds = restSeconds
     }
 }
 

@@ -12,15 +12,37 @@ import SwiftUI
 public struct ExerciseVisual: View {
     @ObservedObject private var i18n = I18n.shared
 
+    public let exercise: Exercise?
     public let category: MuscleCategory
     public let size: CGFloat
     /// `.compact` im Web: kleinerer Rahmen für die Plan-Karten.
     public let compact: Bool
+    /*
+      Ob ein Tippen das Bild groß zeigt.
 
-    public init(category: MuscleCategory, size: CGFloat = 44, compact: Bool = true) {
+      Standardmäßig an, aber nicht überall richtig: In der Übungsauswahl ist die
+      ganze Zeile ein Knopf, der die Übung übernimmt. Ein zweiter Knopf darin
+      würde entweder die Auswahl verschlucken oder gar nicht auslösen — dort
+      steht deshalb `tappable: false`.
+    */
+    public let tappable: Bool
+
+    @State private var showsFullImage = false
+
+    public init(exercise: Exercise? = nil, category: MuscleCategory, size: CGFloat = 44, compact: Bool = true, tappable: Bool = true) {
+        self.exercise = exercise
         self.category = category
         self.size = size
         self.compact = compact
+        self.tappable = tappable
+    }
+
+    public init(exercise: Exercise, size: CGFloat = 44, compact: Bool = true, tappable: Bool = true) {
+        self.exercise = exercise
+        self.category = exercise.category
+        self.size = size
+        self.compact = compact
+        self.tappable = tappable
     }
 
     private static let active = Theme.accent
@@ -41,6 +63,65 @@ public struct ExerciseVisual: View {
     private var isFullBody: Bool  { category == .fullBody }
 
     public var body: some View {
+        if let exercise, exercise.hasCustomImage {
+            /*
+              Nur das Foto lässt sich vergrößern, die anatomische Figur nicht:
+              Die ist bei 32 Punkten schon vollständig zu sehen, ein Vollbild
+              davon zeigt nichts Neues.
+            */
+            if tappable {
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    showsFullImage = true
+                } label: {
+                    imageVisual(for: exercise)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(i18n.exerciseName(exercise)))
+                .accessibilityHint(Text(i18n.t("exercise.imageHint")))
+                .fullScreenCover(isPresented: $showsFullImage) {
+                    ExerciseImageViewer(exercise: exercise)
+                }
+            } else {
+                imageVisual(for: exercise)
+            }
+        } else {
+            anatomyVisual
+        }
+    }
+
+    private func imageVisual(for exercise: Exercise) -> some View {
+        ZStack(alignment: .bottom) {
+            Image(exercise.imageAssetKey)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: compact ? size : size * 0.95)
+                .clipped()
+
+            if !compact {
+                LinearGradient(
+                    colors: [Color.clear, Color.black.opacity(0.85)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 24)
+
+                Text(i18n.category(category))
+                    .font(KraftFont.bebas(10)).tracking(1)
+                    .foregroundColor(Theme.accent)
+                    .padding(.bottom, 3)
+            }
+        }
+        .frame(width: size, height: compact ? size : size * 0.95)
+        .background(Theme.surface2)
+        .clipShape(RoundedRectangle(cornerRadius: compact ? 8 : 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: compact ? 8 : 14)
+                .stroke(Theme.accent.opacity(0.35), lineWidth: 1)
+        )
+    }
+
+    private var anatomyVisual: some View {
         VStack(spacing: 2) {
             figure
             Text(i18n.category(category))
@@ -50,6 +131,15 @@ public struct ExerciseVisual: View {
                 .minimumScaleFactor(0.7)
         }
         .padding(compact ? 2 : 6)
+        /*
+          Dieselbe Kastengröße wie beim Bild.
+
+          Ohne sie ist die Figur size×size hoch und die Kategorie darunter kommt
+          noch dazu — die Zeile mit Foto wäre dann niedriger als die daneben mit
+          Figur. In den Listen, in denen beides untereinander steht, sprang der
+          Text dadurch zeilenweise hin und her.
+        */
+        .frame(width: size, height: compact ? size : size * 0.95)
         .background(
             RoundedRectangle(cornerRadius: compact ? 8 : 14)
                 .fill(compact ? Theme.surface2 : Theme.surface)
@@ -153,6 +243,6 @@ public struct ExerciseVisual: View {
             poly([(38, 92), (46, 92), (44, 114), (39, 114)], calfColor)
             poly([(54, 92), (62, 92), (61, 114), (56, 114)], calfColor)
         }
-        .frame(width: size, height: size)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

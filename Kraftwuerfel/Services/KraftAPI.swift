@@ -140,6 +140,12 @@ public final class KraftAPI: @unchecked Sendable {
         public var focus: [String]
         public var limitations: String
         public var warmup: String
+        /*
+          Die längste gewünschte Satzpause. Sie ging vorher nicht mit — die
+          App hatte die Einstellung, der Server erfuhr nie davon, und das
+          Modell wählte regelmäßig 180 Sekunden.
+        */
+        public var restSeconds: Int
         public var diet: String
         public var excludedFoods: [String]
         public var allergies: [String]
@@ -172,6 +178,7 @@ public final class KraftAPI: @unchecked Sendable {
             focus: [String] = [],
             limitations: String = "",
             warmup: String = "auto",
+            restSeconds: Int = 90,
             diet: String = "omnivore",
             excludedFoods: [String] = [],
             allergies: [String] = [],
@@ -203,6 +210,7 @@ public final class KraftAPI: @unchecked Sendable {
             self.focus = focus
             self.limitations = limitations
             self.warmup = warmup
+            self.restSeconds = restSeconds
             self.diet = diet
             self.excludedFoods = excludedFoods
             self.allergies = allergies
@@ -370,6 +378,14 @@ public final class KraftAPI: @unchecked Sendable {
     public struct AuthUser: Decodable, Sendable {
         public let id: String
         public let email: String?
+        /*
+          Der Pro-Status des Kontos, wie der Server ihn kennt.
+
+          Optional, damit ein älterer Serverstand ohne dieses Feld die
+          Anmeldung nicht scheitern lässt — dann gilt wie bisher allein die
+          StoreKit-Berechtigung des Geräts.
+        */
+        public let isPremium: Bool?
     }
 
     public struct AuthTokens: Decodable, Sendable {

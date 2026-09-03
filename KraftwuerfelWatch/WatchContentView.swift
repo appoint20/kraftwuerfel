@@ -22,6 +22,10 @@ struct WatchContentView: View {
     @State private var localWeight: Double = 20.0
     @State private var localReps: Int = 10
     @State private var lastHapticSecond: Int = -1
+    /// Rückfrage vor dem Beenden — ein Fehlgriff am Handgelenk ist schnell
+    /// passiert, und ein versehentlich beendetes Training lässt sich nicht
+    /// zurückholen.
+    @State private var showsEndConfirmation = false
 
     var body: some View {
         ZStack {
@@ -36,6 +40,15 @@ struct WatchContentView: View {
         .onAppear {
             localWeight = sync.currentWeight
             localReps = sync.currentReps
+            /*
+              Beim Erscheinen nach dem Stand fragen.
+
+              Die Uhr bekam Zustand bisher nur geschickt, wenn sich auf dem
+              iPhone etwas änderte. Wer die App hier öffnete, während drüben ein
+              Training lief, sah deshalb „Workout auf dem iPhone starten" — bis
+              zufällig ein Satz abgehakt wurde.
+            */
+            sync.requestState()
         }
         .onChange(of: sync.currentExercise) { _ in
             localWeight = sync.currentWeight
@@ -74,6 +87,8 @@ struct WatchContentView: View {
                 if let startedAt = sync.sessionStartedAt {
                     elapsedRow(startedAt)
                 }
+
+                endWorkoutButton
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
@@ -375,6 +390,53 @@ struct WatchContentView: View {
                     .foregroundColor(Theme.muted)
                     .monospacedDigit()
             }
+        }
+    }
+
+    // MARK: - Training beenden
+
+    /*
+      Beenden von der Uhr aus.
+
+      Bisher ging das nur am iPhone: Wer das Training am Handgelenk führte,
+      musste es zum Abschließen wieder hervorholen. Der Knopf steht bewusst
+      ganz unten hinter allem anderen — er ist das Seltenste, was man hier tut,
+      und das Einzige, was sich nicht rückgängig machen lässt.
+
+      Beendet wird auch hier nicht auf der Uhr: Sie fragt an, das iPhone
+      schließt die Einheit ab und schreibt sie ins Archiv. Andernfalls gäbe es
+      zwei Stellen, an denen ein Training endet, und zwei Fassungen davon, was
+      dabei protokolliert wurde.
+    */
+    private var endWorkoutButton: some View {
+        Button(role: .destructive) {
+            WKInterfaceDevice.current().play(.click)
+            showsEndConfirmation = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "stop.fill")
+                    .font(.system(size: 9, weight: .bold))
+                Text("TRAINING BEENDEN")
+                    .font(KraftFont.bebas(12)).tracking(0.8)
+            }
+            .foregroundColor(Theme.orange)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 7)
+            .background(Theme.surface2)
+            .cornerRadius(8)
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 4)
+        .confirmationDialog(
+            "Training beenden?",
+            isPresented: $showsEndConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Beenden", role: .destructive) {
+                WKInterfaceDevice.current().play(.success)
+                sync.requestEndWorkout()
+            }
+            Button("Weiter trainieren", role: .cancel) {}
         }
     }
 

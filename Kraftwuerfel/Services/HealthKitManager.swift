@@ -243,6 +243,37 @@ public final class HealthKitManager: ObservableObject {
       (WatchWorkoutManager). Dieser Weg ist für Sitzungen ohne Uhr da, und er
       trägt dann eben nur Dauer und Zeitraum, keine Energie.
     */
+    /*
+      Die Uhren-App zum Trainingsstart öffnen.
+
+      Bisher lief auf der Uhr erst dann etwas, wenn der Nutzer sie selbst
+      hervorholte und die App startete — der Zustand ging zwar hinüber, aber
+      niemand sah ihn. Ein Programm auf der Uhr lässt sich vom iPhone aus nicht
+      einfach starten; der einzige dafür vorgesehene Weg ist eine
+      Trainingseinheit: `startWatchApp(with:)` startet die zugehörige
+      watchOS-App und übergibt ihr die Konfiguration.
+
+      Fehlschläge sind hier ausdrücklich harmlos. Keine Uhr gekoppelt, App nicht
+      installiert, Health nicht freigegeben — in all diesen Fällen läuft das
+      Training auf dem iPhone unverändert weiter. Deshalb wird der Fehler nur
+      vermerkt und nirgends angezeigt.
+    */
+    public func startWatchWorkoutApp() {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = .traditionalStrengthTraining
+        configuration.locationType = .indoor
+
+        store.startWatchApp(with: configuration) { started, error in
+            if !started {
+                #if DEBUG
+                print("Uhren-App nicht gestartet: \(error?.localizedDescription ?? "unbekannt")")
+                #endif
+            }
+        }
+    }
+
     public func saveWorkout(
         start: Date,
         end: Date,

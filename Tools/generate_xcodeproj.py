@@ -895,13 +895,20 @@ def submission_preflight() -> list[str]:
     # im Kommentar darüber, und danach zu suchen meldet fälschlich „ist da".
     if "<key>KWAdUnitRewarded</key>" not in plist:
         blockers.append(
-            "AdMob: KWAdUnitRewarded fehlt in Info.plist — ohne echten Block läuft "
-            "das belohnte Video gegen Googles Testinventar."
+            "AdMob: KWAdUnitRewarded fehlt — in der Konsole ist kein belohnter Block "
+            "angelegt. Die App laeuft damit, verlangt fuer den KI-Coach aber KEINE "
+            "Videos (die Schranke waere sonst unpassierbar) und verdient an dieser "
+            "Stelle nichts. Kein Blocker fuer die Einreichung."
         )
     if "<key>KWAdUnitInterstitial</key>" not in plist:
         blockers.append(
-            "AdMob: KWAdUnitInterstitial fehlt in Info.plist — dasselbe für die "
-            "Vollbild-Einblendung."
+            "AdMob: KWAdUnitInterstitial fehlt in Info.plist — ohne echten Block "
+            "gibt es keine Vollbild-Einblendung."
+        )
+    if "<key>KWAdUnitBanner</key>" not in plist:
+        blockers.append(
+            "AdMob: KWAdUnitBanner fehlt in Info.plist — der Banner am unteren Rand "
+            "bleibt dann leer."
         )
 
     # Tracking-Angaben müssen zur tatsächlichen Einbindung passen.

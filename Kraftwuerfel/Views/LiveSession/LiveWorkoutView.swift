@@ -33,6 +33,7 @@ private struct SetEntry: Equatable {
 
 public struct LiveWorkoutView: View {
     @ObservedObject private var i18n = I18n.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     public let slots: [ExerciseSlot]
     public let planTitle: String
@@ -67,6 +68,19 @@ public struct LiveWorkoutView: View {
     @State private var isResting: Bool = false
     @State private var restDuration: Int = 60
     @State private var restRemaining: Int = 0
+    /*
+      Ein eigener, feiner Takt nur für die Satzpause.
+
+      Der Haupttakt läuft einmal pro Sekunde und leitet daraus auch Kalorien
+      und Puls ab — schneller darf er nicht laufen, ohne diese Schätzungen zu
+      verfälschen. Für den Countdown ist eine Sekunde aber zu grob: Weicht der
+      Takt nur ein paar Millisekunden ab, springt die aufgerundete Restzeit von
+      5 auf 3, und die 4 wird weder gezeigt noch gepiept. Genau das war der
+      „nur manchmal" gezeigte Countdown.
+    */
+    @State private var restTicker: AnyCancellable?
+    /// Welche Countdown-Sekunde schon geklungen hat — jede genau einmal.
+    @State private var lastCountdownSecond: Int = 0
     /// Ende der Pause als Zeitpunkt. Uhr und Sperrbildschirm zählen daraus
     /// selbst herunter, statt auf Sekundentakt-Updates zu warten.
     @State private var restEndsAt: Date?
@@ -96,6 +110,18 @@ public struct LiveWorkoutView: View {
     /// kurze Pause zwischen zwei Sätzen ist. Während dieser Zustand steht,
     /// überspringt `tick()` alles: Zeit, Kalorien, Pulsschätzung, Restzeit.
     @State private var isPaused: Bool = false
+
+    /*
+      Wie lange die Sitzung insgesamt pausiert war, und seit wann sie es
+      gerade ist.
+
+      Gebraucht, seit die Trainingszeit aus der Uhrzeit gerechnet wird statt
+      aus gezählten Takten: „jetzt minus Start" enthält auch die Zeit, in der
+      der Nutzer bewusst pausiert hat. Die muss abgezogen werden — sonst
+      zählt die Kaffeepause als Training.
+    */
+    @State private var pausedTotal: TimeInterval = 0
+    @State private var pausedSince: Date?
 
     @State private var ticker: AnyCancellable?
     @State private var showMusic = false
@@ -178,6 +204,16 @@ public struct LiveWorkoutView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: completedLog != nil)
         .onAppear(perform: start)
+        /*
+          Beim Zurückkehren sofort nachziehen, statt auf den nächsten Takt zu
+          warten. Wichtiger noch: Eine Satzpause, die während der Sperre
+          abgelaufen ist, muss beendet werden — sonst stünde die Ansicht auf
+          „Pause", obwohl die Mitteilung längst gekommen ist.
+        */
+        .onChange(of: scenePhase) { phase in
+            guard phase == .active else { return }
+            resyncAfterBackground()
+        }
         .onDisappear {
             ticker?.cancel()
             liveActivity.end()
@@ -466,7 +502,7 @@ public struct LiveWorkoutView: View {
             VStack(spacing: 20) {
                 ring
 
-                ExerciseVisual(category: slot.exercise.category, size: 90, compact: false)
+                ExerciseVisual(exercise: slot.exercise, category: slot.exercise.category, size: 90, compact: false)
 
                 Text("\(i18n.category(slot.exercise.category)) · \(i18n.equipment(slot.exercise.equipment))")
                     .kwStyle(.kwTag)
@@ -698,7 +734,7 @@ public struct LiveWorkoutView: View {
                     let isSetDone = entry?.done ?? (s < setIdx)
 
                     editingSet = EditingSetData(
-                        exerciseIndex: exerciseIdx,
+                        exerciseIndex: position,
                         setIndex: s,
                         exerciseName: i18n.exerciseName(slot.exercise),
                         weight: currentSetWeight,
@@ -797,6 +833,7 @@ public struct LiveWorkoutView: View {
                                 .font(KraftFont.inter(11))
                                 .foregroundColor(Theme.muted)
                                 .frame(width: 18, alignment: .leading)
+                            ExerciseVisual(exercise: s.exercise, size: 34)
                             VStack(alignment: .leading, spacing: 1) {
                                 HStack(spacing: 5) {
                                     Text(i18n.exerciseName(s.exercise))
@@ -914,7 +951,7 @@ public struct LiveWorkoutView: View {
                 exerciseName: i18n.exerciseName(slot.exercise),
                 setNumber: setIdx + 1,
                 totalSets: slot.sets,
-                exerciseIndex: exerciseIdx,
+                exerciseIndex: position,
                 totalExercises: slots.count,
                 language: i18n.lang
             )
@@ -929,8 +966,26 @@ public struct LiveWorkoutView: View {
         }
         watch.onPauseToggleRequestedRemotely = { togglePause() }
         watch.onSkipRestRequestedRemotely = { skipRest() }
+        watch.onEndWorkoutRequestedRemotely = { finish() }
+        /*
+          Die Uhr fragt nach dem Stand — beim Start ihrer App und immer dann,
+          wenn die Verbindung zurückkommt. Sie bekommt denselben vollen Stand
+          wie bei jedem Wechsel, damit ein Wiederverbinden nichts anderes ist
+          als ein gewöhnliches Weiterlaufen.
+        */
+        watch.onStateRequestedRemotely = { syncWatch() }
 
         syncWatch()
+
+        /*
+          Und die Uhren-App gleich mit starten.
+
+          Der Zustand ging bisher zwar sofort hinüber, aber auf der Uhr lief
+          nichts, was ihn zeigen konnte. Wer die App dort nicht selbst öffnete,
+          sah zum ersten Mal etwas, wenn er einen Satz abhakte — die Uhr wirkte
+          dadurch, als koppele sie sich erst beim ersten Satz.
+        */
+        health.startWatchWorkoutApp()
     }
 
     /// Uhr auf den aktuellen Stand bringen — bei jedem Satz-, Pausen- und
@@ -957,20 +1012,45 @@ public struct LiveWorkoutView: View {
     /// Pausiert oder setzt die Sitzung fort — vom eigenen Knopf oder auf
     /// Anfrage der Uhr. `tick()` überspringt bei aktivem Zustand jede
     /// Fortschreibung, die Uhr zeigt „PAUSIERT“ statt der laufenden Werte.
+    private func resyncAfterBackground() {
+        guard !isPaused else { return }
+        elapsed = currentElapsed()
+
+        guard isResting, let ends = restEndsAt else { return }
+        if ends <= Date() {
+            // Die Pause ist im Hintergrund abgelaufen — die Tonsignale
+            // dafür kamen über die geplante Mitteilung, hier wird nur noch
+            // der Zustand nachgezogen.
+            endRest()
+        } else {
+            restRemaining = max(0, Int(ceil(ends.timeIntervalSince(Date()))))
+        }
+    }
+
     private func togglePause() {
         isPaused.toggle()
+        if isPaused {
+            pausedSince = Date()
+        } else if let since = pausedSince {
+            pausedTotal += Date().timeIntervalSince(since)
+            pausedSince = nil
+            /*
+              Die Satzpause verschiebt sich um die Dauer der Unterbrechung —
+              sonst wäre sie nach dem Fortsetzen sofort abgelaufen, weil ihr
+              Zielzeitpunkt während des Pausierens verstrichen ist.
+            */
+            if isResting, let ends = restEndsAt {
+                restEndsAt = ends.addingTimeInterval(Date().timeIntervalSince(since))
+            }
+            elapsed = currentElapsed()
+        }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         syncWatch()
     }
 
     private func skipRest() {
         guard isResting else { return }
-        NotificationManager.shared.cancelRestTimerNotification()
-        isResting = false
-        restRemaining = 0
-        restEndsAt = nil
-        liveActivity.endRest()
-        syncWatch()
+        endRest()
     }
 
     /*
@@ -978,12 +1058,31 @@ public struct LiveWorkoutView: View {
       keine vorliegen, rechnet das Modell aus dem Web weiter — und die Karte
       sagt dann auch „geschätzt“.
     */
+    /*
+      Die verstrichene Trainingszeit — aus der Uhrzeit, nicht aus Takten.
+
+      Hier stand `elapsed += 1` in einem Timer, der jede Sekunde feuert. Nur
+      feuert er nicht, wenn der Bildschirm gesperrt ist oder die App im
+      Hintergrund liegt: iOS hält ihn an. Wer 15 Minuten trainierte und
+      zwischendurch das Telefon sperrte, bekam am Ende 6 Minuten
+      gutgeschrieben — der Rest der Zeit hatte schlicht nie stattgefunden.
+
+      Aus „jetzt minus Start" kann dagegen nichts verloren gehen, egal wie
+      lange die App weg war. Abgezogen wird nur, was der Nutzer selbst
+      pausiert hat.
+    */
+    private func currentElapsed(at now: Date = Date()) -> Int {
+        var paused = pausedTotal
+        if let pausedSince { paused += now.timeIntervalSince(pausedSince) }
+        return max(0, Int(now.timeIntervalSince(sessionStart) - paused))
+    }
+
     private func tick() {
         // Pausiert heißt: nichts läuft weiter — weder Zeit noch Kalorien,
         // Puls oder die Pause zwischen Sätzen.
         guard !isPaused else { return }
 
-        elapsed += 1
+        elapsed = currentElapsed()
 
         if let measured = watch.freshWatchHeartRate ?? health.freshHeartRate {
             heartRateSource = .appleWatch
@@ -1002,22 +1101,51 @@ public struct LiveWorkoutView: View {
 
         pushHeartRateToLockScreen()
 
-        if isResting {
-            if restRemaining > 1 {
-                restRemaining -= 1
-                if restRemaining <= 5 {
-                    NotificationManager.shared.playCountdownTick(secondsRemaining: restRemaining)
-                }
-            } else {
-                NotificationManager.shared.playRestFinishedCues(language: i18n.lang)
-                NotificationManager.shared.cancelRestTimerNotification()
-                isResting = false
-                restRemaining = 0
-                restEndsAt = nil
-                liveActivity.endRest()
-                syncWatch()
+    }
+
+    /*
+      Die Satzpause fortschreiben — aus dem Zielzeitpunkt, nicht aus gezählten
+      Takten. Gezählte Takte standen still, solange der Bildschirm gesperrt war.
+
+      Läuft im feinen Takt, damit keine Sekunde übersprungen wird. Gepiept wird
+      trotzdem höchstens einmal je Sekunde: `lastCountdownSecond` merkt sich,
+      was schon geklungen hat.
+    */
+    private func updateRestCountdown() {
+        guard isResting, !isPaused else { return }
+
+        let remaining = restEndsAt.map { Int(ceil($0.timeIntervalSince(Date()))) } ?? 0
+
+        if remaining > 0 {
+            restRemaining = remaining
+            if remaining <= 5 && remaining != lastCountdownSecond {
+                lastCountdownSecond = remaining
+                NotificationManager.shared.playCountdownTick(secondsRemaining: remaining)
             }
+        } else {
+            NotificationManager.shared.playRestFinishedCues(language: i18n.lang)
+            endRest()
         }
+    }
+
+    /*
+      Ende der Satzpause an einer Stelle.
+
+      Vorher stand dieselbe Abfolge dreimal im Code — im Takt, beim
+      Überspringen und beim Zurückkehren aus dem Hintergrund. Der feine Takt
+      wäre in zwei davon stehen geblieben und hätte weiter Töne ausgegeben,
+      während gar keine Pause mehr lief.
+    */
+    private func endRest() {
+        NotificationManager.shared.cancelRestTimerNotification()
+        restTicker?.cancel()
+        restTicker = nil
+        lastCountdownSecond = 0
+        isResting = false
+        restRemaining = 0
+        restEndsAt = nil
+        liveActivity.endRest()
+        syncWatch()
     }
 
     /// Das Belastungsmodell aus dem Web: der Puls nähert sich einem Zielwert,
@@ -1085,6 +1213,25 @@ public struct LiveWorkoutView: View {
         setIdx = firstOpenSet(for: exerciseIdx)
         skipRest()
         syncWatch()
+        /*
+          Die Sperrbildschirm-Karte muss mit. Ohne das stünde dort weiter die
+          weggeschobene Übung samt ihrer alten Nummer — die Karte wird sonst
+          nur beim Start einer Pause aktualisiert, und beim Überspringen gibt
+          es bewusst keine.
+        */
+        pushCurrentExerciseToLockScreen()
+    }
+
+    private func pushCurrentExerciseToLockScreen() {
+        guard let slot else { return }
+        liveActivity.setActiveSet(
+            exerciseName: i18n.exerciseName(slot.exercise),
+            setNumber: setIdx + 1,
+            totalSets: slot.sets,
+            exerciseIndex: position,
+            totalExercises: slots.count,
+            language: i18n.lang
+        )
     }
 
     /// Der erste Satz, der für diese Übung noch nicht abgehakt ist.
@@ -1114,6 +1261,20 @@ public struct LiveWorkoutView: View {
         restRemaining = seconds
         restEndsAt = endsAt
         isResting = true
+        lastCountdownSecond = 0
+
+        /*
+          Zehnmal pro Sekunde. Das reicht, damit jede Sekunde des Countdowns
+          genau einmal erscheint und klingt, und ist weit unter allem, was auf
+          dem Bildschirm auffiele.
+        */
+        restTicker?.cancel()
+        restTicker = Timer.publish(every: 0.1, on: .main, in: .common)
+            .autoconnect()
+            .sink { _ in updateRestCountdown() }
+
+        // Den ersten Ton vorbereiten, solange noch fünf Sekunden Zeit sind.
+        WorkoutCuePlayer.shared.prepare()
 
         if let slot {
             NotificationManager.shared.scheduleRestCompleteNotification(
@@ -1125,11 +1286,18 @@ public struct LiveWorkoutView: View {
 
             // Sperrbildschirm und Uhr zählen selbst herunter; dafür brauchen sie
             // das Zieldatum, nicht die Restsekunden.
+            /*
+              `position`, nicht `exerciseIdx`: Die Karte zählt den Fortschritt
+              („Übung 5 von 7"), nicht den Platz im ursprünglichen Plan. Wer
+              eine Übung nach hinten schiebt, sah dort sonst weiter die alte
+              Nummer — sie stand ja unverändert an ihrer Planstelle, obwohl
+              inzwischen eine andere Übung dran war.
+            */
             liveActivity.setActiveSet(
                 exerciseName: i18n.exerciseName(slot.exercise),
                 setNumber: setIdx + 1,
                 totalSets: slot.sets,
-                exerciseIndex: exerciseIdx,
+                exerciseIndex: position,
                 totalExercises: slots.count,
                 language: i18n.lang
             )
@@ -1145,7 +1313,11 @@ public struct LiveWorkoutView: View {
         liveActivity.end()
         health.stopObservingHeartRate()
         watch.onSetCompletedRemotely = nil
+        watch.onSetCompletedWithDataRemotely = nil
         watch.onPauseToggleRequestedRemotely = nil
+        watch.onSkipRestRequestedRemotely = nil
+        watch.onEndWorkoutRequestedRemotely = nil
+        watch.onStateRequestedRemotely = nil
         watch.endLiveSession()
         onFinish?()
     }
@@ -1154,10 +1326,16 @@ public struct LiveWorkoutView: View {
         NotificationManager.shared.cancelRestTimerNotification()
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         ticker?.cancel()
+        restTicker?.cancel()
+        restTicker = nil
         liveActivity.end()
         health.stopObservingHeartRate()
         watch.onSetCompletedRemotely = nil
+        watch.onSetCompletedWithDataRemotely = nil
         watch.onPauseToggleRequestedRemotely = nil
+        watch.onSkipRestRequestedRemotely = nil
+        watch.onEndWorkoutRequestedRemotely = nil
+        watch.onStateRequestedRemotely = nil
         watch.endLiveSession()
 
         // 1. Alle absolvierten Sätze & Übungen für das Tagebuch zusammenstellen

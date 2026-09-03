@@ -489,6 +489,7 @@ public struct AIPlanView: View {
     private func slotRow(day: DayPlan, slot: ExerciseSlot) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 8) {
+                ExerciseVisual(exercise: slot.exercise, size: 40)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(i18n.exerciseName(slot.exercise))
                         .font(KraftFont.inter(13.5, .semibold))

@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 public enum MuscleCategory: String, Codable, CaseIterable, Identifiable {
     case chest = "Brust"
@@ -105,6 +108,39 @@ public struct Exercise: Identifiable, Codable, Hashable {
 
     public func localizedName(language: String) -> String {
         language == "en" ? nameEn : name
+    }
+
+    /*
+      Der Name des Bildes im Asset-Katalog, aus `nameEn` abgeleitet.
+
+      Die Regel: englischer Name, klein geschrieben, `/` und `-` werden zu
+      Leerzeichen, Klammern fallen weg, Leerzeichen werden zu `_`, davor `ex_`.
+      „Pull-Ups" wird so zu `ex_pull_ups`, „Low-to-High Cable Flyes" zu
+      `ex_low_to_high_cable_flyes`.
+
+      Damit braucht eine neue Übungsabbildung keine Codeänderung: Ein Bildsatz
+      mit dem passenden Namen im Katalog genügt, `hasCustomImage` findet ihn von
+      selbst. Fehlt er, zeichnet ExerciseVisual die anatomische Figur.
+    */
+    public var imageAssetKey: String {
+        let clean = nameEn.lowercased()
+            .replacingOccurrences(of: "/", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "(", with: "")
+            .replacingOccurrences(of: ")", with: "")
+            .replacingOccurrences(of: "°", with: "")
+            .components(separatedBy: .whitespaces)
+            .filter { !$0.isEmpty }
+            .joined(separator: "_")
+        return "ex_" + clean
+    }
+
+    public var hasCustomImage: Bool {
+        #if canImport(UIKit)
+        return UIImage(named: imageAssetKey) != nil
+        #else
+        return false
+        #endif
     }
 }
 

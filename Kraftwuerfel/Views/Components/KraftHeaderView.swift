@@ -33,7 +33,7 @@ public enum KraftTab: String, CaseIterable, Identifiable {
     /// Symbol für die Leiste.
     public var icon: String {
         switch self {
-        case .generator:     return "dice.fill"
+        case .generator:     return "flame.fill"
         case .aiCoach:       return "sparkles"
         case .plans:         return "calendar"
         case .progress:      return "chart.line.uptrend.xyaxis"

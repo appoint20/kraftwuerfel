@@ -72,6 +72,11 @@ public struct LegalView: View {
                                 .font(KraftFont.inter(13))
                                 .foregroundColor(Theme.text)
                                 .fixedSize(horizontal: false, vertical: true)
+
+                            if !section.rows.isEmpty {
+                                dataTable(section.rows)
+                                    .padding(.top, 4)
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -84,6 +89,37 @@ public struct LegalView: View {
         .background(Theme.bg.ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
+
+    /*
+      Zwei Spalten statt einer echten Tabelle: Auf einem Telefon in
+      Hochkantlage bleibt für eine dritte Spalte kein lesbarer Platz, und ein
+      seitlich scrollender Datenschutztext wäre schlimmer als keiner.
+    */
+    private func dataTable(_ rows: [LegalContent.DataRow]) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                HStack(alignment: .top, spacing: 10) {
+                    Text(row.field)
+                        .font(KraftFont.mono(11, .bold))
+                        .foregroundColor(Theme.accent)
+                        .frame(width: 118, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(row.purpose)
+                        .font(KraftFont.inter(12))
+                        .foregroundColor(Theme.text.opacity(0.9))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, 7)
+                .padding(.horizontal, 10)
+                .background(index % 2 == 0 ? Theme.surface : Color.clear)
+            }
+        }
+        .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surface.opacity(0.5)))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.border, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
 }
 
 /*
@@ -91,10 +127,37 @@ public struct LegalView: View {
 */
 public enum LegalContent {
 
+    /// Eine Zeile in einer Datentabelle: Was, wozu, wie lange.
+    public struct DataRow: Identifiable {
+        public let id = UUID()
+        public let field: String
+        public let purpose: String
+
+        public init(_ field: String, _ purpose: String) {
+            self.field = field
+            self.purpose = purpose
+        }
+    }
+
     public struct Section: Identifiable {
         public let id = UUID()
         public let heading: String
         public let body: String
+        /*
+          Optionale Tabelle unter dem Fließtext.
+
+          „Wir verarbeiten Gesundheitsdaten" ist als Satz richtig und als
+          Auskunft wertlos — der Nutzer will wissen, WELCHE Angabe wofür
+          gebraucht wird und wo sie landet. Als Aufzählung im Fließtext liest
+          das niemand; als Tabelle schon.
+        */
+        public let rows: [DataRow]
+
+        public init(heading: String, body: String, rows: [DataRow] = []) {
+            self.heading = heading
+            self.body = body
+            self.rows = rows
+        }
     }
 
     // MARK: - Stammdaten Betreiber
@@ -236,8 +299,11 @@ public enum LegalContent {
                 Verhältnisse einer bestimmten oder bestimmbaren natürlichen Person (z. B. Name, E-Mail-Adresse, \
                 biometrische Trainings- und Ernährungsdaten).
 
-                Die Basisfunktionen der App (z. B. der lokale Trainingsplan-Würfel) können vollständig \
-                ohne Angabe personenbezogener Daten genutzt werden.
+                Für die Nutzung der App ist ein Konto erforderlich (E-Mail-Adresse und Passwort). \
+                Ohne Anmeldung lässt sich die App nicht verwenden — Trainingspläne, Fortschritt und \
+                ein etwaiges Pro-Abo hängen am Konto und nicht am Gerät. Der Fragebogen zu Deinem \
+                Profil ist davon unabhängig und bleibt freiwillig; Du kannst ihn überspringen und \
+                später ausfüllen.
 
                 Beim Aufruf der App und der Kommunikation mit unserer Backend-API (Render Services, Inc., \
                 Rechenzentrum Frankfurt am Main / EU) werden technisch notwendige Zugriffsdaten \
@@ -312,6 +378,60 @@ public enum LegalContent {
                 Deine Prompt-Daten werden gemäß den geltenden Richtlinien nicht zum Trainieren öffentlicher \
                 KI-Modelle verwendet.
                 """
+            ),
+            Section(
+                heading: "5a. Dein Profil — nur auf diesem Gerät",
+                body: """
+                Diese Angaben machst Du im Fragebogen nach der Registrierung. Sie liegen \
+                ausschließlich auf Deinem Gerät (UserDefaults) und werden von uns NICHT in einer \
+                Datenbank gespeichert. Wir können sie nicht einsehen.
+
+                Warum wir sie brauchen: Ein Trainingsplan, der nicht weiß, wie schwer Du bist, wie \
+                oft Du trainieren kannst und welche Geräte Du hast, ist geraten. Alle Angaben sind \
+                freiwillig — ohne sie erstellt der Coach keinen Plan, die übrige App funktioniert.
+
+                Zum Erzeugen eines KI-Plans werden sie einmalig an unseren Dienst gesendet (siehe \
+                Abschnitt 4); dort werden sie verarbeitet, aber nicht mit Deinem Konto verknüpft \
+                abgelegt. Beim Löschen Deines Kontos werden sie auf dem Gerät vollständig entfernt.
+                """,
+                rows: [
+                    DataRow("Geschlecht", "Grundumsatz (Mifflin-St Jeor) und Belastungsregeln — Art. 9 DSGVO"),
+                    DataRow("Alter", "Grundumsatz, Aufwärmumfang und Regenerationsbedarf — Art. 9 DSGVO"),
+                    DataRow("Größe · Gewicht", "BMI, Grundumsatz, Kalorien- und Makroberechnung — Art. 9 DSGVO"),
+                    DataRow("Zielgewicht", "Kalorienüber- oder -defizit im Ernährungsplan — Art. 9 DSGVO"),
+                    DataRow("Körpertyp", "Feinjustierung der Makronährstoffe"),
+                    DataRow("Aktivitätsgrad", "Gesamtumsatz (TDEE) neben dem Training"),
+                    DataRow("Trainingsziel", "Sätze, Wiederholungen und Kalorienziel"),
+                    DataRow("Erfahrung", "Übungsauswahl und Belastung; Anfänger bekommen keine Maximallasten"),
+                    DataRow("Selbsteinschätzung", "Liegestütze, Klimmzüge, Plank — Startniveau der Körperübungen"),
+                    DataRow("Trainingsort", "Bestimmt, welche Geräte überhaupt in Frage kommen"),
+                    DataRow("Equipment", "Es werden nur Übungen geplant, die Du ausführen kannst"),
+                    DataRow("Trainingstage", "Verteilung des Plans über die Woche"),
+                    DataRow("Einheitsdauer", "Anzahl der Übungen pro Trainingstag"),
+                    DataRow("Satzpause", "Obergrenze der Pause zwischen zwei Sätzen"),
+                    DataRow("Planlänge · Methode", "Progression über die Wochen und Satzschema"),
+                    DataRow("Ernährungsform", "Rezeptauswahl und Makroverteilung — Art. 9 DSGVO"),
+                    DataRow("Einschränkungen", "Freitext zu Verletzungen und Wünschen — Art. 9 DSGVO"),
+                ]
+            ),
+            Section(
+                heading: "5b. Was in unserer Datenbank liegt",
+                body: """
+                Nur das Folgende wird auf unserem Server (PostgreSQL bei Render, Frankfurt am Main) \
+                gespeichert. Alles andere — Profil, Pläne, Trainingsarchiv, Favoriten, Einstellungen — \
+                bleibt auf Deinem Gerät.
+                """,
+                rows: [
+                    DataRow("E-Mail-Adresse", "Anmeldung, Bestätigungs- und Passwort-Reset-Mails — bis zur Kontolöschung"),
+                    DataRow("Passwort-Hash", "BCrypt, nicht umkehrbar — wir kennen Dein Passwort nicht"),
+                    DataRow("is_premium", "Ob ein geprüftes Pro-Abo vorliegt — bis zur Kontolöschung"),
+                    DataRow("E-Mail bestätigt", "Ob die Adresse bestätigt wurde"),
+                    DataRow("Bestätigungs- und Reset-Token", "Einmalig, mit Ablaufdatum; danach wertlos"),
+                    DataRow("Refresh-Token (Hash)", "Angemeldet bleiben; nur der Hash, max. 30 Tage"),
+                    DataRow("Plan-Zwischenspeicher", "Erzeugter Plan als JSON, 14 Tage, adressiert über einen SHA-256-Schlüssel aus den Antworten — ohne Konto-ID und ohne E-Mail"),
+                    DataRow("Tageszähler", "Anzahl der KI-Anfragen pro Tag gegen Missbrauch; Konto-ID und Tag, sonst nichts"),
+                    DataRow("Zeitstempel", "Erstellt/geändert am — technische Nachvollziehbarkeit"),
+                ]
             ),
             Section(
                 heading: "5. Apple Health & Lokale Speicherung",
@@ -461,8 +581,10 @@ public enum LegalContent {
                 Personal data refers to any information relating to an identified or identifiable natural \
                 person (e.g. name, email, workout preferences, and biometric metrics).
 
-                Basic features (such as the local workout dice generator) can be used entirely without \
-                providing any personal information.
+                Using the app requires an account (email address and password). Without signing in the \
+                app cannot be used — training plans, progress and any Pro subscription belong to the \
+                account, not to the device. The profile questionnaire is separate and stays optional; \
+                you can skip it and fill it in later.
 
                 When accessing the app or our backend API (Render Services, Inc., Frankfurt am Main / EU), \
                 technical log data (iOS version, IP address, timestamp, device model) is temporarily processed \
@@ -526,6 +648,60 @@ public enum LegalContent {
                 OpenRouter Inc. (USA) via TLS encryption under EU Standard Contractual Clauses (Art. 46 GDPR). \
                 Your data is never used to train public AI models.
                 """
+            ),
+            Section(
+                heading: "5a. Your profile — on this device only",
+                body: """
+                You provide these answers in the questionnaire after registration. They live \
+                exclusively on your device (UserDefaults) and are NOT stored in a database by us. \
+                We cannot see them.
+
+                Why we need them: a training plan that does not know your weight, how often you can \
+                train and what equipment you have is guesswork. All answers are optional — without \
+                them the coach cannot build a plan, but the rest of the app works.
+
+                To generate an AI plan they are sent once to our service (see section 4); they are \
+                processed there but not stored linked to your account. Deleting your account removes \
+                them from the device entirely.
+                """,
+                rows: [
+                    DataRow("Sex", "Basal metabolic rate (Mifflin-St Jeor) and loading rules — Art. 9 GDPR"),
+                    DataRow("Age", "Metabolic rate, warm-up volume and recovery need — Art. 9 GDPR"),
+                    DataRow("Height · weight", "BMI, metabolic rate, calorie and macro calculation — Art. 9 GDPR"),
+                    DataRow("Target weight", "Calorie surplus or deficit in the nutrition plan — Art. 9 GDPR"),
+                    DataRow("Body type", "Fine-tuning of the macronutrient split"),
+                    DataRow("Activity level", "Total daily expenditure (TDEE) beside training"),
+                    DataRow("Training goal", "Sets, reps and calorie target"),
+                    DataRow("Experience", "Exercise selection and load; beginners get no maximal loads"),
+                    DataRow("Self-assessment", "Push-ups, pull-ups, plank — starting level for bodyweight work"),
+                    DataRow("Training location", "Determines which equipment is possible at all"),
+                    DataRow("Equipment", "Only exercises you can actually perform are planned"),
+                    DataRow("Training days", "Distribution of the plan across the week"),
+                    DataRow("Session length", "Number of exercises per training day"),
+                    DataRow("Rest time", "Upper limit for the pause between two sets"),
+                    DataRow("Plan length · method", "Progression across weeks and the set scheme"),
+                    DataRow("Diet", "Recipe selection and macro split — Art. 9 GDPR"),
+                    DataRow("Limitations", "Free text on injuries and preferences — Art. 9 GDPR"),
+                ]
+            ),
+            Section(
+                heading: "5b. What we store in our database",
+                body: """
+                Only the following is stored on our server (PostgreSQL at Render, Frankfurt am Main). \
+                Everything else — profile, plans, training archive, favourites, settings — stays on \
+                your device.
+                """,
+                rows: [
+                    DataRow("Email address", "Sign-in, confirmation and password reset mails — until account deletion"),
+                    DataRow("Password hash", "BCrypt, not reversible — we do not know your password"),
+                    DataRow("is_premium", "Whether a verified Pro subscription exists — until account deletion"),
+                    DataRow("Email confirmed", "Whether the address has been confirmed"),
+                    DataRow("Confirm / reset token", "Single use, with an expiry date; worthless afterwards"),
+                    DataRow("Refresh token (hash)", "Staying signed in; hash only, max. 30 days"),
+                    DataRow("Plan cache", "Generated plan as JSON, 14 days, addressed by a SHA-256 key derived from your answers — no account ID, no email"),
+                    DataRow("Daily counter", "Number of AI requests per day to prevent abuse; account ID and day, nothing else"),
+                    DataRow("Timestamps", "Created/updated at — technical traceability"),
+                ]
             ),
             Section(
                 heading: "5. Apple Health & Local Storage",

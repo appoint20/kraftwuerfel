@@ -43,7 +43,16 @@ public struct RootView: View {
             if signedIn { presentOnboardingIfNeeded() }
         }
         .onAppear {
-            if auth.isSignedIn { presentOnboardingIfNeeded() }
+            if auth.isSignedIn {
+                presentOnboardingIfNeeded()
+                /*
+                  Beim Start einmal nachfragen, was der Server über das Konto
+                  weiß. Ohne das bliebe der Pro-Status auf dem Stand des
+                  letzten Anmeldens stehen — ein Abo von einem anderen Gerät
+                  käme hier nie an.
+                */
+                Task { await auth.refreshAccountFromServer() }
+            }
         }
     }
 

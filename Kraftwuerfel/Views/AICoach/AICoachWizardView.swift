@@ -252,14 +252,79 @@ public struct AICoachWizardView: View {
                     errorCard(error)
                 }
 
-                KraftPrimaryButton(i18n.t("ready.generateCoach"), systemImage: "sparkles") {
-                    generatePlan()
+                /*
+                  Die Schranke für Gratis-Nutzer.
+
+                  `isAIPlanUnlockedForFree` gab es zwar, aber gefragt hat sie
+                  niemand: Der Knopf rief direkt `generatePlan()`. Ein
+                  Gratis-Nutzer bekam also beliebig viele KI-Pläne, ohne ein
+                  einziges Video zu sehen — die Videos waren reine Zierde.
+
+                  `consumeAIPlanReward()` setzt den Zähler nach jedem Plan
+                  zurück, also gilt die Schranke auch für den zweiten und
+                  jeden weiteren Plan.
+                */
+                if storeKit.isProUnlocked || adManager.isAIPlanUnlockedForFree {
+                    KraftPrimaryButton(i18n.t("ready.generateCoach"), systemImage: "sparkles") {
+                        generatePlan()
+                    }
+                } else {
+                    rewardGate
                 }
             }
             .padding(20)
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity)
         }
+    }
+
+    /*
+      Was ein Gratis-Nutzer statt des Erstellen-Knopfes sieht: wie viele
+      Videos noch fehlen, ein Knopf dafür — und der Weg an den Videos vorbei.
+    */
+    private var rewardGate: some View {
+        let watched = adManager.rewardedVideosWatched
+        let needed = adManager.requiredRewardedVideos
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "play.rectangle.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(Theme.accent)
+                Text(i18n.t("ai.gateTitle", ["done": "\(watched)", "total": "\(needed)"]))
+                    .font(KraftFont.inter(15, .bold))
+                    .foregroundColor(Theme.text)
+            }
+
+            Text(i18n.t("ai.gateText"))
+                .font(KraftFont.inter(13))
+                .foregroundColor(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+
+            // Fortschritt als Balken — „1 von 2" liest sich schneller als Text.
+            HStack(spacing: 5) {
+                ForEach(0..<max(needed, 1), id: \.self) { index in
+                    Capsule()
+                        .fill(index < watched ? Theme.accent : Theme.surface2)
+                        .frame(height: 5)
+                }
+            }
+
+            KraftPrimaryButton(i18n.t("ai.gateWatch"), systemImage: "play.fill") {
+                adManager.watchRewardedVideoForAIPlan { _ in }
+            }
+
+            Button(action: { showPro = true }) {
+                Text(i18n.t("ai.gateSkipWithPro"))
+                    .font(KraftFont.inter(12.5, .semibold))
+                    .foregroundColor(Theme.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .kraftCard()
     }
 
     private var profileCard: some View {
@@ -365,7 +430,8 @@ public struct AICoachWizardView: View {
             pushupLevel: session.pushupLevel,
             pullupLevel: session.pullupLevel,
             plankLevel: session.plankLevel,
-            trainingLocation: session.trainingLocation
+            trainingLocation: session.trainingLocation,
+            restSeconds: session.restSeconds
         )
 
         let plan = AICoachService.shared.generatePlan(input: input, language: i18n.lang)
@@ -423,7 +489,8 @@ public struct AICoachWizardView: View {
             pushupLevel: session.pushupLevel,
             pullupLevel: session.pullupLevel,
             plankLevel: session.plankLevel,
-            trainingLocation: session.trainingLocation
+            trainingLocation: session.trainingLocation,
+            restSeconds: session.restSeconds
         )
 
         Task {
@@ -443,6 +510,8 @@ public struct AICoachWizardView: View {
                 focus: [],
                 limitations: "",
                 warmup: session.warmup,
+                // Die Einstellung aus dem Profil geht jetzt wirklich mit.
+                restSeconds: session.restSeconds,
                 diet: session.diet.rawValue,
                 excludedFoods: [],
                 allergies: [],
@@ -606,12 +675,6 @@ struct AICoachGeneratingView: View {
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    HStack {
-                        Spacer()
-                        Text("Tipp \(fact.id) von \(facts.count)")
-                            .font(KraftFont.mono(9.5))
-                            .foregroundColor(Theme.muted)
-                    }
                 }
                 .padding(14)
                 .background(RoundedRectangle(cornerRadius: 14).fill(Theme.surface))

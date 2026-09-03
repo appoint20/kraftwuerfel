@@ -34,6 +34,16 @@ public struct MealGuideView: View {
       `nil` heißt: gerade wird nichts ergänzt.
     */
     @State private var addingToMealIndex: Int?
+
+    /*
+      Welche vorhandene Zutat gerade ersetzt wird — Mahlzeit und Position.
+
+      Bisher ließen sich nur selbst hinzugefügte Zutaten entfernen. Die
+      Zutaten aus dem Rezept standen fest: Wer eine davon nicht essen wollte
+      oder konnte, hatte keinen Weg, sie loszuwerden. Der Plan war damit für
+      genau die Leute unbrauchbar, für die er gedacht ist.
+    */
+    @State private var replacing: (meal: Int, item: Int)?
     @State private var alert: SaveAlert?
     @State private var showPro = false
     @State private var proNotice: SaveAlert?
@@ -251,7 +261,7 @@ public struct MealGuideView: View {
                     // Standard-Zutatenliste
                     if !meal.items.isEmpty {
                         VStack(alignment: .leading, spacing: 5) {
-                            ForEach(meal.items, id: \.self) { item in
+                            ForEach(Array(meal.items.enumerated()), id: \.offset) { itemIdx, item in
                                 HStack(alignment: .top, spacing: 6) {
                                     Text("•")
                                         .font(.system(size: 13, weight: .bold))
@@ -260,6 +270,38 @@ public struct MealGuideView: View {
                                         .font(KraftFont.inter(13))
                                         .foregroundColor(Theme.text.opacity(0.9))
                                         .fixedSize(horizontal: false, vertical: true)
+
+                                    Spacer(minLength: 4)
+
+                                    // Ersetzen: dieselbe Eingabe wie beim
+                                    // Hinzufügen, nur mit dem alten Namen
+                                    // vorbelegt und die alte Zeile fliegt raus.
+                                    Button {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        withAnimation(.easeOut(duration: 0.18)) {
+                                            replacing = (mealIdx, itemIdx)
+                                            addingToMealIndex = mealIdx
+                                        }
+                                    } label: {
+                                        Image(systemName: "arrow.left.arrow.right")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(Theme.muted)
+                                            .padding(4)
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    Button {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        withAnimation(.easeOut(duration: 0.18)) {
+                                            removeStandardItem(at: itemIdx, fromMealAt: mealIdx)
+                                        }
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(Color.red.opacity(0.75))
+                                            .padding(4)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
@@ -306,12 +348,27 @@ public struct MealGuideView: View {
                     // Aufklappen statt Blatt öffnen — der Plan bleibt sichtbar.
                     if addingToMealIndex == mealIdx {
                         InlineFoodComposer(
+                            initialName: replacedItemName(for: mealIdx),
                             onAdd: { entry in
+                                /*
+                                  Beim Ersetzen fliegt die alte Zeile zuerst
+                                  raus — sonst stünde die Zutat zweimal da,
+                                  einmal als Rezeptzeile und einmal als eigene.
+                                */
+                                if let target = replacing, target.meal == mealIdx {
+                                    removeStandardItem(at: target.item, fromMealAt: mealIdx)
+                                }
                                 addCustomFoodEntry(entry, toMealAt: mealIdx)
-                                withAnimation(.easeOut(duration: 0.18)) { addingToMealIndex = nil }
+                                withAnimation(.easeOut(duration: 0.18)) {
+                                    addingToMealIndex = nil
+                                    replacing = nil
+                                }
                             },
                             onCancel: {
-                                withAnimation(.easeOut(duration: 0.18)) { addingToMealIndex = nil }
+                                withAnimation(.easeOut(duration: 0.18)) {
+                                    addingToMealIndex = nil
+                                    replacing = nil
+                                }
                             }
                         )
                         .padding(.top, 6)
@@ -572,6 +629,42 @@ public struct MealGuideView: View {
 
     // MARK: - Zutat hinzufügen & entfernen
 
+    /// Der Name der Zutat, die gerade ersetzt wird — als Vorbelegung.
+    private func replacedItemName(for mealIdx: Int) -> String {
+        guard let target = replacing, target.meal == mealIdx,
+              activeDay.meals.indices.contains(mealIdx),
+              activeDay.meals[mealIdx].items.indices.contains(target.item)
+        else { return "" }
+        return activeDay.meals[mealIdx].items[target.item]
+    }
+
+    /*
+      Eine Zutat aus dem Rezept entfernen.
+
+      Läuft über denselben Weg wie das Hinzufügen: Wochenplan holen, Tag und
+      Mahlzeit ändern, zurückschreiben und den Aufrufer benachrichtigen. Der
+      erste Tag ist zusätzlich `currentPlan.meals` — das ist die Liste, die
+      ältere Ansichten lesen.
+    */
+    private func removeStandardItem(at itemIdx: Int, fromMealAt mealIdx: Int) {
+        var updatedSchedule = schedule
+        guard updatedSchedule.indices.contains(selectedDayIndex) else { return }
+        var day = updatedSchedule[selectedDayIndex]
+        guard day.meals.indices.contains(mealIdx) else { return }
+
+        var meal = day.meals[mealIdx]
+        guard meal.items.indices.contains(itemIdx) else { return }
+        meal.items.remove(at: itemIdx)
+        day.meals[mealIdx] = meal
+        updatedSchedule[selectedDayIndex] = day
+
+        currentPlan.weeklySchedule = updatedSchedule
+        if selectedDayIndex == 0 {
+            currentPlan.meals = day.meals
+        }
+        onUpdate?(currentPlan)
+    }
+
     private func addCustomFoodEntry(_ entry: FoodItemEntry, toMealAt mealIdx: Int) {
         var updatedSchedule = schedule
         guard updatedSchedule.indices.contains(selectedDayIndex) else { return }
@@ -633,6 +726,9 @@ public struct MealGuideView: View {
 struct InlineFoodComposer: View {
     @ObservedObject private var i18n = I18n.shared
 
+    /// Beim Ersetzen der Name der alten Zutat, sonst leer — man ändert
+    /// meistens nur die Menge oder eine Kleinigkeit am Namen.
+    var initialName: String = ""
     let onAdd: (FoodItemEntry) -> Void
     let onCancel: () -> Void
 
@@ -697,7 +793,10 @@ struct InlineFoodComposer: View {
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surface2))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.accent.opacity(0.4), lineWidth: 1))
-        .onAppear { nameFocused = true }
+        .onAppear {
+            if name.isEmpty { name = initialName }
+            nameFocused = true
+        }
     }
 
     private func field(

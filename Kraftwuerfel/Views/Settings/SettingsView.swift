@@ -6,13 +6,11 @@ import SwiftUI
 public struct SettingsView: View {
     @ObservedObject private var i18n = I18n.shared
     @ObservedObject private var auth = AuthService.shared
-    @ObservedObject private var challengeStore = ChallengeStore.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var showAuth = false
     @State private var showProfile = false
     @State private var showGuide = false
-    @State private var showChallengeSettings = false
     @State private var legalPage: LegalPage?
     @State private var showDeleteConfirm = false
     @State private var deleteResult: SaveAlert?
@@ -27,7 +25,6 @@ public struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 22) {
                     profileSection
                     guideSection
-                    challengeSection
                     accountSection
                     languageSection
                     legalSection
@@ -41,7 +38,6 @@ public struct SettingsView: View {
         .background(Theme.bg.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showGuide) { AppGuideView() }
-        .sheet(isPresented: $showChallengeSettings) { ChallengeSettingsView() }
         .sheet(isPresented: $showAuth) { AuthView() }
         .sheet(isPresented: $showProfile) { ProfileSettingsView() }
         .sheet(item: $legalPage) { page in LegalView(page: page) }
@@ -157,18 +153,6 @@ public struct SettingsView: View {
     }
 
     // MARK: - Challenge Konfiguration
-
-    private var challengeSection: some View {
-        SettingsSection(title: i18n.lang == "en" ? "CHALLENGES & HOME WORKOUT" : "CHALLENGES & HOME-WORKOUT") {
-            SettingsButtonRow(
-                icon: "flame.fill",
-                title: challengeStore.category.title(language: i18n.lang),
-                subtitle: "\(challengeStore.durationDays)-Tage Challenge · Tag \(challengeStore.currentDayNumber) (\(challengeStore.completedDays.count) geschafft)"
-            ) {
-                showChallengeSettings = true
-            }
-        }
-    }
 
     // MARK: - Konto
 

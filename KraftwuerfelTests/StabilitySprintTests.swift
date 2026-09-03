@@ -11,16 +11,6 @@ final class StabilitySprintTests: XCTestCase {
         GeneratorSettings.shared.count = 6
     }
 
-    // MARK: - Issue 1: Generator & Reel Stability
-
-    func testReelControllerLifecycleAndStop() {
-        let reel = ReelController()
-        reel.runReel(count: 6)
-        XCTAssertFalse(reel.scramble.isEmpty)
-        reel.stopEverything()
-        XCTAssertTrue(reel.scramble.isEmpty)
-    }
-
     // MARK: - Issue 2: Beine vs Beine-Fokus Conflict
 
     func testSplitLegsAutoResetsLegsFocus() {

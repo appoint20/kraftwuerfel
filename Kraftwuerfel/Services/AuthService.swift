@@ -24,6 +24,13 @@ public final class AuthService: ObservableObject {
         public let id: String
         public let email: String
         public var name: String?
+        /*
+          Was der Server über das Abo dieses Kontos weiß.
+
+          Optional, weil ältere gespeicherte Konten das Feld nicht haben —
+          `nil` heißt „unbekannt", nicht „kein Abo".
+        */
+        public var isPremium: Bool?
     }
 
     @Published public private(set) var account: Account?
@@ -279,6 +286,25 @@ public final class AuthService: ObservableObject {
     */
     private var refreshTask: Task<String?, Never>?
 
+    /*
+      Den Kontostand vom Server nachziehen.
+
+      Das Konto liegt in den Voreinstellungen und wird beim Anmelden
+      geschrieben — danach nie wieder. Der Pro-Status darin war damit auf dem
+      Stand des letzten Anmeldens eingefroren: Wer sein Abo auf einem anderen
+      Gerät abschloss (oder wem es hier von Hand gesetzt wurde), sah davon
+      nichts, bis er sich ab- und wieder anmeldete.
+
+      `/auth/refresh` liefert den aktuellen Nutzer gleich mit, also kostet das
+      nichts extra. Fehler sind egal: Dann bleibt der bisherige Stand stehen.
+    */
+    public func refreshAccountFromServer() async {
+        guard isSignedIn, let refreshToken = Keychain.get(Self.refreshTokenAccount) else { return }
+        guard let tokens = try? await KraftAPI.shared.refresh(refreshToken: refreshToken) else { return }
+        await store(tokens)
+        await StoreKitManager.shared.refreshEntitlements()
+    }
+
     public func refreshAccessToken() async -> String? {
         let task = await currentOrNewRefreshTask()
         let token = await task.value
@@ -340,7 +366,12 @@ public final class AuthService: ObservableObject {
         Keychain.set(tokens.refreshToken, for: Self.refreshTokenAccount)
         KraftAPI.shared.accessToken = tokens.accessToken
 
-        let stored = Account(id: tokens.user.id, email: tokens.user.email ?? "", name: userName.isEmpty ? nil : userName)
+        let stored = Account(
+            id: tokens.user.id,
+            email: tokens.user.email ?? "",
+            name: userName.isEmpty ? nil : userName,
+            isPremium: tokens.user.isPremium
+        )
         if let encoded = try? JSONEncoder().encode(stored) {
             UserDefaults.standard.set(encoded, forKey: Self.accountKey)
         }

@@ -87,7 +87,7 @@ public final class GeneratorSettings: ObservableObject {
       Tabwechsel weg. Wer mitten in der Challenge steckt, landete beim
       Zurückkommen wieder im Studio-Generator.
     */
-    @Published public var mode: GeneratorMode = .generator      { didSet { save() } }
+    @Published public var mode: GeneratorMode = .challenge      { didSet { save() } }
 
     /*
       Der Entwurf des selbstgebauten Plans.
@@ -211,7 +211,7 @@ public final class GeneratorSettings: ObservableObject {
         restTime = 60
         plan = []
         planName = ""
-        mode = .generator
+        mode = .challenge
         builderSlots = []
         builderName = ""
         loading = false
@@ -229,8 +229,17 @@ public final class GeneratorSettings: ObservableObject {
         var restTime: Int
         var plan: [ExerciseSlot]
         var planName: String
-        // Ältere Stände kennen den Tab noch nicht.
-        var mode: GeneratorMode?
+        /*
+          Als Zeichenkette, nicht als GeneratorMode.
+
+          Der Studio-Modus ist entfallen. Stünde hier der Aufzählungstyp,
+          würfe der Decoder bei einem alten Stand mit dem Rohwert
+          „generator" — und weil `load()` den ganzen Schnappschuss mit `try?`
+          liest, wären damit ALLE Generator-Einstellungen weg: eigene
+          Übungen, der Baukasten-Plan, die Zyklus-Wahl. Ein entfernter Tab
+          darf nicht die Daten des Nutzers mitnehmen.
+        */
+        var mode: String?
         // Ältere Stände kennen die Zyklus-Wahl noch nicht.
         var cycleMode: CycleMode?
         var builderSlots: [ExerciseSlot]?
@@ -242,7 +251,7 @@ public final class GeneratorSettings: ObservableObject {
         let snapshot = Snapshot(
             split: split, customCats: Array(customCats), customExercises: customExercises, count: count,
             method: method, restTime: restTime, plan: plan, planName: planName,
-            mode: mode, cycleMode: cycleMode, builderSlots: builderSlots, builderName: builderName
+            mode: mode.rawValue, cycleMode: cycleMode, builderSlots: builderSlots, builderName: builderName
         )
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         UserDefaults.standard.set(data, forKey: Self.storageKey)
@@ -263,7 +272,9 @@ public final class GeneratorSettings: ObservableObject {
         restTime = s.restTime
         plan = s.plan
         planName = s.planName
-        mode = s.mode ?? .generator
+        // Ein alter Stand kann „generator" tragen — den Tab gibt es nicht
+        // mehr, also landet er auf der Home-Challenge statt im Nichts.
+        mode = s.mode.flatMap(GeneratorMode.init(rawValue:)) ?? .challenge
         cycleMode = s.cycleMode ?? .auto
         builderSlots = s.builderSlots ?? []
         builderName = s.builderName ?? ""
@@ -333,7 +344,13 @@ public enum CycleMode: String, CaseIterable, Identifiable, Codable {
 
 /// Die beiden Tabs über dem Würfel: Studio-Generator und Home-Challenge.
 public enum GeneratorMode: String, CaseIterable, Identifiable, Codable {
-    case generator = "generator"
+    /*
+      „generator" (der Studio-Würfel) ist entfallen — dieselbe Würfelstrecke
+      steht im Trainingsplan, wo der Plan danach auch über Wochen weiterläuft.
+      Der Rohwert bleibt in alten gespeicherten Ständen stehen; `load()` bildet
+      ihn auf `.challenge` ab, damit niemand nach dem Update auf einem Tab
+      landet, den es nicht mehr gibt.
+    */
     case challenge = "challenge"
     /// Selbst zusammengestellt — Übung für Übung aus dem Katalog.
     case builder = "builder"
@@ -342,7 +359,6 @@ public enum GeneratorMode: String, CaseIterable, Identifiable, Codable {
 
     public var icon: String {
         switch self {
-        case .generator: return "dumbbell.fill"
         case .challenge: return "flame.fill"
         case .builder:   return "square.and.pencil"
         }
@@ -351,7 +367,6 @@ public enum GeneratorMode: String, CaseIterable, Identifiable, Codable {
     public func title(_ lang: String) -> String {
         let en = lang == "en"
         switch self {
-        case .generator: return en ? "GYM" : "STUDIO"
         case .challenge: return en ? "HOME" : "HOME"
         case .builder:   return en ? "CUSTOM" : "EIGENER"
         }

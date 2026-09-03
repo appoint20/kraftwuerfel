@@ -21,7 +21,6 @@ public final class NotificationManager: ObservableObject {
 
     private static let restNotificationId = "kraftwuerfel.live.restTimer"
     static let workoutReminderPrefix = "kraftwuerfel.workout.reminder."
-    private let speechSynthesizer = AVSpeechSynthesizer()
 
     private init() {
         checkAuthorization()
@@ -328,36 +327,35 @@ public final class NotificationManager: ObservableObject {
         let feedback = UIImpactFeedbackGenerator(style: secondsRemaining == 1 ? .heavy : .medium)
         feedback.impactOccurred()
 
-        // Heller System-Ding-Ton (1103 = Tink / Ping)
-        AudioServicesPlaySystemSound(1103)
+        /*
+          Über die Audiositzung der App, nicht als Systemton: Nur so senkt iOS
+          die Musik für den Ton ab. Der Systemton war zwar zu hören, aber
+          gleichlaut neben der Musik — also praktisch nicht.
+        */
+        WorkoutCuePlayer.shared.playTick(isFinal: secondsRemaining == 1)
     }
 
     /// Wird aufgerufen, wenn die Pause im Vordergrund abläuft (0s -> Signalton + "LOS!")
+    /*
+      Das Ende der Satzpause: drei Töne, keine Stimme.
+
+      Hier wurde „Los!" bzw. „Go!" gesprochen. Zwei Gründe, warum das weg
+      ist. Erstens klang es am Ende eines Countdowns aus Pieptönen wie ein
+      Fremdkörper. Zweitens — und das war der eigentliche Ärger — aktiviert
+      AVSpeechSynthesizer die Audiositzung und legt danach wieder auf; genau
+      das hat die Musik des Nutzers gestoppt. Die Audiositzung ist inzwischen
+      zwar richtig gesetzt (AudioSessionManager), aber die Stimme braucht
+      dafür gar nicht erst zurückzukommen: Ein Signalton sagt dasselbe und
+      unterbricht nichts.
+    */
     public func playRestFinishedCues(language: String = "de") {
-        /*
-          Der Hauptverdächtige: Der Sprachausgeber aktiviert die Audiositzung
-          und legt danach wieder auf. Auf der Voreinstellung `.soloAmbient`
-          hieß das jedes Mal: Musik aus, genau am Pausenende.
-        */
         AudioSessionManager.configureForWorkout()
 
         // Haptisches Erfolgs-Feedback
         UINotificationFeedbackGenerator().notificationOccurred(.success)
 
-        // Kräftiger Signalton zum Pausenende
-        AudioServicesPlaySystemSound(1025)
-
-        // Sprachausgabe "Los!" / "Go!"
-        let isEn = language == "en"
-        let utterance = AVSpeechUtterance(string: isEn ? "Go!" : "Los!")
-        utterance.voice = AVSpeechSynthesisVoice(language: isEn ? "en-US" : "de-DE")
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.15
-        utterance.pitchMultiplier = 1.1
-        utterance.volume = 1.0
-
-        if speechSynthesizer.isSpeaking {
-            speechSynthesizer.stopSpeaking(at: .immediate)
-        }
-        speechSynthesizer.speak(utterance)
+        // Drei kurze Töne statt eines gesprochenen Startsignals — und diesmal
+        // so ausgegeben, dass die laufende Musik dafür kurz leiser wird.
+        WorkoutCuePlayer.shared.playRestFinished()
     }
 }
