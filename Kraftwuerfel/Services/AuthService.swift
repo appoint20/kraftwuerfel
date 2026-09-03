@@ -47,6 +47,14 @@ public final class AuthService: ObservableObject {
     @Published public private(set) var resetEmailSent = false
 
     private static let accountKey = "kraftwuerfel:account"
+    /*
+      Wer zuletzt angemeldet war — überlebt das Abmelden mit Absicht.
+
+      `accountKey` wird beim Abmelden entfernt; danach wüsste die App nicht
+      mehr, wessen Daten auf dem Gerät liegen. Genau diese Kennung fehlte,
+      und deshalb sah der nächste Nutzer die Einheiten des vorigen.
+    */
+    private static let lastAccountKey = "kraftwuerfel:lastAccountId"
     private static let userNameKey = "kraftwuerfel:userName"
     private static let accessTokenAccount = "supabase.accessToken"
     private static let refreshTokenAccount = "supabase.refreshToken"
@@ -178,8 +186,19 @@ public final class AuthService: ObservableObject {
         resetEmailSent = false
         lastError = nil
 
-        SavedAIPlansStore.shared.wipe()
-        SavedMealGuidesStore.shared.wipe()
+        /*
+          Hier wird bewusst nichts mehr gelöscht.
+
+          Vorher fielen an dieser Stelle KI-Pläne und Meal Guides weg — und
+          sonst nichts. Das war die falsche Hälfte: Wer sich mit demselben
+          Konto neu anmeldete, verlor genau die zwei Speicher, die am
+          aufwendigsten zu erzeugen sind, während Trainingsarchiv und Profil
+          des Vorgängers einen Kontowechsel überlebten.
+
+          Beides ist jetzt umgedreht. Abmelden lässt alles stehen, weil diese
+          Daten nur auf dem Gerät liegen; der Wechsel auf ein anderes Konto
+          räumt in `store(_:)` vollständig ab.
+        */
 
         // Best-effort — die Tokens sind lokal so oder so schon weg.
         if let token { Task { await KraftAPI.shared.logout(accessToken: token) } }
@@ -230,8 +249,16 @@ public final class AuthService: ObservableObject {
       personenbezogenes Datum, und die App auf Deutsch zurückzusetzen wäre für
       einen englischen Nutzer nur verwirrend.
     */
+    /*
+      Löscht die Inhalte, aber nicht die Sitzung.
+
+      Getrennt von `wipeAllLocalData()`, weil der Kontowechsel genau das
+      braucht: Beim Anmelden sind Token und Konto gerade frisch gesetzt
+      worden — würde hier auch der Schlüsselbund geleert, wäre der Nutzer
+      im selben Atemzug wieder abgemeldet.
+    */
     @MainActor
-    private func wipeAllLocalData() {
+    func wipeContentStores() {
         SavedPlansStore.shared.wipe()
         SavedAIPlansStore.shared.wipe()
         SavedMealGuidesStore.shared.wipe()
@@ -240,28 +267,45 @@ public final class AuthService: ObservableObject {
         WorkoutHistoryStore.shared.wipe()
         GeneratorSettings.shared.wipe()
         AICoachSession.shared.wipe()
-        /*
-          Der Fragebogen der Home-Challenge enthält dieselben Gesundheitsdaten
-          wie der des KI-Coaches (Geschlecht, Alter, Größe, Gewicht,
-          Zielgewicht) — Art. 9 DSGVO. Er darf eine Kontolöschung so wenig
-          überleben wie der Coach. ChallengeStore kommt mit, weil dort steht,
-          an welchen Tagen trainiert wurde.
-        */
         ChallengeSession.shared.wipe()
         ChallengeStore.shared.wipe()
-        /*
-          Seit die Antworten nur noch einmal existieren, liegen Geschlecht,
-          Alter, Größe, Gewicht und Zielgewicht hier — nicht mehr in den
-          beiden Sitzungen. Ohne diese Zeile hätte das Profil als einziger
-          Speicher die Kontolöschung überlebt, und zwar genau der mit den
-          Gesundheitsdaten darin.
-        */
         UserProfileStore.shared.wipe()
+    }
+
+    /*
+      Merkt sich, wer zuletzt angemeldet war, und räumt bei einem Wechsel ab.
+
+      Der Schlüssel liegt bewusst neben `accountKey` und wird beim Abmelden
+      NICHT entfernt — er ist das Einzige, woran sich nach dem Abmelden noch
+      erkennen lässt, wem die Daten auf dem Gerät gehören.
+
+      Ist noch nichts vermerkt (erste Anmeldung nach dem Update), wird nur
+      vermerkt und nichts gelöscht: Die vorhandenen Daten stammen dann mit
+      hoher Wahrscheinlichkeit von genau diesem Nutzer, und sie ungefragt zu
+      verwerfen wäre schlimmer als der Fehler, der behoben werden soll.
+    */
+    /// Nicht `private`, damit der Regressionstest den Kontowechsel
+    /// nachstellen kann, ohne einen echten Anmeldevorgang zu brauchen.
+    @MainActor
+    func wipeIfDifferentAccount(newAccountId: String) {
+        let previous = UserDefaults.standard.string(forKey: Self.lastAccountKey)
+        UserDefaults.standard.set(newAccountId, forKey: Self.lastAccountKey)
+
+        guard let previous, previous != newAccountId else { return }
+        wipeContentStores()
+    }
+
+    @MainActor
+    private func wipeAllLocalData() {
+        wipeContentStores()
 
         Keychain.remove(Self.accessTokenAccount)
         Keychain.remove(Self.refreshTokenAccount)
         UserDefaults.standard.removeObject(forKey: Self.accountKey)
         UserDefaults.standard.removeObject(forKey: Self.userNameKey)
+        // Bei der Kontolöschung darf auch die Kennung nicht bleiben: Das Konto
+        // gibt es nicht mehr, und ein Vermerk darüber wäre selbst ein Restdatum.
+        UserDefaults.standard.removeObject(forKey: Self.lastAccountKey)
         KraftAPI.shared.accessToken = nil
 
         userName = ""
@@ -362,6 +406,25 @@ public final class AuthService: ObservableObject {
     }
 
     private func store(_ tokens: KraftAPI.AuthTokens) async {
+        /*
+          Wechselt das Konto, muss alles Lokale weg — VOR dem Anmelden.
+
+          Der Fehler dahinter war gravierend: `signOut()` räumte nur zwei
+          Speicher ab. Trainingsarchiv, aktiver Plan, Favoriten und der
+          Fragebogen mit Geschlecht, Alter, Größe und Gewicht blieben liegen.
+          Wer sich danach mit einem anderen Konto anmeldete, sah die letzte
+          Einheit, die Pläne und die Gesundheitsdaten des Vorgängers — auf
+          einem geteilten Gerät ein Datenschutzvorfall nach Art. 9 DSGVO,
+          nicht bloß ein Anzeigefehler.
+
+          Hier statt in `signOut()`, weil Abmelden und Wiederanmelden mit
+          DEMSELBEN Konto der Normalfall ist. Die Daten liegen nur auf dem
+          Gerät und nirgends sonst — sie beim Abmelden zu löschen hieße, sie
+          endgültig zu verlieren. Verglichen wird deshalb die Kontokennung:
+          gleiches Konto, alles bleibt; anderes Konto, alles geht.
+        */
+        await MainActor.run { self.wipeIfDifferentAccount(newAccountId: tokens.user.id) }
+
         Keychain.set(tokens.accessToken, for: Self.accessTokenAccount)
         Keychain.set(tokens.refreshToken, for: Self.refreshTokenAccount)
         KraftAPI.shared.accessToken = tokens.accessToken

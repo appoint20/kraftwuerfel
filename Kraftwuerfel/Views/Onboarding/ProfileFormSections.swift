@@ -490,6 +490,30 @@ public struct ProfileNutritionSection: View {
                 }
             }
 
+            /*
+              Eine einzelne Ja/Nein-Frage, weil daran genau eine Sache hängt:
+              ob nach dem Training an den Shake erinnert wird. Sie steht bei
+              der Ernährung und nicht bei den Mitteilungen, weil sie eine
+              Gewohnheit beschreibt und keine Einstellung.
+            */
+            SectionLabel(i18n.t("profile.shakesTitle"))
+            Toggle(isOn: store.binding(\.usesProteinShakes)) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(i18n.t("profile.shakesLabel"))
+                        .font(KraftFont.inter(14, .semibold))
+                        .foregroundColor(Theme.text)
+                    Text(i18n.t("profile.shakesHint"))
+                        .font(KraftFont.inter(11.5))
+                        .foregroundColor(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .tint(Theme.accent)
+            .padding(12)
+            .background(Theme.surface2)
+            .cornerRadius(10)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.border, lineWidth: 1))
+
             SectionLabel(i18n.t("profile.limitations"))
             VStack(alignment: .leading, spacing: 6) {
                 TextField(

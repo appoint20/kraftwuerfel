@@ -216,6 +216,64 @@ public final class NotificationManager: ObservableObject {
             .removePendingNotificationRequests(withIdentifiers: [Self.proteinShakeId])
     }
 
+    // MARK: - Trinken während der Einheit
+
+    private static let waterPrefix = "kraftwuerfel.session.water."
+
+    /*
+      Während des Trainings ans Trinken erinnern.
+
+      Warum überhaupt: Schon zwei Prozent Flüssigkeitsverlust kosten Kraft und
+      Konzentration, und im Training merkt man das nicht als Durst, sondern
+      als schlechteren Satz. Deshalb steht der Grund in der Meldung — eine
+      bloße Aufforderung ohne Begründung wird nach dem zweiten Mal weggewischt.
+
+      Mehrere feste Zeitpunkte statt eines wiederkehrenden Auslösers: Ein
+      `repeats: true`-Trigger liefe nach der Einheit weiter, und niemand
+      möchte abends um zehn ans Trinken erinnert werden, weil er nachmittags
+      trainiert hat. Alle Aufträge hängen an dieser Einheit und werden mit ihr
+      zurückgezogen.
+    */
+    public func scheduleWaterReminders(
+        everyMinutes interval: Int = 20,
+        sessionMinutes: Int = 90,
+        language: String = "de"
+    ) {
+        cancelWaterReminders()
+        guard interval > 0, sessionMinutes > interval else { return }
+
+        let isEn = language == "en"
+        let center = UNUserNotificationCenter.current()
+
+        for minute in stride(from: interval, to: sessionMinutes, by: interval) {
+            let content = UNMutableNotificationContent()
+            content.title = isEn ? "Take a sip 💧" : "Trink einen Schluck 💧"
+            content.body = isEn
+                ? "Two percent fluid loss already costs strength and focus — you feel it as a weaker set, not as thirst."
+                : "Schon zwei Prozent Flüssigkeitsverlust kosten Kraft und Konzentration — du merkst es am schwächeren Satz, nicht am Durst."
+            content.sound = nil
+
+            let trigger = UNTimeIntervalNotificationTrigger(
+                timeInterval: TimeInterval(minute * 60),
+                repeats: false
+            )
+            center.add(UNNotificationRequest(
+                identifier: "\(Self.waterPrefix)\(minute)",
+                content: content,
+                trigger: trigger
+            ))
+        }
+    }
+
+    public func cancelWaterReminders() {
+        let center = UNUserNotificationCenter.current()
+        center.getPendingNotificationRequests { requests in
+            let ids = requests.map(\.identifier).filter { $0.hasPrefix(Self.waterPrefix) }
+            guard !ids.isEmpty else { return }
+            center.removePendingNotificationRequests(withIdentifiers: ids)
+        }
+    }
+
     // MARK: - Challenge-Erinnerungen
 
     private static let challengeReminderId = "kraftwuerfel.challenge.dailyReminder"

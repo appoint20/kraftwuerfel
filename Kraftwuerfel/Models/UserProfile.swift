@@ -77,6 +77,17 @@ public struct UserProfile: Codable, Equatable {
     // MARK: - Ernährung & Einschränkungen
 
     public var diet: DietType = .omnivore
+    /*
+      Ob überhaupt Shakes getrunken werden.
+
+      Steuert allein die Erinnerung nach dem Training. Wer keine Shakes nimmt,
+      bekam bisher trotzdem eine halbe Stunde nach jeder Einheit die Meldung
+      „Zeit für deinen Shake“ — eine Erinnerung an etwas, das gar nicht
+      vorkommt, und der schnellste Weg, Mitteilungen ganz abzuschalten.
+
+      Standard ist `false`: Lieber keine Erinnerung als eine unpassende.
+    */
+    public var usesProteinShakes: Bool = false
     /// Freitext, geht als `limitations` in den Prompt. Der Server kürzt bei 500.
     public var limitations: String = ""
 

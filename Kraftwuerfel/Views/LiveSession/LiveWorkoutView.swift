@@ -359,7 +359,66 @@ public struct LiveWorkoutView: View {
 
     // MARK: - Gesundheitskarte
 
+    /*
+      Ohne Sensor wird nichts mehr geschätzt angezeigt.
+
+      Vorher stand hier ein gerechneter Puls in derselben großen Zahl wie ein
+      gemessener, nur mit dem Etikett „geschätzt“ daneben. Das Modell kennt
+      aber weder Belastung noch Tagesform — es zeichnet eine Kurve, die immer
+      gleich aussieht. Eine erfundene Zahl, die aussieht wie ein Messwert, ist
+      schlechter als gar keine Zahl: Sie lädt dazu ein, das Training danach zu
+      steuern.
+
+      Was bleibt, ist echt: Dauer und Volumen kommen aus der Sitzung selbst.
+      An die Stelle von Puls und Kalorien tritt der Hinweis, wofür ein Sensor
+      gut wäre.
+    */
     private var healthCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if isMeasured {
+                measuredHealthContent
+            } else {
+                sensorPrompt
+            }
+
+            HStack(spacing: 8) {
+                statTile("stopwatch", timeString(elapsed), i18n.t("live.duration"), tint: Theme.text)
+                // Die Kalorien stehen nur bei echter Messung: Sie kommen sonst
+                // aus demselben Modell wie der Puls.
+                if isMeasured {
+                    statTile("flame.fill", "\(Int(displayCalories))", i18n.t("live.calories"), tint: Color(hex: "FF7849"))
+                }
+                statTile("dumbbell.fill", "\(totalVolume)", i18n.t("live.volume"), tint: Theme.text)
+            }
+        }
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Theme.surface))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
+    }
+
+    private var sensorPrompt: some View {
+        HStack(alignment: .top, spacing: 11) {
+            Image(systemName: "applewatch.slash")
+                .font(.system(size: 19, weight: .medium))
+                .foregroundColor(Theme.muted)
+                .padding(.top, 1)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(i18n.t("live.noSensorTitle"))
+                    .font(KraftFont.bebas(15)).tracking(1)
+                    .foregroundColor(Theme.text)
+                Text(i18n.t("live.noSensorBody"))
+                    .font(KraftFont.inter(11.5))
+                    .foregroundColor(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var measuredHealthContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -373,14 +432,13 @@ public struct LiveWorkoutView: View {
                         // Das Etikett wechselt mit der Quelle. Ein Messwert
                         // darf nicht als Schätzung durchgehen und umgekehrt
                         // erst recht nicht.
-                        Text(i18n.t(isMeasured ? "live.sourceWatch" : "live.estimated"))
+                        Text(i18n.t("live.sourceWatch"))
                             .font(KraftFont.inter(9.5, .bold))
                             .textCase(.uppercase)
-                            .foregroundColor(isMeasured ? Theme.accent : Theme.muted)
+                            .foregroundColor(Theme.accent)
                             .padding(.horizontal, 6).padding(.vertical, 2)
                             .background(
-                                RoundedRectangle(cornerRadius: 5)
-                                    .fill(isMeasured ? Theme.accentDim : Theme.surface2)
+                                RoundedRectangle(cornerRadius: 5).fill(Theme.accentDim)
                             )
                     }
 
@@ -410,23 +468,7 @@ public struct LiveWorkoutView: View {
                 }
             }
 
-            HStack(spacing: 8) {
-                statTile("stopwatch", timeString(elapsed), i18n.t("live.duration"), tint: Theme.text)
-                statTile("flame.fill", "\(Int(displayCalories))", i18n.t("live.calories"), tint: Color(hex: "FF7849"))
-                statTile("dumbbell.fill", "\(totalVolume)", i18n.t("live.volume"), tint: Theme.text)
-            }
-
-            // Der Hinweis steht nur da, solange gerechnet statt gemessen wird.
-            if !isMeasured {
-                Text(i18n.t("live.estimatedNote"))
-                    .font(KraftFont.inter(11))
-                    .foregroundColor(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         }
-        .padding(16)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Theme.surface))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
     }
 
     private func metricInline(_ label: String, _ value: String) -> some View {
@@ -884,6 +926,20 @@ public struct LiveWorkoutView: View {
     /// Ob der angezeigte Puls von einem Sensor stammt.
     private var isMeasured: Bool { heartRateSource == .appleWatch }
 
+    /*
+      Ob der Shake-Hinweis zu diesem Nutzer passt.
+
+      Zwei Wege, weil beide für sich Lücken haben: Die Frage im Profil
+      beantwortet nicht jeder, und ein gespeicherter Ernährungsplan ist ein
+      genauso deutliches Signal — wer einen Plan mit Shakes aufbewahrt, folgt
+      ihm auch. Umgekehrt hat nicht jeder, der Shakes trinkt, einen Plan
+      gespeichert. Es reicht deshalb, wenn eines von beidem zutrifft.
+    */
+    private var drinksProteinShakes: Bool {
+        if UserProfileStore.shared.profile.usesProteinShakes { return true }
+        return SavedMealGuidesStore.shared.items.contains { !$0.nutrition.shakes.isEmpty }
+    }
+
     /// Gemessen, wenn die Uhr mitläuft — sonst der gerechnete Wert.
     private var displayCalories: Double {
         isMeasured ? (watch.watchActiveCalories ?? calories) : calories
@@ -986,6 +1042,29 @@ public struct LiveWorkoutView: View {
           dadurch, als koppele sie sich erst beim ersten Satz.
         */
         health.startWatchWorkoutApp()
+
+        /*
+          Trinkerinnerungen für die Dauer der Einheit.
+
+          Die Länge schätzt sich aus dem Plan selbst: Sätze mal Pause plus
+          Ausführungszeit, großzügig aufgerundet. Wird früher beendet, ziehen
+          `finish()` und `cancelAll()` die restlichen Aufträge zurück — es
+          bleibt also nichts stehen, was nach der Einheit noch klingelt.
+        */
+        NotificationManager.shared.scheduleWaterReminders(
+            sessionMinutes: estimatedSessionMinutes,
+            language: i18n.lang
+        )
+    }
+
+    /// Grobe Dauer der Einheit in Minuten — nur als Fenster für die
+    /// Trinkerinnerungen, nicht als Anzeige.
+    private var estimatedSessionMinutes: Int {
+        let totalSets = slots.reduce(0) { $0 + $1.sets }
+        let restSeconds = slots.reduce(0) { $0 + $1.sets * $1.restSeconds }
+        // 45 Sekunden je Satz für die Ausführung selbst.
+        let workSeconds = totalSets * 45
+        return max(20, min(180, (restSeconds + workSeconds) / 60 + 10))
     }
 
     /// Uhr auf den aktuellen Stand bringen — bei jedem Satz-, Pausen- und
@@ -1165,6 +1244,9 @@ public struct LiveWorkoutView: View {
     /// ActivityKit nimmt keine sekündlichen Updates entgegen. Alle fünf
     /// Sekunden reicht für eine Zahl, die sich langsam bewegt.
     private func pushHeartRateToLockScreen() {
+        // Ohne Sensor geht auch auf den Sperrbildschirm keine Zahl — dort
+        // stünde sie sonst ohne jeden Hinweis auf ihre Herkunft.
+        guard isMeasured else { return }
         guard Date().timeIntervalSince(lastActivityHeartRatePush) >= 5 else { return }
         lastActivityHeartRatePush = Date()
         liveActivity.setHeartRate(Int(heartRate), source: heartRateSource)
@@ -1309,6 +1391,9 @@ public struct LiveWorkoutView: View {
     private func discardWithoutSaving() {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         NotificationManager.shared.cancelRestTimerNotification()
+        // Auch beim Verwerfen: Sonst klingelt die Einheit noch eine Stunde
+        // weiter, die es gar nicht mehr gibt.
+        NotificationManager.shared.cancelWaterReminders()
         ticker?.cancel()
         liveActivity.end()
         health.stopObservingHeartRate()
@@ -1399,7 +1484,14 @@ public struct LiveWorkoutView: View {
             steht — und eine Erinnerung an etwas Erledigtes ist der Grund,
             aus dem Leute Benachrichtigungen ganz abschalten.
         */
-        NotificationManager.shared.scheduleProteinShakeReminder(language: i18n.lang)
+        // Nur für Leute, die überhaupt Shakes trinken — sonst erinnert die App
+        // an etwas, das im Alltag dieses Nutzers gar nicht vorkommt.
+        if drinksProteinShakes {
+            NotificationManager.shared.scheduleProteinShakeReminder(language: i18n.lang)
+        }
+
+        // Die Trinkerinnerungen hängen an dieser Einheit und gehen mit ihr.
+        NotificationManager.shared.cancelWaterReminders()
         NotificationManager.shared.cancelWorkoutReminder(on: Date())
 
         withAnimation(.easeInOut(duration: 0.25)) {
