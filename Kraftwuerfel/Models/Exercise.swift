@@ -129,6 +129,7 @@ public struct Exercise: Identifiable, Codable, Hashable {
             .replacingOccurrences(of: "(", with: "")
             .replacingOccurrences(of: ")", with: "")
             .replacingOccurrences(of: "°", with: "")
+            .replacingOccurrences(of: "'", with: "")
             .components(separatedBy: .whitespaces)
             .filter { !$0.isEmpty }
             .joined(separator: "_")

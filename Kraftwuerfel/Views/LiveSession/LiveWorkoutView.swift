@@ -214,12 +214,34 @@ public struct LiveWorkoutView: View {
             guard phase == .active else { return }
             resyncAfterBackground()
         }
+        /*
+          Der Auffangweg beim Verlassen der Ansicht.
+
+          `finish()` und `discardWithoutSaving()` räumen ihre Mitteilungen selbst
+          ab — aber nicht jeder Ausstieg geht über die beiden. Wer die Ansicht
+          mitten im Training wegwischt oder anderswohin navigiert, landet nur
+          hier, und genau dann blieben die geplanten Mitteilungen stehen: Eine
+          Viertelstunde später kam „Pause vorbei — weiter geht's" für ein
+          Training, das längst abgebrochen war.
+
+          `onDisappear` läuft bei JEDEM Ausstieg, auch nach den beiden anderen
+          Wegen. Ein zweites Abbestellen dort ist wirkungslos, kostet nichts und
+          ist der Preis dafür, dass kein Weg vergessen werden kann.
+        */
         .onDisappear {
             ticker?.cancel()
+            restTicker?.cancel()
+            restTicker = nil
+            NotificationManager.shared.cancelRestTimerNotification()
+            NotificationManager.shared.cancelWaterReminders()
             liveActivity.end()
             health.stopObservingHeartRate()
             watch.onSetCompletedRemotely = nil
+            watch.onSetCompletedWithDataRemotely = nil
             watch.onPauseToggleRequestedRemotely = nil
+            watch.onSkipRestRequestedRemotely = nil
+            watch.onEndWorkoutRequestedRemotely = nil
+            watch.onStateRequestedRemotely = nil
             watch.endLiveSession()
         }
         .sheet(isPresented: $showMusic) { MusicPlayerSheet() }

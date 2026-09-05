@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -933,7 +934,67 @@ def submission_preflight() -> list[str]:
         if "operator" in line and "<" in line and ">" in line and "static let" in line:
             blockers.append(f"Impressum: Platzhalter in {line.strip()}")
 
+    blockers.extend(missing_translation_keys())
+
     return blockers
+
+
+def missing_translation_keys() -> list[str]:
+    """
+    Schlüssel, die im Code stehen, aber in keiner Tabelle.
+
+    `Strings.t` gibt einen unbekannten Schlüssel unverändert zurück — im Web
+    war das eine bewusste Entscheidung, damit nichts leer bleibt. Auf dem
+    Bildschirm steht dann aber `common.cancel` statt `Abbrechen`, und weil es
+    wie Text aussieht, fällt es beim Durchklicken nicht auf. Genau so ist ein
+    fehlender Schlüssel bis in einen Release-Build gekommen.
+
+    Geprüft wird beides: fehlt der Schlüssel ganz, und fehlt er nur in einer
+    der beiden Sprachen — Letzteres zeigt sich sonst erst, wenn jemand die App
+    auf Englisch stellt.
+
+    Dynamisch zusammengesetzte Schlüssel (`"greeting.sentence.\\(n)"`) lassen
+    sich hier nicht auflösen und werden übersprungen.
+    """
+    strings_file = ROOT / APP_DIR / "Shared/Strings.swift"
+    src = strings_file.read_text(encoding="utf-8")
+
+    de_start = src.index("static let de:")
+    en_start = src.index("static let en:")
+    key_def = re.compile(r'^\s*"([^"]+)":\s*"', re.M)
+    de_keys = set(key_def.findall(src[de_start:en_start]))
+    en_keys = set(key_def.findall(src[en_start:]))
+
+    use = re.compile(r'\b(?:i18n\.t|Strings\.t|I18n\.shared\.t)\(\s*"([^"\\]+)"')
+    used: dict[str, set[str]] = {}
+    for folder in (APP_DIR, WATCH_DIR):
+        for path in (ROOT / folder).rglob("*.swift"):
+            if path.name == "Strings.swift":
+                continue
+            for key in use.findall(path.read_text(encoding="utf-8")):
+                used.setdefault(key, set()).add(path.name)
+
+    problems: list[str] = []
+    for key in sorted(used):
+        where = ", ".join(sorted(used[key]))
+        if key not in de_keys and key not in en_keys:
+            problems.append(
+                f"Übersetzung: „{key}“ fehlt in BEIDEN Tabellen — auf dem Bildschirm "
+                f"steht dann der Schlüssel selbst. Verwendet in {where}."
+            )
+        elif key not in de_keys:
+            problems.append(f"Übersetzung: „{key}“ fehlt auf Deutsch. Verwendet in {where}.")
+        elif key not in en_keys:
+            problems.append(f"Übersetzung: „{key}“ fehlt auf Englisch. Verwendet in {where}.")
+
+    # Schlüssel, die es nur in einer Tabelle gibt, auch ohne Verwendung im Code:
+    # sie sind der Rest einer halb durchgeführten Umbenennung.
+    for key in sorted(de_keys - en_keys):
+        problems.append(f"Übersetzung: „{key}“ steht nur in der deutschen Tabelle.")
+    for key in sorted(en_keys - de_keys):
+        problems.append(f"Übersetzung: „{key}“ steht nur in der englischen Tabelle.")
+
+    return problems
 
 
 def main() -> int:
