@@ -166,6 +166,7 @@
 		CC7E15704306A85D0A5B4937 /* SerializationTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = 2F95A6C960BFDC9CDD4F20A0; };
 		62864CAC0DABDC1F7A59D496 /* SessionTimingTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = EE6E9DBA08B10B86FC4D73FC; };
 		9873C88A1C55CCFE6E0A7243 /* StabilitySprintTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = A86E1A1BC0183C80217FC2AF; };
+		37353D4A8B024B4D84F83315 /* SubscriptionPricingTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = F52CE99DF2CADEBC461D2BF2; };
 		16736D7CBFFE68D2C98B29A8 /* WeekdayOrderTests.swift in KraftwuerfelTests */ = {isa = PBXBuildFile; fileRef = 61519F843B0F319BD839B3C7; };
 		6CE3360A7682961CC0DE9210 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D507BA12DA360B6936CA1DD9; };
 		ABCDB4BB515BC514D167E03B /* KraftwuerfelWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6104AD744B804C53DAD395D5; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -367,6 +368,7 @@
 		2F95A6C960BFDC9CDD4F20A0 /* SerializationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SerializationTests.swift; sourceTree = "<group>"; };
 		EE6E9DBA08B10B86FC4D73FC /* SessionTimingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimingTests.swift; sourceTree = "<group>"; };
 		A86E1A1BC0183C80217FC2AF /* StabilitySprintTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StabilitySprintTests.swift; sourceTree = "<group>"; };
+		F52CE99DF2CADEBC461D2BF2 /* SubscriptionPricingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionPricingTests.swift; sourceTree = "<group>"; };
 		61519F843B0F319BD839B3C7 /* WeekdayOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayOrderTests.swift; sourceTree = "<group>"; };
 		E8926494CC96D26C58F69370 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		4ED5F5CA262931A7040BA961 /* Kraftwuerfel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kraftwuerfel.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -732,6 +734,7 @@
 				2F95A6C960BFDC9CDD4F20A0 /* SerializationTests.swift */,
 				EE6E9DBA08B10B86FC4D73FC /* SessionTimingTests.swift */,
 				A86E1A1BC0183C80217FC2AF /* StabilitySprintTests.swift */,
+				F52CE99DF2CADEBC461D2BF2 /* SubscriptionPricingTests.swift */,
 				61519F843B0F319BD839B3C7 /* WeekdayOrderTests.swift */,
 			);
 			path = KraftwuerfelTests;
@@ -1104,6 +1107,7 @@
 				CC7E15704306A85D0A5B4937 /* SerializationTests.swift */,
 				62864CAC0DABDC1F7A59D496 /* SessionTimingTests.swift */,
 				9873C88A1C55CCFE6E0A7243 /* StabilitySprintTests.swift */,
+				37353D4A8B024B4D84F83315 /* SubscriptionPricingTests.swift */,
 				16736D7CBFFE68D2C98B29A8 /* WeekdayOrderTests.swift */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1218,7 +1222,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Kraftwuerfel/Kraftwuerfel.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Kraftwuerfel/Info.plist;
@@ -1226,7 +1230,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.11;
 				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1240,7 +1244,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Kraftwuerfel/Kraftwuerfel.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Kraftwuerfel/Info.plist;
@@ -1248,7 +1252,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.11;
 				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1260,7 +1264,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = KraftwuerfelWidget/Info.plist;
@@ -1269,7 +1273,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.11;
 				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel.LiveActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1282,7 +1286,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = KraftwuerfelWidget/Info.plist;
@@ -1291,7 +1295,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.11;
 				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel.LiveActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1307,7 +1311,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = KraftwuerfelWatch/KraftwuerfelWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = KraftwuerfelWatch/Info.plist;
@@ -1315,7 +1319,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.11;
 				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1333,7 +1337,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = KraftwuerfelWatch/KraftwuerfelWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = KraftwuerfelWatch/Info.plist;
@@ -1341,7 +1345,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.11;
 				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1358,10 +1362,10 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.11;
 				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -1376,10 +1380,10 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.11;
 				PRODUCT_BUNDLE_IDENTIFIER = app.kraftwuerfel.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;

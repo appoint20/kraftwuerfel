@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 /*
@@ -14,6 +15,7 @@ public struct ProSubscriptionView: View {
     @State private var selectedPlan: StoreKitManager.ProPlanChoice = .yearly
     @State private var activeLegalPage: LegalPage?
     @State private var showAuthSheet = false
+    @State private var showManageSubscriptions = false
 
     private let appleEulaURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
 
@@ -31,6 +33,9 @@ public struct ProSubscriptionView: View {
                     }
                     planSelector
                     aiDisclaimerCard
+                    if let problem = purchaseProblem {
+                        purchaseProblemCard(problem)
+                    }
                     actionSection
                 }
                 .padding(.horizontal, 20)
@@ -46,6 +51,7 @@ public struct ProSubscriptionView: View {
         .sheet(isPresented: $showAuthSheet) {
             AuthView()
         }
+        .manageSubscriptionsSheet(isPresented: $showManageSubscriptions)
         .task {
             await storeKit.fetchProducts()
         }
@@ -245,9 +251,62 @@ public struct ProSubscriptionView: View {
 
     // MARK: - Tarifauswahl
 
+    /*
+      Ersparnis und Monatspreis werden GERECHNET, nicht geschrieben.
+
+      Vorher stand hier fest „SPARE 48%" im Code, während die Preise daneben
+      live aus StoreKit kamen. Beides lief zwangsläufig auseinander: Eine
+      Preisänderung in App Store Connect ändert die Zahlen auf dem Bildschirm
+      sofort, den Prozentsatz aber nicht — und dann wirbt die App mit einer
+      Ersparnis, die es nicht gibt. Bei einer Preisangabe ist das kein
+      Schönheitsfehler, sondern eine falsche Auszeichnung.
+
+      Liegen die Produkte noch nicht vor (kein Netz, StoreKit lädt), greifen
+      die Rückfallwerte unten — sie stehen an genau einer Stelle.
+    */
+    static let fallbackSavingsPercent = 17
+    static let fallbackPerMonth = "8,33 €"
+
+    /*
+      Die reine Rechnung, getrennt von der Ansicht — damit sie geprüft werden
+      kann. Eine Prozentzahl neben einem Preis ist eine Werbeaussage; sie darf
+      nicht das Einzige sein, was niemand nachrechnet.
+
+      `nil` heißt „keine Ersparnis ausweisen": bei unbrauchbaren Preisen (0)
+      und auch dann, wenn das Jahresabo nicht günstiger als zwölf Monate ist.
+      Lieber gar kein Abzeichen als „SPARE -4%".
+    */
+    static func savingsPercent(monthlyPrice: Decimal, yearlyPrice: Decimal) -> Int? {
+        let twelveMonths = monthlyPrice * 12
+        guard twelveMonths > 0, yearlyPrice > 0, yearlyPrice < twelveMonths else { return nil }
+        let saved = (twelveMonths - yearlyPrice) / twelveMonths
+        return Int(((saved as NSDecimalNumber).doubleValue * 100).rounded())
+    }
+
+    /// Wie viel Prozent das Jahresabo gegenüber zwölf Monatsabos spart.
+    private var yearlySavingsPercent: Int {
+        guard let monthly = storeKit.product(for: .monthly),
+              let yearly = storeKit.product(for: .yearly),
+              let percent = Self.savingsPercent(
+                  monthlyPrice: monthly.price,
+                  yearlyPrice: yearly.price
+              )
+        else { return Self.fallbackSavingsPercent }
+        return percent
+    }
+
+    /// Der monatliche Gegenwert des Jahresabos, in der Währung des Ladens.
+    private var yearlyPerMonth: String {
+        guard let yearly = storeKit.product(for: .yearly) else {
+            return Self.fallbackPerMonth
+        }
+        return (yearly.price / 12).formatted(yearly.priceFormatStyle)
+    }
+
     private var planSelector: some View {
         let yearlyDisplayPrice = storeKit.product(for: .yearly)?.displayPrice ?? i18n.t("proScreen.yearlyPrice")
         let monthlyDisplayPrice = storeKit.product(for: .monthly)?.displayPrice ?? i18n.t("proScreen.monthlyPrice")
+        let savings = yearlySavingsPercent
 
         return VStack(spacing: 10) {
             // Jahres-Abo (Highlight)
@@ -255,8 +314,11 @@ public struct ProSubscriptionView: View {
                 plan: .yearly,
                 title: i18n.t("proScreen.yearlyPlan"),
                 price: yearlyDisplayPrice,
-                subtitle: i18n.t("proScreen.yearlySub"),
-                badge: i18n.lang == "en" ? "SAVE 48%" : "SPARE 48%"
+                subtitle: i18n.t("proScreen.yearlySub", [
+                    "price": yearlyPerMonth,
+                    "percent": "\(savings)"
+                ]),
+                badge: i18n.t("proScreen.saveBadge", ["percent": "\(savings)"])
             )
 
             // Monats-Abo
@@ -267,6 +329,17 @@ public struct ProSubscriptionView: View {
                 subtitle: i18n.t("proScreen.monthlySub"),
                 badge: nil
             )
+
+            /*
+              Der Steuerhinweis gehört unter die Preise, nicht ins Kleingedruckte
+              am Seitenende: Apple zeigt den Bruttopreis, und wer 9,99 € liest,
+              soll hier sehen, dass nichts mehr dazukommt.
+            */
+            Text(i18n.t("proScreen.vatNote"))
+                .font(KraftFont.inter(10.5))
+                .foregroundColor(Theme.muted)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 2)
         }
     }
 
@@ -343,6 +416,7 @@ public struct ProSubscriptionView: View {
         VStack(spacing: 14) {
             if storeKit.isProUnlocked {
                 successBanner
+                manageSubscriptionButton
             } else {
                 subscribeButton
             }
@@ -393,6 +467,94 @@ public struct ProSubscriptionView: View {
         }
         .buttonStyle(.plain)
         .disabled(storeKit.isPurchasing)
+    }
+
+    // MARK: - Wenn der Kauf nicht zustande kommt
+
+    /*
+      Warum es nicht weitergeht — sichtbar, nicht nur gemerkt.
+
+      `lastError` wurde bisher gesetzt und nirgends angezeigt. Lieferte
+      StoreKit keine Abos, stand die Paywall mit Rückfallpreisen da und der
+      Kaufknopf tat beim Tippen schlicht nichts. Für Apples Prüfung sieht das
+      aus wie ein fehlender In-App-Kauf — genau damit wurde die App abgelehnt.
+    */
+    private struct PurchaseProblem {
+        let title: String
+        let body: String
+        let canRetry: Bool
+    }
+
+    private var purchaseProblem: PurchaseProblem? {
+        guard !storeKit.isProUnlocked, let error = storeKit.lastError else { return nil }
+        if error == StoreKitManager.productsUnavailable {
+            return PurchaseProblem(
+                title: i18n.t("proScreen.productsUnavailableTitle"),
+                body: i18n.t("proScreen.productsUnavailableBody"),
+                canRetry: true
+            )
+        }
+        return PurchaseProblem(
+            title: i18n.t("proScreen.purchaseFailedTitle"),
+            body: i18n.t("proScreen.purchaseFailedBody"),
+            canRetry: false
+        )
+    }
+
+    private func purchaseProblemCard(_ problem: PurchaseProblem) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(Theme.orange)
+                Text(problem.title)
+                    .font(KraftFont.inter(13.5, .bold))
+                    .foregroundColor(Theme.text)
+            }
+            Text(problem.body)
+                .font(KraftFont.inter(12))
+                .foregroundColor(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            if problem.canRetry {
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    Task { await storeKit.fetchProducts() }
+                } label: {
+                    Text(i18n.t("proScreen.retry"))
+                        .font(KraftFont.inter(12.5, .semibold))
+                        .foregroundColor(Theme.accent)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Theme.surface))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.orange.opacity(0.5), lineWidth: 1))
+    }
+
+    /*
+      Für alle, die schon Pro haben: der Weg zum eigenen Abo.
+
+      Vorher endete der Pro-Bildschirm für Abonnenten bei einem Glückwunsch.
+      Wer kündigen oder den Tarif wechseln wollte, musste wissen, dass das in
+      den iOS-Einstellungen passiert. Apples Blatt zum Verwalten öffnet sich
+      jetzt direkt hier.
+    */
+    private var manageSubscriptionButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            showManageSubscriptions = true
+        } label: {
+            Text(i18n.t("proScreen.manageSubscription"))
+                .font(KraftFont.inter(13, .semibold))
+                .foregroundColor(Theme.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     private var successBanner: some View {

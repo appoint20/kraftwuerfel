@@ -30,6 +30,9 @@ public final class StoreKitManager: ObservableObject {
     nonisolated public static let monthlyProductId = "app.kraftwuerfel.pro.monthly"
     nonisolated public static let yearlyProductId = "app.kraftwuerfel.pro.yearly"
     nonisolated public static let allProductIds: [String] = [monthlyProductId, yearlyProductId]
+    /// Kennung für „StoreKit hat keine Abos geliefert" — die Paywall zeigt dazu
+    /// einen eigenen Hinweis mit „Erneut laden".
+    nonisolated public static let productsUnavailable = "product_unavailable"
 
     public var proProductId: String { Self.monthlyProductId }
 
@@ -134,7 +137,17 @@ public final class StoreKitManager: ObservableObject {
 
     public func fetchProducts() async {
         do {
-            availableProducts = try await Product.products(for: Self.allProductIds)
+            let products = try await Product.products(for: Self.allProductIds)
+            availableProducts = products
+            /*
+              Eine leere Antwort ist kein Fehler im Sinne von `throw` — StoreKit
+              liefert dann einfach nichts. Genau so sieht es aus, wenn die Abos
+              in App Store Connect nicht eingereicht sind oder die Vereinbarung
+              für kostenpflichtige Apps fehlt. Vorher blieb das stumm: Die
+              Paywall zeigte die Rückfallpreise, der Kaufknopf tat nichts, und
+              Apples Prüfung meldete, sie finde keinen In-App-Kauf.
+            */
+            lastError = products.isEmpty ? Self.productsUnavailable : nil
         } catch {
             // Kein Grund, irgendetwas freizuschalten — nur merken.
             lastError = error.localizedDescription
@@ -156,7 +169,7 @@ public final class StoreKitManager: ObservableObject {
             if let fallback = availableProducts.first(where: { Self.allProductIds.contains($0.id) }) {
                 return await executePurchase(product: fallback)
             }
-            lastError = "product_unavailable"
+            lastError = Self.productsUnavailable
             return false
         }
 

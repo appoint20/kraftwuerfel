@@ -35,6 +35,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+from collections import Counter
 import shutil
 import sys
 from pathlib import Path
@@ -51,8 +52,17 @@ WATCH_BUNDLE_ID = f"{APP_BUNDLE_ID}.watchkitapp"
 IOS_DEPLOYMENT_TARGET = "16.2"   # ActivityContent/ActivityConfiguration
 WATCHOS_DEPLOYMENT_TARGET = "9.0"
 SWIFT_VERSION = "5.0"
-MARKETING_VERSION = "1.0"
-CURRENT_PROJECT_VERSION = "1"
+# Version und Build stehen HIER, nicht in Xcode.
+#
+# Die Projektdatei wird bei jedem Lauf neu geschrieben. Eine in Xcode von Hand
+# gesetzte Nummer überlebt das nicht: App Store Connect hatte bereits 1.0.11
+# (Build 12) geprüft, während die Projektdatei nach dem nächsten Lauf wieder
+# „1.0 (1)" sagte — ein Archiv davon lehnt App Store Connect beim Hochladen ab.
+#
+# Pro Upload den Build erhöhen; MARKETING_VERSION muss zur Version in App
+# Store Connect passen.
+MARKETING_VERSION = "1.0.11"
+CURRENT_PROJECT_VERSION = "13"
 
 APP_DIR = "Kraftwuerfel"
 WIDGET_DIR = "KraftwuerfelWidget"
@@ -962,8 +972,10 @@ def missing_translation_keys() -> list[str]:
     de_start = src.index("static let de:")
     en_start = src.index("static let en:")
     key_def = re.compile(r'^\s*"([^"]+)":\s*"', re.M)
-    de_keys = set(key_def.findall(src[de_start:en_start]))
-    en_keys = set(key_def.findall(src[en_start:]))
+    de_list = key_def.findall(src[de_start:en_start])
+    en_list = key_def.findall(src[en_start:])
+    de_keys = set(de_list)
+    en_keys = set(en_list)
 
     use = re.compile(r'\b(?:i18n\.t|Strings\.t|I18n\.shared\.t)\(\s*"([^"\\]+)"')
     used: dict[str, set[str]] = {}
@@ -975,6 +987,19 @@ def missing_translation_keys() -> list[str]:
                 used.setdefault(key, set()).add(path.name)
 
     problems: list[str] = []
+
+    # Doppelte Schlüssel. Ein Swift-Wörterbuchliteral mit zwei gleichen
+    # Schlüsseln übersetzt ohne Warnung und stürzt erst zur Laufzeit ab — beim
+    # ersten Zugriff auf die Tabelle, also beim Start der App. Die Mengen oben
+    # schlucken genau diesen Fall, deshalb wird hier auf den Listen gezählt.
+    for table, keys in (("deutschen", de_list), ("englischen", en_list)):
+        for key, count in sorted(Counter(keys).items()):
+            if count > 1:
+                problems.append(
+                    f"Übersetzung: „{key}“ steht {count}× in der {table} Tabelle — "
+                    "die App stürzt damit beim Start ab."
+                )
+
     for key in sorted(used):
         where = ", ".join(sorted(used[key]))
         if key not in de_keys and key not in en_keys:

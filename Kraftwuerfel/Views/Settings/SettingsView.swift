@@ -6,9 +6,11 @@ import SwiftUI
 public struct SettingsView: View {
     @ObservedObject private var i18n = I18n.shared
     @ObservedObject private var auth = AuthService.shared
+    @ObservedObject private var storeKit = StoreKitManager.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var showAuth = false
+    @State private var showPro = false
     @State private var showProfile = false
     @State private var showGuide = false
     @State private var legalPage: LegalPage?
@@ -26,6 +28,7 @@ public struct SettingsView: View {
                     profileSection
                     guideSection
                     accountSection
+                    proSection
                     languageSection
                     legalSection
                     versionLine
@@ -39,6 +42,7 @@ public struct SettingsView: View {
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showGuide) { AppGuideView() }
         .sheet(isPresented: $showAuth) { AuthView() }
+        .sheet(isPresented: $showPro) { ProSubscriptionView() }
         .sheet(isPresented: $showProfile) { ProfileSettingsView() }
         .sheet(item: $legalPage) { page in LegalView(page: page) }
         .kraftDialog(isPresented: $showDeleteConfirm) {
@@ -233,6 +237,24 @@ public struct SettingsView: View {
 
     // MARK: - Pro
 
+    /*
+      Eine Zeile, für alle sichtbar — auch für die, die schon Pro haben.
+
+      Hier stand bis zuletzt nichts. Der Pro-Knopf in der Kopfzeile verschwindet
+      mit dem Kauf, und die übrigen Wege zur Paywall hängen an gesperrten
+      Funktionen. Wer Pro hatte, fand damit keinen Weg mehr zu seinem Abo — und
+      Apples Prüfung, die mit einem Pro-Konto testete, keinen In-App-Kauf.
+      Genau damit wurde die App abgelehnt (Richtlinie 2.1(b)).
+    */
+    private var proSection: some View {
+        SettingsSection(title: i18n.t("settings.proSection")) {
+            SettingsButtonRow(
+                icon: storeKit.isProUnlocked ? "checkmark.seal.fill" : "sparkles",
+                title: i18n.t("settings.proTitle"),
+                subtitle: i18n.t(storeKit.isProUnlocked ? "settings.proActive" : "settings.proInactive")
+            ) { showPro = true }
+        }
+    }
 
     // MARK: - Rechtliches
 
