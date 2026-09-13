@@ -62,7 +62,18 @@ SWIFT_VERSION = "5.0"
 # Pro Upload den Build erhöhen; MARKETING_VERSION muss zur Version in App
 # Store Connect passen.
 MARKETING_VERSION = "1.0.11"
-CURRENT_PROJECT_VERSION = "13"
+# Der Build kommt in Xcode Cloud aus dessen eigenem Zähler.
+#
+# Zweimal dieselbe Nummer hochzuladen lehnt App Store Connect ab ("The bundle
+# version must be higher than the previously uploaded version"). Genau das
+# passierte: Die Nummer stand fest im Code, ein Lauf hatte sie bereits
+# hochgeladen, der nächste versuchte es mit derselben.
+#
+# `CI_BUILD_NUMBER` zählt Xcode Cloud pro Lauf hoch, also ist jeder Upload
+# eindeutig und höher als der vorige. Das setzt ci_scripts/ci_post_clone.sh.
+# Der Wert hier ist nur die Rückfallebene für Archive vom eigenen Rechner —
+# beim Hochladen von Hand vorher erhöhen.
+CURRENT_PROJECT_VERSION = os.environ.get("KRAFT_BUILD") or "14"
 
 APP_DIR = "Kraftwuerfel"
 WIDGET_DIR = "KraftwuerfelWidget"
@@ -1026,7 +1037,28 @@ def main() -> int:
     pbxproj = generate()
 
     if XCODEPROJ.exists():
+        """
+        Der Arbeitsbereich wird weggeworfen und neu angelegt — aber nicht die
+        gepinnten Paketversionen.
+
+        In `project.xcworkspace/xcshareddata/swiftpm/Package.resolved` steht,
+        welche Fassung von GoogleMobileAds zuletzt geprüft wurde. Die Datei ist
+        eingecheckt und wurde hier bei jedem Lauf mitgelöscht. Solange nur von
+        Hand gebaut wurde, fiel das kaum auf: Xcode löste einfach neu auf.
+
+        In Xcode Cloud wiegt es schwerer. Dort läuft dieser Generator vor jedem
+        Bauen (ci_scripts/ci_post_clone.sh), und ohne die Datei würde jeder Lauf
+        die Abhängigkeit neu auflösen — die Regel lautet „ab 11.0.0", also käme
+        irgendwann eine andere Fassung in den Store als die, die geprüft wurde.
+        """
+        resolved = XCODEPROJ / "project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+        pinned = resolved.read_text(encoding="utf-8") if resolved.exists() else None
+
         shutil.rmtree(XCODEPROJ / "project.xcworkspace", ignore_errors=True)
+
+        if pinned is not None:
+            resolved.parent.mkdir(parents=True, exist_ok=True)
+            resolved.write_text(pinned, encoding="utf-8")
     XCODEPROJ.mkdir(exist_ok=True)
     (XCODEPROJ / "project.pbxproj").write_text(pbxproj, encoding="utf-8")
 
