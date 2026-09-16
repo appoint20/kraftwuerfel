@@ -123,14 +123,30 @@ public struct Exercise: Identifiable, Codable, Hashable {
       selbst. Fehlt er, zeichnet ExerciseVisual die anatomische Figur.
     */
     public var imageAssetKey: String {
-        let clean = nameEn.lowercased()
-            .replacingOccurrences(of: "/", with: " ")
-            .replacingOccurrences(of: "-", with: " ")
-            .replacingOccurrences(of: "(", with: "")
-            .replacingOccurrences(of: ")", with: "")
-            .replacingOccurrences(of: "°", with: "")
+        /*
+          Apostrophe fallen weg, jedes andere Sonderzeichen trennt.
+
+          Die Liste einzelner `replacingOccurrences` lief der Wirklichkeit
+          hinterher: `/`, `-`, Klammern, dann `°`, dann `'` — und „Angel & Devil
+          Floor Raises" ergab weiterhin `ex_angel_&_devil_floor_raises`. So
+          heißt kein Bildsatz im Asset-Katalog, das Bild wurde also nie
+          gefunden. Auffallen konnte das niemandem: Fehlt das Bild, zeichnet
+          ExerciseVisual stillschweigend die anatomische Figur.
+
+          Der Apostroph ist die Ausnahme und muss verschwinden statt zu trennen
+          — „Farmer's Walk" soll `ex_farmers_walk` ergeben, nicht
+          `ex_farmer_s_walk`.
+        */
+        let withoutApostrophes = nameEn.lowercased()
             .replacingOccurrences(of: "'", with: "")
-            .components(separatedBy: .whitespaces)
+            .replacingOccurrences(of: "\u{2019}", with: "")
+
+        let separated = withoutApostrophes.map { character -> Character in
+            character.isLetter || character.isNumber ? character : " "
+        }
+
+        let clean = String(separated)
+            .components(separatedBy: " ")
             .filter { !$0.isEmpty }
             .joined(separator: "_")
         return "ex_" + clean
