@@ -54,14 +54,15 @@ WATCHOS_DEPLOYMENT_TARGET = "9.0"
 SWIFT_VERSION = "5.0"
 # Version und Build stehen HIER, nicht in Xcode.
 #
-# Die Projektdatei wird bei jedem Lauf neu geschrieben. Eine in Xcode von Hand
-# gesetzte Nummer überlebt das nicht: App Store Connect hatte bereits 1.0.11
-# (Build 12) geprüft, während die Projektdatei nach dem nächsten Lauf wieder
-# „1.0 (1)" sagte — ein Archiv davon lehnt App Store Connect beim Hochladen ab.
+# Die Projektdatei wird bei jedem Lauf neu geschrieben, und zwar für ALLE Ziele
+# gleich. Eine in Xcode von Hand gesetzte Nummer überlebt das nicht — und
+# schlimmer: Xcode ändert nur das Ziel, das gerade ausgewählt ist. Genau so
+# stand die App auf 1.0.17 (20), während Widget und Uhr auf 1.0.11 (14) blieben.
+# Eingebettete Erweiterungen müssen dieselbe Version und denselben Build tragen
+# wie die App, sonst nimmt App Store Connect das Archiv nicht an.
 #
-# Pro Upload den Build erhöhen; MARKETING_VERSION muss zur Version in App
-# Store Connect passen.
-MARKETING_VERSION = "1.0.11"
+# MARKETING_VERSION muss zur Version in App Store Connect passen.
+MARKETING_VERSION = "1.0.16"
 # Der Build kommt in Xcode Cloud aus dessen eigenem Zähler.
 #
 # Zweimal dieselbe Nummer hochzuladen lehnt App Store Connect ab ("The bundle
@@ -73,7 +74,7 @@ MARKETING_VERSION = "1.0.11"
 # eindeutig und höher als der vorige. Das setzt ci_scripts/ci_post_clone.sh.
 # Der Wert hier ist nur die Rückfallebene für Archive vom eigenen Rechner —
 # beim Hochladen von Hand vorher erhöhen.
-CURRENT_PROJECT_VERSION = os.environ.get("KRAFT_BUILD") or "14"
+CURRENT_PROJECT_VERSION = os.environ.get("KRAFT_BUILD") or "21"
 
 APP_DIR = "Kraftwuerfel"
 WIDGET_DIR = "KraftwuerfelWidget"
