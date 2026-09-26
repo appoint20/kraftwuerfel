@@ -46,6 +46,8 @@ public struct BMIEvaluationCard: View {
 
             // Feedback- und Empfehlungs-Box
             assessmentBox
+
+            HealthSourcesLink([.bmi])
         }
         .padding(16)
         .background(RoundedRectangle(cornerRadius: 16).fill(Theme.surface))

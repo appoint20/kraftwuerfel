@@ -74,7 +74,7 @@ MARKETING_VERSION = "1.0.16"
 # eindeutig und höher als der vorige. Das setzt ci_scripts/ci_post_clone.sh.
 # Der Wert hier ist nur die Rückfallebene für Archive vom eigenen Rechner —
 # beim Hochladen von Hand vorher erhöhen.
-CURRENT_PROJECT_VERSION = os.environ.get("KRAFT_BUILD") or "21"
+CURRENT_PROJECT_VERSION = os.environ.get("KRAFT_BUILD") or "22"
 
 APP_DIR = "Kraftwuerfel"
 WIDGET_DIR = "KraftwuerfelWidget"

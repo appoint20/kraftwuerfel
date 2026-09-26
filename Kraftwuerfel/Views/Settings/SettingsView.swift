@@ -13,6 +13,7 @@ public struct SettingsView: View {
     @State private var showPro = false
     @State private var showProfile = false
     @State private var showGuide = false
+    @State private var showHealthSources = false
     @State private var legalPage: LegalPage?
     @State private var showDeleteConfirm = false
     @State private var deleteResult: SaveAlert?
@@ -41,6 +42,7 @@ public struct SettingsView: View {
         .background(Theme.bg.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showGuide) { AppGuideView() }
+        .sheet(isPresented: $showHealthSources) { HealthSourcesSheet() }
         .sheet(isPresented: $showAuth) { AuthView() }
         .sheet(isPresented: $showPro) { ProSubscriptionView() }
         .sheet(isPresented: $showProfile) { ProfileSettingsView() }
@@ -152,6 +154,13 @@ public struct SettingsView: View {
                 subtitle: i18n.lang == "en" ? "Interactive guide to generator, live tracking, diary, and AI coach" : "Ausführliche Erklärung zu Generator, Live-Tracking, Tagebuch und KI-Coach"
             ) {
                 showGuide = true
+            }
+            SettingsButtonRow(
+                icon: "book.closed.fill",
+                title: i18n.lang == "en" ? "Health sources & method" : "Gesundheitsquellen & Methodik",
+                subtitle: i18n.lang == "en" ? "Where BMI, calorie, macro and training recommendations come from" : "Woher BMI-, Kalorien-, Makro- und Trainingsempfehlungen stammen"
+            ) {
+                showHealthSources = true
             }
         }
     }

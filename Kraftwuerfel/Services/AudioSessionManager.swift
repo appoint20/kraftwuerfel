@@ -15,8 +15,11 @@ import Foundation
   Zwei Einstellungen beheben das:
 
   - `.playback` statt `.soloAmbient`: Ton auch bei stummgeschaltetem
-    Klingelton und im Hintergrund. Die App hat `UIBackgroundModes: audio`
-    deklariert, konnte das mangels passender Kategorie aber nie einlösen.
+    Klingelton. Im Hintergrund spielt die App bewusst nichts —
+    `UIBackgroundModes: audio` ist nicht deklariert, weil App Review das
+    nur für dauerhafte Wiedergabe erlaubt (Richtlinie 2.5.4). Die Musik
+    läuft über MPMusicPlayerController im Prozess der Musik-App und braucht
+    den Modus nicht; das Pausenende im Hintergrund meldet eine Mitteilung.
   - `.duckOthers` zusammen mit `.mixWithOthers`: Der eigene Ton mischt sich
     dazu, statt zu verdrängen. Die Musik wird für den Ping und das „Los!"
     kurz leiser und läuft danach weiter.

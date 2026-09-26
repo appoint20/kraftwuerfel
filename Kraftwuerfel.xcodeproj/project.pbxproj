@@ -96,6 +96,7 @@
 		87881BC8CFDDD0D894B40397 /* BebasNeue-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A2A2BABD226753284FE829CA /* BebasNeue-Regular.ttf */; };
 		896A64903BEF5B2D9EB48D04 /* AudioSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3C3A6E5A16F99C1A3694919 /* AudioSessionManager.swift */; };
 		8AB4C48DAC52969D871D3FE4 /* BMIEvaluationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9CBC950EF4D6D2BC5282168 /* BMIEvaluationCard.swift */; };
+		0E69D9BAFC26F2B2B4BB189F /* HealthSourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B38E0AD6A77F859DE778365 /* HealthSourcesView.swift */; };
 		907CC5E70606ADFAAD3C0314 /* AICoachService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B242F77CD447EBA8F2C1826C /* AICoachService.swift */; };
 		92F04F22CC9A7D15CA8A7B1A /* WorkoutLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8535D68429A5D891055E0FED /* WorkoutLiveActivity.swift */; };
 		9351BFB019CA1253D0CE3BF2 /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A958D714EEC71FF924AFDD7B /* Inter-Regular.ttf */; };
@@ -338,6 +339,7 @@
 		C83519F6314EDC5DA3E3A35E /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		C93911EB762F44CEE77EB5CB /* AICoachWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoachWizardView.swift; sourceTree = "<group>"; };
 		C9CBC950EF4D6D2BC5282168 /* BMIEvaluationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BMIEvaluationCard.swift; sourceTree = "<group>"; };
+		9B38E0AD6A77F859DE778365 /* HealthSourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSourcesView.swift; sourceTree = "<group>"; };
 		CAB15F2D8EDB67DB4D5A59B4 /* GoogleAdsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAdsService.swift; sourceTree = "<group>"; };
 		CC9B5BEF384C1D9118C43729 /* ChallengeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeStore.swift; sourceTree = "<group>"; };
 		CD025517398B53CC99AFC955 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
@@ -612,6 +614,7 @@
 				EBA2AA15C6BFD8F77ADBECB6 /* AIPlanView.swift */,
 				64859FC86712140B9CD34B32 /* BiometricsBreakdownView.swift */,
 				C9CBC950EF4D6D2BC5282168 /* BMIEvaluationCard.swift */,
+				9B38E0AD6A77F859DE778365 /* HealthSourcesView.swift */,
 				A12E005756F63AB71A275035 /* MealGuideView.swift */,
 				C7F960CBCF8F41A4A150E102 /* SomatotypeGuideSheet.swift */,
 			);
@@ -996,6 +999,7 @@
 				F32298EE0FCC248AF02976B2 /* AICoachWizardView.swift in Sources */,
 				6515DA6D8BACC061FFA7E31C /* AIPlanView.swift in Sources */,
 				8AB4C48DAC52969D871D3FE4 /* BMIEvaluationCard.swift in Sources */,
+				0E69D9BAFC26F2B2B4BB189F /* HealthSourcesView.swift in Sources */,
 				98CB0C14EB002D1A93D9AF43 /* BiometricsBreakdownView.swift in Sources */,
 				CD75F6F0B7852433C98F905C /* MealGuideView.swift in Sources */,
 				81E923D7FB322C40882D20D9 /* SomatotypeGuideSheet.swift in Sources */,
@@ -1131,7 +1135,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Kraftwuerfel/Kraftwuerfel.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Kraftwuerfel/Info.plist;
@@ -1153,7 +1157,7 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0.16;
@@ -1171,7 +1175,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Kraftwuerfel/Kraftwuerfel.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Kraftwuerfel/Info.plist;
@@ -1191,7 +1195,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = KraftwuerfelWidget/Info.plist;
@@ -1254,7 +1258,7 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0.16;
@@ -1270,7 +1274,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = KraftwuerfelWidget/Info.plist;
@@ -1295,7 +1299,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = KraftwuerfelWatch/KraftwuerfelWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = KraftwuerfelWatch/Info.plist;
@@ -1354,7 +1358,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = KraftwuerfelWatch/KraftwuerfelWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				DEVELOPMENT_TEAM = NDK6BWT4SW;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = KraftwuerfelWatch/Info.plist;

@@ -242,6 +242,8 @@ public struct BiometricsBreakdownView: View {
                     macroTag(name: "Carbs", grams: carbGrams, color: Color(red: 0.3, green: 0.8, blue: 0.5))
                 }
             }
+
+            HealthSourcesLink([.metabolism, .nutrition])
         }
         .padding(16)
         .background(RoundedRectangle(cornerRadius: 16).fill(Theme.surface))

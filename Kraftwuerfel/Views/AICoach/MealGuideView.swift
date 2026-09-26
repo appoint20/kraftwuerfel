@@ -82,6 +82,9 @@ public struct MealGuideView: View {
                 mealScheduleList
                 shakesList
                 if !currentPlan.notes.isEmpty { notesCard }
+
+                HealthSourcesLink([.metabolism, .nutrition])
+                    .padding(.horizontal, 20)
                 
                 if showsSaveButton {
                     saveButton

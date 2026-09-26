@@ -93,6 +93,8 @@ public struct SomatotypeGuideSheet: View {
                             ]
                         )
 
+                        HealthSourcesLink([.bodyType, .nutrition])
+
                         Spacer(minLength: 24)
                     }
                     .padding(.horizontal, 20)

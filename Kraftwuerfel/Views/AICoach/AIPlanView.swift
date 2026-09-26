@@ -113,6 +113,8 @@ public struct AIPlanView: View {
                 ForEach(plan.days) { day in
                     dayCard(day)
                 }
+                HealthSourcesLink([.training])
+                    .padding(.horizontal, 20)
                 if showsSaveButton { saveButton.padding(.top, 4) }
                 if let onReset { resetButton(onReset) }
             }
