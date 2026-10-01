@@ -49,7 +49,7 @@ E-Mail: appoint.20@gmail.com | Telefon: +49 152 23024756
 
 Die Kraftwuerfel-App und Backend-API folgen dem Prinzip der **Datensparsamkeit und Zweckbindung (Art. 5 DSGVO)**. Es werden ausschließlich Daten erhoben und verarbeitet, die für die Bereitstellung des Benutzerkontos, die Synchronisation des Pro-Status und die Generierung von Trainings- und Ernährungsplänen erforderlich sind.
 
-Wir setzen **keine Tracking-Tools, keine Werbe-SDKs und keine Analyse-Cookies** ein.
+**Werbung:** Für Nutzerinnen und Nutzer ohne Pro-Abo bindet die App Google AdMob ein (Google Ireland Limited). Dabei können Gerätekennungen und Nutzungsdaten an Google übertragen und dort auch außerhalb der EU verarbeitet werden. Vor dem ersten Laden fragen wir Deine Einwilligung über Googles User Messaging Platform ab (Art. 6 Abs. 1 lit. a DSGVO) sowie zusätzlich Apples Tracking-Erlaubnis (ATT). Lehnst Du ab, siehst Du weiterhin Werbung, aber keine personalisierte. Mit einem Pro-Abo entfällt die Werbung vollständig. Gesundheits- und Trainingsdaten werden nie an Werbedienste übermittelt. Analyse-SDKs und Analyse-Cookies setzen wir nicht ein.
 
 ---
 
@@ -126,6 +126,7 @@ Für die Erstellung individueller Trainings- und Ernährungspläne erfassen wir 
 | **Render Services, Inc.** | Cloud-Hosting & PostgreSQL-Datenbank | Frankfurt am Main, Deutschland (EU-Region) | Art. 6 Abs. 1 lit. b & f DSGVO. AVV mit Standardvertragsklauseln (SCCs). |
 | **Mailjet (Sinch SAS)** | Transaktionaler E-Mail-Versand (Bestätigungs- & Reset-Mails) | Europäische Union (Frankreich / Deutschland) | Art. 6 Abs. 1 lit. b DSGVO. AVV mit ISO 27001-zertifiziertem EU-Anbieter. |
 | **OpenRouter Inc.** | KI-Plangenerierung (Flüchtige Prompt-Verarbeitung) | USA / Global | Art. 6 Abs. 1 lit. a & b DSGVO. Anonyme Übermittlung, Standardvertragsklauseln. Keine Datenhaltung zum Modelltraining. |
+| **Google Ireland Limited (AdMob)** | Werbung in der Gratis-Version | EU / USA | Art. 6 Abs. 1 lit. a DSGVO (Einwilligung über Google UMP und Apple ATT). Entfällt mit Pro-Abo. |
 | **Apple Inc. (StoreKit 2)** | In-App-Käufe & Abonnement-Abrechnung | EU / Irland | Art. 6 Abs. 1 lit. b DSGVO. Zahlungsdaten verbleiben bei Apple; unsere API prüft nur die kryptografische JWS-Quittung. |
 
 ---

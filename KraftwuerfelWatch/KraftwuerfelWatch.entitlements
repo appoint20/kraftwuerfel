@@ -5,10 +5,11 @@
 	<key>com.apple.developer.healthkit</key>
 	<true/>
 	<!--
-	  Die Uhr misst weiter, wenn das Zifferblatt aus ist — sonst bräche die
-	  Pulsmessung mitten im Satz ab.
+	  Kein `healthkit.background-delivery`: Das ist für HKObserverQuery-Abfragen
+	  im Hintergrund, die die Uhr nicht stellt. Dass die Messung bei dunklem
+	  Zifferblatt weiterläuft, erledigt die HKWorkoutSession über
+	  `WKBackgroundModes: workout-processing` (Info.plist). Eine Fähigkeit, die
+	  die App nicht nutzt, fragt App Review nach (Richtlinie 2.5.4).
 	-->
-	<key>com.apple.developer.healthkit.background-delivery</key>
-	<true/>
 </dict>
 </plist>

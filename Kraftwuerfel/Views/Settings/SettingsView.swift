@@ -14,6 +14,7 @@ public struct SettingsView: View {
     @State private var showProfile = false
     @State private var showGuide = false
     @State private var showHealthSources = false
+    @State private var showSensor = false
     @State private var legalPage: LegalPage?
     @State private var showDeleteConfirm = false
     @State private var deleteResult: SaveAlert?
@@ -27,6 +28,7 @@ public struct SettingsView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 22) {
                     profileSection
+                    sensorSection
                     guideSection
                     accountSection
                     proSection
@@ -43,6 +45,7 @@ public struct SettingsView: View {
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showGuide) { AppGuideView() }
         .sheet(isPresented: $showHealthSources) { HealthSourcesSheet() }
+        .sheet(isPresented: $showSensor) { HeartRateSensorSheet() }
         .sheet(isPresented: $showAuth) { AuthView() }
         .sheet(isPresented: $showPro) { ProSubscriptionView() }
         .sheet(isPresented: $showProfile) { ProfileSettingsView() }
@@ -145,6 +148,18 @@ public struct SettingsView: View {
     }
 
     // MARK: - Handbuch & Anleitung
+
+    private var sensorSection: some View {
+        SettingsSection(title: i18n.t("sensor.title")) {
+            SettingsButtonRow(
+                icon: "heart.text.square.fill",
+                title: i18n.t("sensor.settingsRow"),
+                subtitle: HeartRateSensorManager.shared.rememberedSensorName ?? i18n.t("sensor.settingsRowNone")
+            ) {
+                showSensor = true
+            }
+        }
+    }
 
     private var guideSection: some View {
         SettingsSection(title: i18n.lang == "en" ? "Help & Documentation" : "Hilfe & Dokumentation") {

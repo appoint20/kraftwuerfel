@@ -17,11 +17,16 @@ import Combine
 
     - Liegt eine Apple Watch bei, kommen echte Sensorwerte (WatchWorkoutManager
       misst, WatchSyncManager reicht sie durch). Dann steht „Apple Watch“ daran.
-    - Sonst rechnet `estimateTick` weiter wie im Web, und daneben steht
-      „geschätzt“ — plus der Hinweis, dass ein Sensor echte Werte liefert.
+    - Sonst ein gekoppelter Bluetooth-Pulssensor (HeartRateSensorManager) —
+      nur Puls, keine Kalorien, mit dem Namen des Sensors daneben.
+    - Sonst gibt es keinen Puls und keine Kalorien, nur den Hinweis, dass ein
+      Sensor echte Werte liefert.
 
-  Geschätzte Werte gehen weder nach Apple Health noch als Messwert auf den
-  Sperrbildschirm. Das war der Ablehnungsgrund, nicht die Schätzung selbst.
+  Das Web rechnet ohne Sensor ein Belastungsmodell weiter. Die App tut das
+  bewusst nicht mehr: App Review lehnte 1.0.16 nach Richtlinie 1.4.1 ab —
+  ein iPhone ohne Sensor darf keine Gesundheitswerte ausweisen, auch nicht
+  als „geschätzt“ markiert, und auch nicht nachträglich im Abschlussbericht
+  oder im Tagebuch.
 */
 
 /// Ein protokollierter Satz — entspricht loggedSets[exercise][set] im Web.
@@ -71,9 +76,8 @@ public struct LiveWorkoutView: View {
     /*
       Ein eigener, feiner Takt nur für die Satzpause.
 
-      Der Haupttakt läuft einmal pro Sekunde und leitet daraus auch Kalorien
-      und Puls ab — schneller darf er nicht laufen, ohne diese Schätzungen zu
-      verfälschen. Für den Countdown ist eine Sekunde aber zu grob: Weicht der
+      Der Haupttakt läuft einmal pro Sekunde — für Uhr und Sensorwerte genügt
+      das. Für den Countdown ist eine Sekunde aber zu grob: Weicht der
       Takt nur ein paar Millisekunden ab, springt die aufgerundete Restzeit von
       5 auf 3, und die 4 wird weder gezeigt noch gepiept. Genau das war der
       „nur manchmal" gezeigte Countdown.
@@ -85,9 +89,11 @@ public struct LiveWorkoutView: View {
     /// selbst herunter, statt auf Sekundentakt-Updates zu warten.
     @State private var restEndsAt: Date?
 
-    @State private var heartRate: Double = 128
-    @State private var peakHeartRate: Double = 128
-    @State private var hrHistory: [Double] = [128]
+    // Alles hier stammt ausschließlich vom Sensor. Ohne Uhr bleibt es bei 0
+    // und wird weder angezeigt noch gespeichert.
+    @State private var heartRate: Double = 0
+    @State private var peakHeartRate: Double = 0
+    @State private var hrHistory: [Double] = []
     @State private var calories: Double = 0
     /// Woher der angezeigte Puls stammt. Steuert das Etikett an der Karte —
     /// und ob überhaupt etwas an den Sperrbildschirm geht.
@@ -125,6 +131,7 @@ public struct LiveWorkoutView: View {
 
     @State private var ticker: AnyCancellable?
     @State private var showMusic = false
+    @State private var showSensorSheet = false
     @State private var completedLog: WorkoutSessionLog?
     @State private var showEndSessionDialog = false
 
@@ -136,6 +143,7 @@ public struct LiveWorkoutView: View {
     */
     private var watch: WatchSyncManager { .shared }
     private var health: HealthKitManager { .shared }
+    private var sensor: HeartRateSensorManager { .shared }
     private var liveActivity: ActivityKitManager { .shared }
 
     public init(
@@ -236,6 +244,7 @@ public struct LiveWorkoutView: View {
             NotificationManager.shared.cancelWaterReminders()
             liveActivity.end()
             health.stopObservingHeartRate()
+            sensor.endSession()
             watch.onSetCompletedRemotely = nil
             watch.onSetCompletedWithDataRemotely = nil
             watch.onPauseToggleRequestedRemotely = nil
@@ -245,6 +254,7 @@ public struct LiveWorkoutView: View {
             watch.endLiveSession()
         }
         .sheet(isPresented: $showMusic) { MusicPlayerSheet() }
+        .sheet(isPresented: $showSensorSheet) { HeartRateSensorSheet() }
         .confirmationDialog(
             i18n.lang == "en" ? "End Workout" : "Training beenden",
             isPresented: $showEndSessionDialog,
@@ -405,9 +415,9 @@ public struct LiveWorkoutView: View {
 
             HStack(spacing: 8) {
                 statTile("stopwatch", timeString(elapsed), i18n.t("live.duration"), tint: Theme.text)
-                // Die Kalorien stehen nur bei echter Messung: Sie kommen sonst
-                // aus demselben Modell wie der Puls.
-                if isMeasured {
+                // Kalorien misst nur die Uhr. Ein Pulsgurt liefert keine, und
+                // aus dem Puls gerechnet wäre es wieder eine Schätzung.
+                if hasMeasuredCalories {
                     statTile("flame.fill", "\(Int(displayCalories))", i18n.t("live.calories"), tint: Color(hex: "FF7849"))
                 }
                 statTile("dumbbell.fill", "\(totalVolume)", i18n.t("live.volume"), tint: Theme.text)
@@ -429,15 +439,43 @@ public struct LiveWorkoutView: View {
                 Text(i18n.t("live.noSensorTitle"))
                     .font(KraftFont.bebas(15)).tracking(1)
                     .foregroundColor(Theme.text)
-                Text(i18n.t("live.noSensorBody"))
+                Text(sensorPromptBody)
                     .font(KraftFont.inter(11.5))
                     .foregroundColor(Theme.muted)
                     .fixedSize(horizontal: false, vertical: true)
+
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    showSensorSheet = true
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "dot.radiowaves.left.and.right")
+                            .font(.system(size: 11, weight: .bold))
+                        Text(i18n.t("live.connectSensor"))
+                            .font(KraftFont.inter(12, .bold))
+                    }
+                    .foregroundColor(Theme.accent)
+                    .padding(.top, 6)
+                }
+                .buttonStyle(.plain)
             }
 
             Spacer(minLength: 0)
         }
         .padding(.vertical, 2)
+    }
+
+    /// Ist schon ein Gurt gekoppelt, sagt der Hinweis, woran es gerade hängt.
+    private var sensorPromptBody: String {
+        let name = sensor.sensorName ?? sensor.rememberedSensorName ?? ""
+        switch sensor.status {
+        case .connecting:
+            return i18n.t("live.sensorConnecting", ["name": name])
+        case .connected where !sensor.hasSkinContact:
+            return i18n.t("live.sensorNoContact", ["name": name])
+        default:
+            return i18n.t("live.noSensorBody")
+        }
     }
 
     private var measuredHealthContent: some View {
@@ -454,7 +492,7 @@ public struct LiveWorkoutView: View {
                         // Das Etikett wechselt mit der Quelle. Ein Messwert
                         // darf nicht als Schätzung durchgehen und umgekehrt
                         // erst recht nicht.
-                        Text(i18n.t("live.sourceWatch"))
+                        Text(sourceLabel)
                             .font(KraftFont.inter(9.5, .bold))
                             .textCase(.uppercase)
                             .foregroundColor(Theme.accent)
@@ -946,7 +984,19 @@ public struct LiveWorkoutView: View {
     }
 
     /// Ob der angezeigte Puls von einem Sensor stammt.
-    private var isMeasured: Bool { heartRateSource == .appleWatch }
+    private var isMeasured: Bool { heartRateSource.isMeasured }
+
+    private var hasMeasuredCalories: Bool {
+        watch.watchActiveCalories != nil || calories > 0
+    }
+
+    /// Beim Gurt der Gerätename („Polar H10“), sonst die Quelle.
+    private var sourceLabel: String {
+        if heartRateSource == .bluetoothSensor, let name = sensor.sensorName {
+            return name
+        }
+        return i18n.t(heartRateSource.labelKey)
+    }
 
     /*
       Ob der Shake-Hinweis zu diesem Nutzer passt.
@@ -962,9 +1012,9 @@ public struct LiveWorkoutView: View {
         return SavedMealGuidesStore.shared.items.contains { !$0.nutrition.shakes.isEmpty }
     }
 
-    /// Gemessen, wenn die Uhr mitläuft — sonst der gerechnete Wert.
+    /// Nur gemessen — angezeigt wird die Zahl ohnehin nur, wenn die Uhr mitläuft.
     private var displayCalories: Double {
-        isMeasured ? (watch.watchActiveCalories ?? calories) : calories
+        watch.watchActiveCalories ?? calories
     }
 
     private var averageHeartRate: Double {
@@ -1017,6 +1067,9 @@ public struct LiveWorkoutView: View {
           diese Ansicht liest sie mit. Geschrieben wird von hier aus nichts —
           das übernimmt die Uhr, die auch wirklich misst.
         */
+        // Ein einmal gekoppelter Bluetooth-Gurt verbindet sich von selbst.
+        sensor.beginSession()
+
         Task {
             if await health.requestReadAuthorization() {
                 await MainActor.run { health.startObservingHeartRate(from: sessionStart) }
@@ -1155,9 +1208,8 @@ public struct LiveWorkoutView: View {
     }
 
     /*
-      Ein Takt pro Sekunde. Erst wird nach echten Messwerten gesehen; nur wenn
-      keine vorliegen, rechnet das Modell aus dem Web weiter — und die Karte
-      sagt dann auch „geschätzt“.
+      Ein Takt pro Sekunde. Puls und Kalorien kommen nur aus echten
+      Messwerten; liegen keine vor, zeigt die Karte den Sensor-Hinweis.
     */
     /*
       Die verstrichene Trainingszeit — aus der Uhrzeit, nicht aus Takten.
@@ -1185,20 +1237,30 @@ public struct LiveWorkoutView: View {
 
         elapsed = currentElapsed()
 
-        if let measured = watch.freshWatchHeartRate ?? health.freshHeartRate {
-            heartRateSource = .appleWatch
-            heartRate = Double(measured)
+        /*
+          Reihenfolge: Uhr vor Gurt vor Apple Health. Die eigene Watch-App
+          liefert auch Kalorien; ein Gurt ist genauer als ein Health-Wert, der
+          erst über eine andere App hereinkommt.
+        */
+        let measured: (bpm: Int, source: HeartRateSource)? =
+            watch.freshWatchHeartRate.map { ($0, .appleWatch) }
+            ?? sensor.freshHeartRate.map { ($0, .bluetoothSensor) }
+            ?? health.freshHeartRate.map { ($0, .appleHealth) }
+
+        if let measured {
+            heartRateSource = measured.source
+            heartRate = Double(measured.bpm)
             if let watchCalories = watch.freshWatchActiveCalories {
                 calories = watchCalories
             }
+            peakHeartRate = max(peakHeartRate, heartRate)
+            hrHistory.append(heartRate)
+            if hrHistory.count > 300 { hrHistory.removeFirst() }
         } else {
+            // Kein Sensor, keine Zahl. Was bis hierher gemessen wurde, bleibt
+            // für Max-Puls und Kalorien stehen; dazugerechnet wird nichts.
             heartRateSource = .estimated
-            estimateTick()
         }
-
-        peakHeartRate = max(peakHeartRate, heartRate)
-        hrHistory.append(heartRate)
-        if hrHistory.count > 300 { hrHistory.removeFirst() }
 
         pushHeartRateToLockScreen()
 
@@ -1247,20 +1309,6 @@ public struct LiveWorkoutView: View {
         restEndsAt = nil
         liveActivity.endRest()
         syncWatch()
-    }
-
-    /// Das Belastungsmodell aus dem Web: der Puls nähert sich einem Zielwert,
-    /// die Kalorien laufen je nach Belastung schneller. Ausdrücklich eine
-    /// Schätzung — sie wird nirgends gespeichert und nirgends als Messwert
-    /// ausgegeben.
-    private func estimateTick() {
-        let target: Double = isResting ? 105 : 138
-        let variation = (sin(Date().timeIntervalSince1970 / 5) * 4).rounded(.down)
-        heartRate = (heartRate + (target - heartRate) * 0.08 + variation).rounded()
-
-        let burnPerSec = isResting ? 0.06 : 0.13
-        let hrMultiplier = heartRate > 120 ? heartRate / 115 : 1.0
-        calories += burnPerSec * hrMultiplier
     }
 
     /// ActivityKit nimmt keine sekündlichen Updates entgegen. Alle fünf
@@ -1419,6 +1467,7 @@ public struct LiveWorkoutView: View {
         ticker?.cancel()
         liveActivity.end()
         health.stopObservingHeartRate()
+        sensor.endSession()
         watch.onSetCompletedRemotely = nil
         watch.onSetCompletedWithDataRemotely = nil
         watch.onPauseToggleRequestedRemotely = nil
@@ -1437,6 +1486,7 @@ public struct LiveWorkoutView: View {
         restTicker = nil
         liveActivity.end()
         health.stopObservingHeartRate()
+        sensor.endSession()
         watch.onSetCompletedRemotely = nil
         watch.onSetCompletedWithDataRemotely = nil
         watch.onPauseToggleRequestedRemotely = nil

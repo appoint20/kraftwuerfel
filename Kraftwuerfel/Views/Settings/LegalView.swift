@@ -471,8 +471,7 @@ public enum LegalContent {
             Section(
                 heading: "6a. Empfänger & Auftragsverarbeiter (Art. 13 Abs. 1 lit. e DSGVO)",
                 body: """
-                Wir geben Deine Daten nicht zu Werbezwecken weiter und verkaufen sie nicht. \
-                Eingebunden sind ausschließlich folgende Dienstleister:
+                Wir verkaufen Deine Daten nicht. Eingebunden sind ausschließlich folgende Dienstleister:
 
                 • Render Services, Inc. (USA) — Hosting von API und PostgreSQL-Datenbank, Region \
                 Frankfurt am Main (EU). Auftragsverarbeitung nach Art. 28 DSGVO, EU-Standard\u{00AD}vertrags\u{00AD}klauseln.
@@ -484,8 +483,11 @@ public enum LegalContent {
                 • Apple Distribution International Ltd. (Irland) — Abwicklung der Abonnements. Wir erhalten \
                 von Apple nur die signierte Kaufquittung, keine Zahlungsdaten.
 
-                Keine Werbenetzwerke, keine Analyse-SDKs, kein Tracking über App- oder Websitegrenzen \
-                hinweg. Die App fragt deshalb auch nicht nach einer Tracking-Erlaubnis (ATT).
+                • Google Ireland Limited (Irland) — Werbung über Google AdMob, nur für Nutzerinnen und \
+                Nutzer ohne Pro-Abo (Einzelheiten unter „Werbung“ oben). Personalisierte Werbung nur mit \
+                Deiner Einwilligung und Apples Tracking-Erlaubnis (ATT).
+
+                Keine Analyse-SDKs. Gesundheits- und Trainingsdaten gehen an keinen Werbedienst.
                 """
             ),
             Section(
@@ -738,8 +740,7 @@ public enum LegalContent {
             Section(
                 heading: "6a. Recipients & Processors (Art. 13 (1) (e) GDPR)",
                 body: """
-                We do not share your data for advertising purposes and we do not sell it. Only the \
-                following processors are involved:
+                We do not sell your data. Only the following processors are involved:
 
                 • Render Services, Inc. (USA) — hosting of the API and PostgreSQL database, Frankfurt am \
                 Main (EU) region. Processing under Art. 28 GDPR with EU Standard Contractual Clauses.
@@ -751,8 +752,11 @@ public enum LegalContent {
                 • Apple Distribution International Ltd. (Ireland) — subscription processing. We receive only \
                 the signed purchase receipt from Apple, never payment details.
 
-                No ad networks, no analytics SDKs, no cross-app or cross-site tracking. The app therefore \
-                never asks for tracking permission (ATT).
+                • Google Ireland Limited (Ireland) — advertising via Google AdMob, only for users without \
+                a Pro subscription (see "Advertising" above). Personalized ads only with your consent and \
+                Apple's tracking permission (ATT).
+
+                No analytics SDKs. Health and workout data is never passed to any advertising service.
                 """
             ),
             Section(

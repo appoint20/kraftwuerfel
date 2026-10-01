@@ -18,10 +18,29 @@ import Foundation
 /// ehrlich zeigen wie die App — ein Schätzwert darf nirgends wie ein Messwert
 /// aussehen.
 public enum HeartRateSource: String, Codable, Hashable, Sendable {
-    /// Aus dem Belastungsmodell gerechnet, kein Sensor beteiligt.
+    /// Kein Sensor liefert. Der Name stammt aus der Zeit, als die App dann
+    /// ein Modell rechnete; der Rohwert bleibt, weil laufende Aktivitäten
+    /// ihn gespeichert haben. Angezeigt wird in diesem Fall kein Puls.
     case estimated
     /// Echte Messwerte, die die Apple Watch während der Sitzung liefert.
     case appleWatch
+    /// Ein Bluetooth-Pulssensor (Brustgurt, Armband, übertragende Uhr).
+    case bluetoothSensor
+    /// Ein frischer Wert aus Apple Health, der nicht von der eigenen
+    /// Watch-App kam.
+    case appleHealth
+
+    public var isMeasured: Bool { self != .estimated }
+
+    /// Schlüssel in `Strings` für das Etikett neben dem Puls.
+    public var labelKey: String {
+        switch self {
+        case .estimated: return "live.estimated"
+        case .appleWatch: return "live.sourceWatch"
+        case .bluetoothSensor: return "live.sourceSensor"
+        case .appleHealth: return "live.sourceHealth"
+        }
+    }
 }
 
 public struct WorkoutActivityAttributes: ActivityAttributes {

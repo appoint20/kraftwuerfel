@@ -148,7 +148,9 @@ public struct WorkoutCompletionModal: View {
             statBox(
                 icon: "flame.fill",
                 title: i18n.lang == "en" ? "Calories" : "Kalorien",
-                value: "\(Int(log.estimatedCalories ?? Double(log.durationSeconds / 60 * 7))) kcal"
+                // Nur, was die Uhr gemessen hat. Ohne Sensor steht hier ein
+                // Strich statt einer aus der Dauer erfundenen Zahl (1.4.1).
+                value: log.estimatedCalories.map { "\(Int($0)) kcal" } ?? "–"
             )
         }
     }

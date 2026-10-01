@@ -190,19 +190,19 @@ public struct AppGuideView: View {
         GuideTopic(
             id: "privacy",
             icon: "lock.shield.fill",
-            titleDe: "8. Datenschutz & 100% On-Device Speicherung",
-            titleEn: "8. Privacy & 100% On-Device Storage",
+            titleDe: "8. Datenschutz & lokale Speicherung",
+            titleEn: "8. Privacy & On-Device Storage",
             subtitleDe: "Deine Trainings- & Gesundheitsdaten bleiben privat bei dir",
             subtitleEn: "Your workout & health data remains strictly private on device",
             pointsDe: [
                 "**100% Lokale Daten:** Alle Trainingspläne, generierten Einheiten, Workouts, Fortschritts-Logs, Ernährungspläne und Biometriedaten werden ausschließlich lokal auf deinem Endgerät (UserDefaults/Keychain) gespeichert.",
                 "**Minimale Cloud-Daten:** In unserer sicheren Datenbank speichern wir ausschließlich deine E-Mail, deinen Namen und das gehashte Passwort zur Verwaltung deines Accounts und der Pro-Mitgliedschaft.",
-                "**Kein Tracking:** Kein Verkauf deiner Gesundheitsdaten, keine Werbetracker und kein externer Zugriff."
+                "**Werbung & Gesundheitsdaten:** Gesundheitsdaten werden nie verkauft oder für Werbung genutzt. In der Gratis-Version zeigt die App Werbung von Google AdMob; personalisiert nur, wenn du zustimmst. Mit Pro ist die App werbefrei."
             ],
             pointsEn: [
                 "**100% Local Data:** All workout plans, generated routines, diary logs, nutrition guides, and biometric data are stored strictly on your local device.",
                 "**Minimal Cloud Account:** Our secure database only holds your email, name, and hashed password for account and Pro subscription management.",
-                "**No Health Tracking:** Zero sale of personal health data, no advertising trackers, and total privacy."
+                "**Ads & Health Data:** Health data is never sold or used for advertising. The free version shows ads from Google AdMob, personalized only if you consent. Pro is ad-free."
             ],
             tipDe: "Tipp: Unter Einstellungen → 'Daten löschen' kannst du alle lokalen Daten mit einem Klick vollständig bereinigen.",
             tipEn: "Tip: Under Settings → 'Delete Data' you can completely wipe all local data with a single tap."
@@ -212,16 +212,16 @@ public struct AppGuideView: View {
             icon: "applewatch",
             titleDe: "9. Apple Watch Sensorik & Live-Werte",
             titleEn: "9. Apple Watch Sensors & Live Metrics",
-            subtitleDe: "Echte optische Herzfrequenzmessung vs. physiologisches Modell",
-            subtitleEn: "Real optical heart rate tracking vs. physiological model",
+            subtitleDe: "Puls und Kalorien nur mit echtem Sensor",
+            subtitleEn: "Heart rate and calories only from a real sensor",
             pointsDe: [
                 "**Echte optische Messung:** Sobald du deine Apple Watch trägst und die Sitzung startest, erfassen die PPG-Sensoren deinen Puls und Aktivkalorien in Echtzeit (grüner 'Apple Watch' Indikator).",
-                "**Physiologisches Modell-Fallback:** Da iPhones am Gehäuse keine optischen Kontaktsensoren haben, schaltet die App ohne gekoppelte Watch auf ein wissenschaftliches Belastungsmodell um und kennzeichnet dies transparent als 'geschätzt'.",
+                "**Ohne Sensor keine Werte:** Das iPhone selbst kann weder Puls noch Kalorienverbrauch messen. Ohne Apple Watch zeigt und speichert die App deshalb keine Puls- oder Kalorienwerte — nur Dauer und Trainingsvolumen.",
                 "**Volle Handgelenks-Steuerung:** Sätze abhaken, Gewicht anpassen und Pausen-Countdown direkt auf der Apple Watch nutzen."
             ],
             pointsEn: [
                 "**Real Optical Tracking:** When wearing your Apple Watch, PPG optical diodes track your real-time heart rate and active calories (green 'Apple Watch' indicator).",
-                "**Physiological Model Fallback:** Because iPhones lack optical contact diodes on the chassis, the app uses a scientific load model when no watch is worn and transparently labels it 'estimated'.",
+                "**No Sensor, No Numbers:** The iPhone itself cannot measure heart rate or calories burned. Without an Apple Watch the app therefore shows and stores no heart rate or calorie values — only duration and training volume.",
                 "**Wrist Controls:** Complete sets, adjust weights, and view rest countdowns directly from your Apple Watch."
             ],
             tipDe: "Tipp: Öffne die Kraftwürfel-Watch-App vor Trainingsbeginn, um die optische Messung sofort scharfzuschalten.",

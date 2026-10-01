@@ -203,9 +203,7 @@ private struct HeartRateBadge: View {
                         .font(KraftFont.mono(compact ? 17 : 22, .bold))
                         .foregroundColor(Theme.text)
                 }
-                Text(Strings.t(state.heartRateSource == .appleWatch
-                            ? "live.sourceWatch" : "live.estimated",
-                            lang: state.language))
+                Text(Strings.t(state.heartRateSource.labelKey, lang: state.language))
                     .textCase(.uppercase)
                     .font(KraftFont.inter(compact ? 7.5 : 8.5, .bold))
                     .tracking(0.6)

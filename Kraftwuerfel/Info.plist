@@ -258,6 +258,8 @@
 	<key>NSUserTrackingUsageDescription</key>
 	<string>Damit wir dir Werbung zeigen können, die zu dir passt, statt beliebiger Anzeigen. Du kannst das ablehnen — die App funktioniert unverändert und du siehst dann allgemeine Werbung.</string>
 
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Kraftwürfel verbindet sich mit deinem Bluetooth-Pulssensor (Brustgurt, Armband oder übertragende Uhr), um während der Live-Session deinen gemessenen Puls anzuzeigen.</string>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>Kraftwürfel spielt Titel aus deiner Mediathek während der Live-Session ab.</string>
 	<key>NSHealthShareUsageDescription</key>
