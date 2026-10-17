@@ -71,6 +71,8 @@ public struct DayEditSheet: View {
                 highlightCategories: target.index
                     .flatMap { slots.indices.contains($0) ? slots[$0].exercise.categories : nil } ?? [],
                 alreadyUsed: Set(slots.map(\.exercise.name)),
+                // Ein Home-Plan bleibt beim Tauschen ein Home-Plan.
+                allowedEquipment: HomeTraining.inferredEquipment(for: slots.map(\.exercise)),
                 onPick: { exercise in
                     if let index = target.index {
                         active.replaceSlot(day: day, cycle: cycle, at: index, with: exercise)

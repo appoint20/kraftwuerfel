@@ -11,12 +11,10 @@ import Foundation
   die Musik des Nutzers lief unverändert laut weiter, während der Ton darin
   unterging. Genau das war die Beschwerde: Das Pausenende war nicht zu hören.
 
-  Ein AVAudioPlayer spielt dagegen auf der Sitzung der App. Weil die auf
-  `.playback` mit `[.mixWithOthers, .duckOthers]` steht (AudioSessionManager),
-  senkt iOS die Lautstärke der Musik für die Dauer der Wiedergabe von selbst ab
-  und hebt sie danach wieder an. Ohne Eingriff in fremde Wiedergabe, ohne die
-  Sitzung zu deaktivieren — und Deaktivieren war der Grund, aus dem die Musik
-  früher ganz ausging.
+  Ein AVAudioPlayer spielt dagegen auf der Sitzung der App. Vor jedem Ton
+  schaltet AudioSessionManager.beginCue kurz auf `.duckOthers`: Die Musik wird
+  für den Ton leiser und danach wieder laut. Den Rest der Session läuft sie
+  in voller Lautstärke — früher blieb sie die ganze Zeit abgesenkt.
 
   Die Töne stehen nicht als Dateien im Bündel, sondern werden einmalig gerechnet.
   Ein Sinus mit weicher Hüllkurve ist ein paar Zeilen Code; als Datei wären es
@@ -79,6 +77,8 @@ public final class WorkoutCuePlayer {
 
     private func play(id: String, frequency: Double, duration: Double, volume: Float) {
         AudioSessionManager.configureForWorkout()
+        // Nur für diesen Ton leiser — nicht für die ganze Session.
+        AudioSessionManager.beginCue(lasting: duration)
         queue.async { [weak self] in
             guard let self,
                   let player = self.player(id: id, frequency: frequency, duration: duration)

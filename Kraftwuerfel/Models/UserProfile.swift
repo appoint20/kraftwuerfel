@@ -115,6 +115,67 @@ public struct UserProfile: Codable, Equatable {
         )
     }
 
+    /// Capture the interview once so the request and saved plan describe the
+    /// same answers, even if the profile changes while a request is running.
+    public var coachInput: AICoachInput {
+        AICoachInput(
+            goal: goal,
+            experience: experience,
+            biometrics: biometrics,
+            selectedDays: Weekdays.sorted(selectedDays),
+            sessionDurationMinutes: durationMinutes,
+            weeks: weeks,
+            equipment: coachEquipment,
+            diet: diet,
+            includeWarmup: warmup != "no",
+            goalWeightKg: goalWeightKg,
+            method: method,
+            pushupLevel: pushupLevel,
+            pullupLevel: pullupLevel,
+            plankLevel: plankLevel,
+            trainingLocation: trainingLocation,
+            restSeconds: restSeconds,
+            limitations: limitations
+        )
+    }
+
+    public func coachPlanRequest(language: String) -> KraftAPI.PlanRequest {
+        KraftAPI.PlanRequest(
+            goal: goal.rawValue,
+            experience: experience.rawValue,
+            sex: sex,
+            age: age,
+            height: Int(heightCm.rounded()),
+            weight: Int(weightKg.rounded()),
+            goalWeight: goalWeightKg.map { Int($0.rounded()) },
+            method: method.rawValue,
+            days: Weekdays.sorted(selectedDays),
+            sessionMinutes: durationMinutes,
+            weeks: weeks,
+            equipment: coachEquipment.map(\.rawValue).sorted(),
+            limitations: limitations,
+            warmup: warmup,
+            restSeconds: restSeconds,
+            diet: diet.rawValue,
+            language: language,
+            somatotype: somatotype.rawValue,
+            activityLevel: activityLevel.rawValue,
+            pushupLevel: pushupLevel.rawValue,
+            pullupLevel: pullupLevel.rawValue,
+            plankLevel: plankLevel.rawValue,
+            trainingLocation: trainingLocation.rawValue,
+            bmi: biometrics.bmi,
+            bmr: biometrics.bmr,
+            tdee: biometrics.tdee
+        )
+    }
+
+    private var coachEquipment: Set<EquipmentType> {
+        var normalized = self
+        normalized.normalizeEquipmentForLocation()
+        return normalized.equipment
+    }
+
     /// Das Equipment, das an diesem Ort überhaupt zur Verfügung steht.
     public static func allowedEquipment(for location: TrainingLocation) -> Set<EquipmentType> {
         switch location {

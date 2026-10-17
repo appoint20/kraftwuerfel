@@ -313,6 +313,15 @@ public struct AICoachWizardView: View {
             KraftPrimaryButton(i18n.t("ai.gateWatch"), systemImage: "play.fill") {
                 adManager.watchRewardedVideoForAIPlan { _ in }
             }
+            .disabled(adManager.isRewardedVideoInProgress)
+            .opacity(adManager.isRewardedVideoInProgress ? 0.6 : 1)
+
+            if let failure = adManager.rewardedVideoFailure {
+                Text(rewardedVideoFailureMessage(failure))
+                    .font(KraftFont.inter(12))
+                    .foregroundColor(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             Button(action: { showPro = true }) {
                 Text(i18n.t("ai.gateSkipWithPro"))
@@ -325,6 +334,19 @@ public struct AICoachWizardView: View {
         }
         .padding(16)
         .kraftCard()
+    }
+
+    private func rewardedVideoFailureMessage(_ failure: AdManager.RewardedVideoFailure) -> String {
+        switch failure {
+        case .unavailable:
+            return i18n.lang == "en"
+                ? "No video is ready right now. Try again shortly; your progress is unchanged."
+                : "Gerade ist kein Video bereit. Versuche es gleich erneut; dein Fortschritt bleibt unverändert."
+        case .incomplete:
+            return i18n.lang == "en"
+                ? "The video did not finish. Watch it to the end to earn the unlock."
+                : "Das Video wurde nicht abgeschlossen. Schau es vollständig an, um die Freischaltung zu erhalten."
+        }
     }
 
     private var profileCard: some View {
@@ -410,36 +432,20 @@ public struct AICoachWizardView: View {
 
 
     private func generatePlanLocally() {
+        guard !session.isGenerating else { return }
+        guard storeKit.isProUnlocked || adManager.isAIPlanUnlockedForFree else { return }
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
         session.isGenerating = true
         session.errorMessage = nil
 
-        let input = AICoachInput(
-            goal: session.goal,
-            experience: session.experience,
-            biometrics: currentBiometrics,
-            selectedDays: Array(session.selectedDays),
-            sessionDurationMinutes: session.durationMinutes,
-            weeks: session.weeks,
-            equipment: session.selectedEquipment.isEmpty
-                ? Set(EquipmentType.allCases) : session.selectedEquipment,
-            diet: session.diet,
-            includeWarmup: session.warmup != "no",
-            goalWeightKg: session.goalWeightKg,
-            method: session.method,
-            pushupLevel: session.pushupLevel,
-            pullupLevel: session.pullupLevel,
-            plankLevel: session.plankLevel,
-            trainingLocation: session.trainingLocation,
-            restSeconds: session.restSeconds
-        )
+        let input = profileStore.profile.coachInput
 
         let plan = AICoachService.shared.generatePlan(input: input, language: i18n.lang)
         if !storeKit.isProUnlocked {
             adManager.consumeAIPlanReward()
         }
         NotificationManager.shared.scheduleWorkoutDayReminders(
-            days: Array(session.selectedDays),
+            days: input.selectedDays,
             language: i18n.lang,
             trainedDates: WorkoutHistoryStore.shared.trainedDates()
         )
@@ -469,66 +475,18 @@ public struct AICoachWizardView: View {
       seine Eingaben und kann es erneut versuchen.
     */
     private func generatePlan() {
+        guard !session.isGenerating else { return }
+        guard storeKit.isProUnlocked || adManager.isAIPlanUnlockedForFree else { return }
         session.isGenerating = true
         session.errorMessage = nil
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
 
-        let input = AICoachInput(
-            goal: session.goal,
-            experience: session.experience,
-            biometrics: currentBiometrics,
-            selectedDays: Array(session.selectedDays),
-            sessionDurationMinutes: session.durationMinutes,
-            weeks: session.weeks,
-            equipment: session.selectedEquipment.isEmpty
-                ? Set(EquipmentType.allCases) : session.selectedEquipment,
-            diet: session.diet,
-            includeWarmup: session.warmup != "no",
-            goalWeightKg: session.goalWeightKg,
-            method: session.method,
-            pushupLevel: session.pushupLevel,
-            pullupLevel: session.pullupLevel,
-            plankLevel: session.plankLevel,
-            trainingLocation: session.trainingLocation,
-            restSeconds: session.restSeconds
-        )
+        let profile = profileStore.profile
+        let language = i18n.lang
+        let input = profile.coachInput
+        let request = profile.coachPlanRequest(language: language)
 
         Task {
-            let request = KraftAPI.PlanRequest(
-                goal: session.goal.rawValue,
-                experience: session.experience.rawValue,
-                sex: session.sex,
-                age: session.age,
-                height: Int(session.heightCm),
-                weight: Int(session.weightKg),
-                goalWeight: session.goalWeightKg.map { Int($0.rounded()) },
-                method: session.method.rawValue,
-                days: Weekdays.sorted(session.selectedDays),
-                sessionMinutes: session.durationMinutes,
-                weeks: session.weeks,
-                equipment: session.selectedEquipment.map(\.rawValue),
-                focus: [],
-                limitations: "",
-                warmup: session.warmup,
-                // Die Einstellung aus dem Profil geht jetzt wirklich mit.
-                restSeconds: session.restSeconds,
-                diet: session.diet.rawValue,
-                excludedFoods: [],
-                allergies: [],
-                intolerances: [],
-                dietPreferences: "",
-                language: i18n.lang,
-                somatotype: session.somatotype.rawValue,
-                activityLevel: session.activityLevel.rawValue,
-                pushupLevel: session.pushupLevel.rawValue,
-                pullupLevel: session.pullupLevel.rawValue,
-                plankLevel: session.plankLevel.rawValue,
-                trainingLocation: session.trainingLocation.rawValue,
-                bmi: currentBiometrics.bmi,
-                bmr: currentBiometrics.bmr,
-                tdee: currentBiometrics.tdee
-            )
-
             var attempts = 0
             let maxAttempts = 3
             var succeeded = false
@@ -537,16 +495,16 @@ public struct AICoachWizardView: View {
                 attempts += 1
                 do {
                     let raw = try await KraftAPI.shared.generatePlan(request)
-                    if let plan = PlanMapper.trainingPlan(from: raw, language: i18n.lang, input: input) {
+                    if let plan = PlanMapper.trainingPlan(from: raw, language: language, input: input) {
                         if !storeKit.isProUnlocked {
                             adManager.consumeAIPlanReward()
                         }
                         NotificationManager.shared.scheduleWorkoutDayReminders(
-                            days: Array(session.selectedDays),
+                            days: input.selectedDays,
                             language: i18n.lang,
                             trainedDates: WorkoutHistoryStore.shared.trainedDates()
                         )
-                        session.apply(plan: plan, input: input, language: i18n.lang)
+                        session.apply(plan: plan, input: input, language: language)
                         succeeded = true
                         session.isGenerating = false
                         return
@@ -555,17 +513,24 @@ public struct AICoachWizardView: View {
                     session.errorMessage = i18n.t("ai.errorSignedOut")
                     break
                 } catch KraftAPI.APIError.rateLimited {
+                    session.errorMessage = i18n.t("ai.errorLimit")
+                    break
+                } catch let error as KraftAPI.APIError {
+                    if case .badRequest = error {
+                        session.errorMessage = error.coachMessage(language: language)
+                        break
+                    }
                     if attempts < maxAttempts {
                         try? await Task.sleep(nanoseconds: 2_000_000_000)
                         continue
                     }
-                    session.errorMessage = i18n.t("ai.errorLimit")
+                    session.errorMessage = error.coachMessage(language: language)
                 } catch {
                     if attempts < maxAttempts {
                         try? await Task.sleep(nanoseconds: 2_000_000_000)
                         continue
                     }
-                    session.errorMessage = i18n.t("ai.errorOffline")
+                    session.errorMessage = KraftAPI.APIError.upstream("plan generation failed").coachMessage(language: language)
                 }
             }
 

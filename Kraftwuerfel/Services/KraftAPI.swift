@@ -46,6 +46,31 @@ public final class KraftAPI: @unchecked Sendable {
             case .transport(let m):    return m
             }
         }
+
+        /// Only known failure categories reach the UI. Provider responses can
+        /// contain HTML, credentials or diagnostics and must not be echoed.
+        public func coachMessage(language: String) -> String {
+            let isEn = language == "en"
+            switch self {
+            case .unauthorized:
+                return isEn ? "Your session has expired. Sign in again." : "Deine Sitzung ist abgelaufen. Melde dich erneut an."
+            case .rateLimited:
+                return isEn ? "You have reached today's plan limit. Try again tomorrow." : "Du hast dein Planlimit für heute erreicht. Versuche es morgen erneut."
+            case .badRequest:
+                return isEn ? "The server could not use your interview answers. Check your profile and try again." : "Der Server konnte deine Interview-Antworten nicht verarbeiten. Prüfe dein Profil und versuche es erneut."
+            case .transport:
+                return isEn ? "The server could not be reached. Check your connection and try again." : "Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut."
+            case .upstream(let message):
+                let lower = message.lowercased()
+                if lower.contains("not configured") || lower.contains("nicht konfiguriert") {
+                    return isEn ? "The plan service is not configured correctly yet. Your answers have been kept." : "Der Plandienst ist noch nicht richtig eingerichtet. Deine Antworten bleiben erhalten."
+                }
+                if lower.contains("429") || lower.contains("quota") {
+                    return isEn ? "The plan service is busy. Your answers have been kept; try again shortly." : "Der Plandienst ist gerade ausgelastet. Deine Antworten bleiben erhalten; versuche es gleich erneut."
+                }
+                return isEn ? "The server could not create a usable plan. Your answers have been kept; please try again." : "Der Server konnte keinen verwendbaren Plan erstellen. Deine Antworten bleiben erhalten; versuche es erneut."
+            }
+        }
     }
 
     private let session: URLSession

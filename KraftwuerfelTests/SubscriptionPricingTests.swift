@@ -4,23 +4,18 @@ import XCTest
 /*
   Die Ersparnis auf dem Pro-Bildschirm.
 
-  Vorher stand „SPARE 48%" fest im Code, während die Preise daneben live aus
-  StoreKit kamen. Solange 7,99 € und 49,99 € galten, stimmte das zufällig.
-  Nach einer Preisänderung in App Store Connect hätte die App weiter mit 48%
-  geworben, obwohl es 17% sind — eine falsche Preisauszeichnung, die niemandem
-  auffällt, weil die Zahl ja irgendwann einmal richtig war.
-
-  Deshalb wird gerechnet statt geschrieben, und deshalb wird die Rechnung hier
-  geprüft.
+  Die Ersparnis wird aus den StoreKit-Preisen gerechnet. Die Rückfallwerte
+  müssen zu den aktuellen Preisen von 7,99 € monatlich und 49,99 € jährlich
+  passen; andere Preise prüfen, dass die Berechnung dynamisch bleibt.
 */
 final class SubscriptionPricingTests: XCTestCase {
 
     private typealias Pro = ProSubscriptionView
 
     /// Die Preise, mit denen die App ausgeliefert wird.
-    func testAktuellePreiseErgeben17Prozent() {
-        let percent = Pro.savingsPercent(monthlyPrice: 9.99, yearlyPrice: 99.90)
-        XCTAssertEqual(percent, 17, "12 × 9,99 € = 119,88 €; 99,90 € sind 16,7% weniger")
+    func testAktuellePreiseErgeben48Prozent() {
+        let percent = Pro.savingsPercent(monthlyPrice: 7.99, yearlyPrice: 49.99)
+        XCTAssertEqual(percent, 48, "12 × 7,99 € = 95,88 €; 49,99 € sind 47,9% weniger")
     }
 
     /*
@@ -30,7 +25,7 @@ final class SubscriptionPricingTests: XCTestCase {
     */
     func testRueckfallwertPasstZuDenAusgelieferten() {
         XCTAssertEqual(
-            Pro.savingsPercent(monthlyPrice: 9.99, yearlyPrice: 99.90),
+            Pro.savingsPercent(monthlyPrice: 7.99, yearlyPrice: 49.99),
             Pro.fallbackSavingsPercent,
             "Rückfallwert und gerechnete Ersparnis sind auseinandergelaufen"
         )
@@ -38,18 +33,17 @@ final class SubscriptionPricingTests: XCTestCase {
 
     /// Auch der Monatspreis im Rückfall muss zum Jahrespreis passen.
     func testRueckfallMonatspreisPasstZumJahrespreis() {
-        let perMonth = (Decimal(99.90) / 12 as NSDecimalNumber).doubleValue
-        XCTAssertEqual(perMonth, 8.325, accuracy: 0.005)
+        let perMonth = (Decimal(49.99) / 12 as NSDecimalNumber).doubleValue
+        XCTAssertEqual(perMonth, 4.17, accuracy: 0.005)
         XCTAssertTrue(
-            Pro.fallbackPerMonth.hasPrefix("8,3"),
-            "fallbackPerMonth ist \(Pro.fallbackPerMonth), gerechnet sind es 8,33 €"
+            Pro.fallbackPerMonth.hasPrefix("4,17"),
+            "fallbackPerMonth ist \(Pro.fallbackPerMonth), gerechnet sind es 4,17 €"
         )
     }
 
-    /// Die alten Preise ergaben tatsächlich 48% — der Beleg, dass die Formel
-    /// stimmt und die frühere Zahl nur veraltet war, nicht falsch gerechnet.
-    func testAltePreiseErgaeben48Prozent() {
-        XCTAssertEqual(Pro.savingsPercent(monthlyPrice: 7.99, yearlyPrice: 49.99), 48)
+    /// Abweichende StoreKit-Preise dürfen nicht die feste Ersparnis übernehmen.
+    func testAnderePreiseErgebenPassendeErsparnis() {
+        XCTAssertEqual(Pro.savingsPercent(monthlyPrice: 10, yearlyPrice: 90), 25)
     }
 
     /*
@@ -57,13 +51,13 @@ final class SubscriptionPricingTests: XCTestCase {
       negativer Wert wäre schlimmer als gar kein Hinweis.
     */
     func testKeineErsparnisWennJahresaboNichtGuenstiger() {
-        XCTAssertNil(Pro.savingsPercent(monthlyPrice: 9.99, yearlyPrice: 119.88), "exakt gleich teuer")
-        XCTAssertNil(Pro.savingsPercent(monthlyPrice: 9.99, yearlyPrice: 130.00), "teurer als monatlich")
+        XCTAssertNil(Pro.savingsPercent(monthlyPrice: 7.99, yearlyPrice: 95.88), "exakt gleich teuer")
+        XCTAssertNil(Pro.savingsPercent(monthlyPrice: 7.99, yearlyPrice: 110.00), "teurer als monatlich")
     }
 
     /// Unbrauchbare Preise dürfen keine Zahl erfinden.
     func testUngueltigePreiseErgebenNichts() {
-        XCTAssertNil(Pro.savingsPercent(monthlyPrice: 0, yearlyPrice: 99.90))
-        XCTAssertNil(Pro.savingsPercent(monthlyPrice: 9.99, yearlyPrice: 0))
+        XCTAssertNil(Pro.savingsPercent(monthlyPrice: 0, yearlyPrice: 49.99))
+        XCTAssertNil(Pro.savingsPercent(monthlyPrice: 7.99, yearlyPrice: 0))
     }
 }

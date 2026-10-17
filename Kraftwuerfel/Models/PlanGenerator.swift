@@ -89,7 +89,8 @@ public enum PlanGenerator {
         method: TrainingMethod = .standard,
         restTime: Int = 60,
         extraExclude: Set<String> = [],
-        equipment: Set<EquipmentType>? = nil
+        equipment: Set<EquipmentType>? = nil,
+        candidateExercises: [Exercise]? = nil
     ) -> [ExerciseSlot] {
         // Normalisierung: Bei reinem Beine-Split ist Beine-Fokus redundant & ungültig
         let effectiveMethod: TrainingMethod = (categoriesIn == [.legs, .glutes, .calves] && method == .legsFocus)
@@ -111,9 +112,13 @@ public enum PlanGenerator {
           einer mit einer Maschine, die vielleicht doch dasteht.
         */
         let pool: [Exercise] = {
-            guard let equipment, !equipment.isEmpty else { return ExerciseDatabase.all }
-            let filtered = ExerciseDatabase.all.filter { equipment.contains($0.equipment) }
-            return filtered.count >= count ? filtered : ExerciseDatabase.all
+            let candidates = candidateExercises ?? ExerciseDatabase.all
+            guard let equipment, !equipment.isEmpty else { return candidates }
+            let filtered = candidates.filter { equipment.contains($0.equipment) }
+            // A coach pool already excludes unavailable or unsuitable exercises.
+            // A short pool must never silently widen those constraints.
+            if candidateExercises != nil { return filtered }
+            return filtered.count >= count ? filtered : candidates
         }()
 
         func attempt(_ excludeSet: Set<String>) -> [Exercise] {
@@ -194,20 +199,33 @@ public enum PlanGenerator {
 
     // MARK: - Einzelne Übung neu würfeln
 
+    /*
+      `allowedEquipment` nil heißt: aus dem Plan selbst ableiten.
+
+      Vorher zählte hier nur die Muskelgruppe. In einer Home-Challenge landete
+      beim Neu-Würfeln so eine Beinpresse oder ein Kabelzug im Plan. Besteht
+      der Plan nur aus Home-Übungen, bleibt es jetzt dabei; einen Studio-Plan
+      schränkt das nicht ein.
+    */
     public static func rerollSlot(
         plan: [ExerciseSlot],
         at idx: Int,
-        method: TrainingMethod
+        method: TrainingMethod,
+        allowedEquipment: Set<EquipmentType>? = nil
     ) -> ExerciseSlot? {
         guard plan.indices.contains(idx) else { return nil }
         let currentSlot = plan[idx]
         let cat = currentSlot.exercise.category
         let usedNames = Set(plan.map(\.exercise.name))
         let needsHeavy = method != .standard && currentSlot.sets >= 4
+        let inferred = allowedEquipment == nil ? HomeTraining.inferredEquipment(for: plan.map(\.exercise)) : nil
+        var equipment = allowedEquipment ?? inferred
 
         func buildPool(allowSameName: Bool) -> [Exercise] {
             var pool = ExerciseDatabase.all.filter {
-                $0.categories.contains(cat) && (allowSameName || !usedNames.contains($0.name))
+                $0.categories.contains(cat)
+                    && (allowSameName || !usedNames.contains($0.name))
+                    && HomeTraining.allows($0, equipment: equipment)
             }
             if allowSameName {
                 pool = pool.filter { $0.name != currentSlot.exercise.name }
@@ -221,6 +239,15 @@ public enum PlanGenerator {
 
         var pool = buildPool(allowSameName: false)
         if pool.isEmpty { pool = buildPool(allowSameName: true) }
+        /*
+          Abgeleitet (nicht ausdrücklich vorgegeben) heißt „zu Hause": Findet
+          sich mit genau den Geräten des Plans nichts, dürfen es andere
+          Home-Geräte sein — aber nie Maschine, Kabelzug oder Langhantel.
+        */
+        if pool.isEmpty, inferred != nil {
+            equipment = HomeTraining.equipment
+            pool = buildPool(allowSameName: false)
+        }
         guard let picked = randOf(pool) else { return nil }
 
         return ExerciseSlot(

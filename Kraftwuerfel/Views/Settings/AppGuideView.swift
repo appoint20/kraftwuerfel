@@ -160,7 +160,7 @@ public struct AppGuideView: View {
             pointsEn: [
                 "**Free Tier:** Unlimited workout generator, 1 permanent favorite plan, full live session with Apple Watch & music, and AI Coach generation unlocked after 3 sponsor videos.",
                 "**Pro Tier:** 100% ad-free experience, unlimited instant AI Coach plans without videos, and unlimited library saving & exporting.",
-                "**Plans:** Flexible Monthly Plan ($7.99/mo) or Yearly Plan ($49.99/yr · Save 48%)."
+                "**Plans:** Flexible Monthly Plan (€7.99/month) or Yearly Plan (€49.99/year · Save 48%)."
             ],
             tipDe: "Tipp: Abonnements können jederzeit flexibel in deinen Apple-ID-Account-Einstellungen verwaltet oder gekündigt werden.",
             tipEn: "Tip: Subscriptions can be managed or cancelled anytime in your Apple ID Account Settings."

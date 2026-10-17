@@ -493,8 +493,14 @@
           </dd>
           <dt>Zu tun</dt>
           <dd>
-            Anlegen, bepreisen, DE/EN lokalisieren, Screenshot der Bezahlseite hinterlegen. Abos werden
-            zusammen mit dem Build geprüft, nicht danach.
+            Den Download unter „Preisgestaltung und Verfügbarkeit“ in allen angebotenen Ländern
+            auf „Kostenlos“ (0,00&nbsp;€) setzen. Die kostenlose App enthält Werbung; Pro ist ein
+            optionaler In-App-Kauf. Unter „Abonnements“ separat die EUR-Preise festlegen:
+            Monatsabo 7,99&nbsp;€, Jahresabo 49,99&nbsp;€ (inkl. MwSt.).
+            Das Jahresabo entspricht gerundet 4,17&nbsp;€ pro Monat und spart 48% gegenüber zwölf
+            Monatsabos. DE/EN lokalisieren und einen aktuellen Screenshot der Bezahlseite hinterlegen.
+            Die Preise müssen in App Store Connect eingestellt sein; Codeänderungen ändern nicht den
+            Apple-Preis. Neue Abos werden zusammen mit dem Build geprüft, nicht danach.
           </dd>
         </dl>
       </div>
@@ -861,13 +867,13 @@
       </li>
       <li>
         <div>
-          <h3>Werbung bleibt aus, bis ein echtes Netzwerk eingebunden ist <span class="badge info">bewusst</span></h3>
+          <h3>Kostenlose Nutzung mit AdMob, optional werbefrei mit Pro <span class="badge info">konfiguriert</span></h3>
           <p>
-            <code>AdManager.adsEnabled = false</code>. Solange das gilt, sind KI-Coach und
-            Trainingsarchiv für alle offen — die Schranke hing an den simulierten Videos. Soll der Coach
-            stattdessen Pro-only sein, steht die Ansicht dafür bereits ungenutzt in
-            <code>AICoachWizardView.proGate</code>. Die Checkliste vor dem Einschalten (SDK, ATT,
-            Manifest, CMP, Altersfreigabe) steht in Update&nbsp;5.
+            Das Google-Mobile-Ads-SDK ist eingebunden; Produktionskennungen für die AdMob-App,
+            Banner, Vollbildanzeigen und belohnte Anzeigen stehen in <code>Info.plist</code>.
+            Die kostenlose Nutzung enthält Werbung, das optionale Pro-Abo blendet sie aus.
+            Ob AdMob tatsächlich Anzeigen ausliefert, muss auf einem Gerät geprüft werden.
+            Ist keine Anzeige verfügbar, verwendet die App keinen simulierten Werbeinhalt.
           </p>
         </div>
       </li>
@@ -901,7 +907,8 @@
       <div class="phase is-blocked">
         <div class="phase-head"><h3>03 — App Store Connect</h3><span class="phase-when">vor dem Upload</span></div>
         <ul>
-          <li>Beide Abo-Produkte anlegen, bepreisen, lokalisieren</li>
+          <li>App-Download in allen angebotenen Ländern auf „Kostenlos“ (0,00&nbsp;€) setzen</li>
+          <li>Optionale Pro-Abos separat anlegen: 7,99&nbsp;€/Monat oder 49,99&nbsp;€/Jahr; DE/EN lokalisieren</li>
           <li>App-Datenschutzangaben passend zum Manifest</li>
           <li>Testkonto in den Prüfhinweisen</li>
           <li>Screenshots, Beschreibung, Altersfreigabe, Support- und Datenschutz-URL</li>

@@ -308,6 +308,22 @@ public enum ExerciseDatabase {
         Exercise(name: "Turkish Get-Up", nameEn: "Turkish Get-Up", category: .fullBody, equipment: .kettlebell),
         Exercise(name: "Thruster", nameEn: "Barbell Thrusters", category: .fullBody, equipment: .barbell, isHeavy: true),
         Exercise(name: "Box Jump (Box-Springen)", nameEn: "Plyo Box Jumps", category: .fullBody, equipment: .bodyweight),
+        // Echte Home-Übungen — ohne Stange, Bank oder Box (Stand API-Katalog).
+        Exercise(name: "Kniebeugen ohne Gewicht", nameEn: "Bodyweight Squats", category: .legs, equipment: .bodyweight, categories: [.legs, .glutes]),
+        Exercise(name: "Ausfallschritte ohne Gewicht", nameEn: "Bodyweight Lunges", category: .legs, equipment: .bodyweight, categories: [.legs, .glutes]),
+        Exercise(name: "Rückwärts-Ausfallschritte", nameEn: "Reverse Lunges", category: .legs, equipment: .bodyweight, categories: [.legs, .glutes]),
+        Exercise(name: "Sprungkniebeugen", nameEn: "Jump Squats", category: .legs, equipment: .bodyweight, categories: [.legs, .fullBody]),
+        Exercise(name: "Wandsitzen (Wall Sit)", nameEn: "Wall Sit", category: .legs, equipment: .bodyweight),
+        Exercise(name: "Wadenheben stehend (Körpergewicht)", nameEn: "Bodyweight Calf Raises", category: .calves, equipment: .bodyweight),
+        Exercise(name: "Einbeiniges Beckenheben", nameEn: "Single-Leg Glute Bridge", category: .glutes, equipment: .bodyweight, categories: [.glutes, .legs]),
+        Exercise(name: "Knie-Liegestütze", nameEn: "Knee Push-Ups", category: .chest, equipment: .bodyweight, categories: [.chest, .triceps]),
+        Exercise(name: "Diamant-Liegestütze", nameEn: "Diamond Push-Ups", category: .triceps, equipment: .bodyweight, categories: [.triceps, .chest]),
+        Exercise(name: "Pike-Liegestütze", nameEn: "Pike Push-Ups", category: .shoulders, equipment: .bodyweight, categories: [.shoulders, .triceps]),
+        Exercise(name: "Superman", nameEn: "Superman Raises", category: .back, equipment: .bodyweight),
+        Exercise(name: "Bird Dog (Vierfüßlerstand)", nameEn: "Bird Dog", category: .back, equipment: .bodyweight, categories: [.back, .core]),
+        Exercise(name: "Seitstütz (Side Plank)", nameEn: "Side Plank", category: .core, equipment: .bodyweight),
+        Exercise(name: "Hampelmann (Jumping Jacks)", nameEn: "Jumping Jacks", category: .fullBody, equipment: .bodyweight),
+        Exercise(name: "Kniehebelauf (High Knees)", nameEn: "High Knees", category: .fullBody, equipment: .bodyweight, categories: [.fullBody, .legs]),
     ]
 
     public private(set) static var all: [Exercise] = bundled
@@ -372,5 +388,62 @@ public enum ExerciseDatabase {
         categories = derivedCategories(from: mapped)
         equipment = derivedEquipment(from: mapped)
         BackendStatus.shared.recordCatalog(.server(count: mapped.count))
+    }
+}
+
+// MARK: - Zu Hause machbar
+
+/*
+  Einige Übungen stehen als „Körpergewicht" im Katalog, brauchen aber trotzdem
+  ein Gerät: eine Klimmzugstange, einen Barren, eine Bank, eine Box oder ein
+  Ab-Wheel. Für das Studio ist das egal. Zu Hause schlug die App sie trotzdem
+  vor — beim Neu-Würfeln und Tauschen sogar Maschinen, weil dort nur die
+  Muskelgruppe zählte.
+
+  Dieselbe Liste steht im Server (TrainingConstraints.NeedsApparatus).
+*/
+public extension Exercise {
+    static let apparatusNames: Set<String> = [
+        "Dips (Brustfokus)", "Dips (Trizepsfokus)", "Klimmzüge", "Hyperextensions",
+        "Beinheben hängend", "Ab Wheel Rollout", "Box Jump (Box-Springen)",
+        "Kurzhantel-Bankdrücken", "Kurzhantel-Schrägbankdrücken", "Fliegende Kurzhantel (Schrägbank)",
+        "Negativbankdrücken (Kurzhantel)", "Kurzhantel-Bankdrücken (Neutralgriff)",
+        "Kurzhantel-Bankdrücken (Untergriff)", "Seitheben angelehnt an Bank (Kurzhantel)", "Pull-Over",
+    ]
+
+    /// Braucht ein Gerät, das zu Hause in der Regel fehlt.
+    var needsApparatus: Bool { Self.apparatusNames.contains(name) }
+}
+
+public enum HomeTraining {
+    /// Was zu Hause realistisch herumsteht.
+    public static let equipment: Set<EquipmentType> = [.bodyweight, .dumbbell, .kettlebell, .weightPlate]
+
+    /// Ein Gerätesatz, der nur aus Home-Equipment besteht.
+    public static func isHome(_ allowed: Set<EquipmentType>?) -> Bool {
+        guard let allowed, !allowed.isEmpty else { return false }
+        return allowed.isSubset(of: equipment)
+    }
+
+    /*
+      Welche Geräte ein Tausch oder Neu-Würfeln nehmen darf, wenn niemand es
+      ausdrücklich sagt: abgeleitet aus dem, was im Plan schon steht.
+
+      Besteht der Plan nur aus Home-Übungen, ist es ein Home-Plan — dann bleibt
+      es bei genau diesen Geräten plus Körpergewicht. Sonst (Studio) gibt es
+      keine Einschränkung.
+    */
+    public static func inferredEquipment(for exercises: [Exercise]) -> Set<EquipmentType>? {
+        guard !exercises.isEmpty,
+              exercises.allSatisfy({ equipment.contains($0.equipment) && !$0.needsApparatus })
+        else { return nil }
+        return Set(exercises.map(\.equipment)).union([.bodyweight])
+    }
+
+    /// Darf diese Übung bei diesen Geräten vorgeschlagen werden?
+    public static func allows(_ exercise: Exercise, equipment allowed: Set<EquipmentType>?) -> Bool {
+        guard let allowed, !allowed.isEmpty else { return true }
+        guard allowed.contains(exercise.equipment) else { return false }
+        return !(isHome(allowed) && exercise.needsApparatus)
     }
 }

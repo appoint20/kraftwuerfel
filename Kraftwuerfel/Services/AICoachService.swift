@@ -27,6 +27,8 @@ public final class AICoachService {
 
         var generatedDays: [DayPlan] = []
         let selectedCount = input.selectedDays.count
+        let conservative = isConservative(input)
+        let warmupSeconds = input.includeWarmup ? (input.sessionDurationMinutes <= 20 ? 120 : 180) : 0
 
         for (index, day) in input.selectedDays.enumerated() {
             let dayName = isEn ? dayNamesEn[index % dayNamesEn.count] : dayNamesDe[index % dayNamesDe.count]
@@ -37,21 +39,18 @@ public final class AICoachService {
             // Warmup
             var warmup: [WarmupExercise] = []
             if input.includeWarmup {
-                warmup = isEn ? [
-                    WarmupExercise(name: "5 min Light Cardio (Rowing/Treadmill)", duration: "5 min"),
-                    WarmupExercise(name: "Dynamic Mobility & Band Pull-Aparts", duration: "3 min")
-                ] : [
-                    WarmupExercise(name: "5 min Leichtes Cardio (Rudergerät/Laufband)", duration: "5 min"),
-                    WarmupExercise(name: "Dynamisches Dehnen & Schultermobilität", duration: "3 min")
-                ]
+                warmup = [WarmupExercise(
+                    name: isEn ? "Gentle walking and comfortable mobility" : "Locker gehen und angenehme Mobilisation",
+                    duration: "\(warmupSeconds / 60) min"
+                )]
             }
 
             // Satz- und Wiederholungsschemata differenziert pro Zyklus
-            let baseSets = input.experience == .advanced ? 4 : 3
-            let repsC1: String
-            let repsC2: String
-            let restC1: Int
-            let restC2: Int
+            let baseSets = conservative ? 2 : (input.experience == .advanced ? 4 : 3)
+            var repsC1: String
+            var repsC2: String
+            var restC1: Int
+            var restC2: Int
 
             switch input.goal {
             case .strength:
@@ -76,21 +75,48 @@ public final class AICoachService {
                 restC2 = 60
             }
 
-            // Übungsanzahl strikt 6 bis 8 Übungen pro Trainingstag
-            let count = max(6, min(8, max(6, input.sessionDurationMinutes / 8)))
+            if conservative {
+                repsC1 = "8-12"
+                repsC2 = "8-12"
+            }
+            restC1 = min(restC1, input.restSeconds, conservative ? 60 : 90)
+            restC2 = min(restC2, input.restSeconds, conservative ? 60 : 90)
+
+            let method = conservative ? TrainingMethod.standard : input.method
+            let volumeCap: Int
+            if conservative {
+                switch input.sessionDurationMinutes {
+                case ...15: volumeCap = 3
+                case ...30: volumeCap = 4
+                case ...45: volumeCap = 5
+                default: volumeCap = 6
+                }
+            } else {
+                volumeCap = input.sessionDurationMinutes <= 15 ? 3 : (input.sessionDurationMinutes <= 30 ? 5 : 8)
+            }
+            let maxWork = max(workSeconds(reps: repsC1), workSeconds(reps: repsC2))
+            let maxRest = max(restC1, restC2)
+            let extraSets = method == .fiveFourThree ? 3 : (method == .fourFourThree ? 2 : 0)
+            let perExercise = baseSets * maxWork + (baseSets - 1) * maxRest + 60
+            let exerciseBudget = max(0, input.sessionDurationMinutes * 60 - warmupSeconds - extraSets * (maxWork + maxRest))
+            let count = min(volumeCap, exerciseBudget / max(1, perExercise))
 
             let effectiveEquipment: Set<EquipmentType> = {
                 let allowed = AICoachSession.allowedEquipment(for: input.trainingLocation)
                 return input.equipment.isEmpty ? allowed : input.equipment.intersection(allowed)
             }()
+            let candidates = ExerciseDatabase.all.filter {
+                effectiveEquipment.contains($0.equipment) && allowsLocalExercise($0, input: input)
+            }
 
             // Zyklus 1: Grundübungen & Kraftaufbau
             let cycle1 = PlanGenerator.buildPlan(
                 categories: targetMuscles,
                 count: count,
-                method: input.method,
+                method: method,
                 restTime: restC1,
-                equipment: effectiveEquipment
+                equipment: effectiveEquipment,
+                candidateExercises: candidates
             )
             let usedInCycle1 = Set(cycle1.map(\.exercise.name))
 
@@ -98,22 +124,23 @@ public final class AICoachService {
             let cycle2 = PlanGenerator.buildPlan(
                 categories: targetMuscles,
                 count: count,
-                method: input.method,
+                method: method,
                 restTime: restC2,
                 extraExclude: usedInCycle1,
-                equipment: effectiveEquipment
+                equipment: effectiveEquipment,
+                candidateExercises: candidates
             )
 
             func setsFor(_ slot: ExerciseSlot) -> Int {
-                input.method == .standard ? baseSets : slot.sets
+                conservative || input.method == .standard ? baseSets : slot.sets
             }
 
-            let cycle1Slots = cycle1.map {
-                ExerciseSlot(exercise: $0.exercise, sets: setsFor($0), reps: repsC1, restSeconds: restC1)
-            }
-            let cycle2Slots = cycle2.map {
-                ExerciseSlot(exercise: $0.exercise, sets: setsFor($0), reps: repsC2, restSeconds: restC2)
-            }
+            let cycle1Slots = fittingSlots(cycle1.map {
+                ExerciseSlot(exercise: $0.exercise, sets: setsFor($0), reps: localReps(for: $0.exercise, input: input, defaultReps: repsC1), restSeconds: restC1)
+            }, availableSeconds: input.sessionDurationMinutes * 60 - warmupSeconds)
+            let cycle2Slots = fittingSlots(cycle2.map {
+                ExerciseSlot(exercise: $0.exercise, sets: setsFor($0), reps: localReps(for: $0.exercise, input: input, defaultReps: repsC2), restSeconds: restC2)
+            }, availableSeconds: input.sessionDurationMinutes * 60 - warmupSeconds)
 
             generatedDays.append(DayPlan(
                 weekday: day,
@@ -125,31 +152,108 @@ public final class AICoachService {
             ))
         }
 
-        let planTitle = isEn
-            ? "AI Hypertrophy & Performance Program"
-            : "KI Hypertrophie & Performance Plan"
+        let planTitle = isEn ? "Personal Training Plan" : "Persönlicher Trainingsplan"
 
         let planSummary = isEn
             ? "Individually periodized across \(input.selectedDays.count) training days per week with 2 rotating progression cycles."
             : "Individuell periodisiert für \(input.selectedDays.count) Trainingstage pro Woche mit 2 rotierenden Progressions-Zyklen."
 
+        var notes = isEn ? [
+            "Choose a load that allows controlled repetitions and leaves 2–3 repetitions in reserve.",
+            "Alternate the two cycles each week and progress gradually."
+        ] : [
+            "Wähle eine Last für kontrollierte Wiederholungen mit 2–3 Wiederholungen in Reserve.",
+            "Wechsle die beiden Zyklen wöchentlich und steigere dich schrittweise."
+        ]
+        if hasRestrictions(input) {
+            notes.append(isEn
+                ? "Your notes reduce exercise selection. This does not assess an injury; clarify suitable movements with a qualified professional."
+                : "Deine Hinweise schränken die Übungsauswahl ein. Das bewertet keine Verletzung; kläre geeignete Bewegungen fachlich ab.")
+        }
         return TrainingPlan(
             title: planTitle,
             summary: planSummary,
             weeks: input.weeks,
             days: generatedDays,
             nutrition: nutrition,
-            notes: isEn ? [
-                "Cycle 1 focuses on strength & heavy compound loading. Cycle 2 focuses on volume & hypertrophy.",
-                "Alternate between Cycle 1 and Cycle 2 each week for optimal progressive overload.",
-                "Ensure 7-8 hours of quality sleep for peak muscle protein synthesis."
-            ] : [
-                "Zyklus 1 fokussiert Grundkraft und schwere Lasten. Zyklus 2 setzt auf Volumen und Hypertrophie.",
-                "Wechsle wöchentlich zwischen Zyklus 1 und Zyklus 2 für optimale Progression.",
-                "Achte auf 7–8 Stunden Schlaf für beste Muskelregeneration."
-            ],
+            notes: notes,
             language: language
         )
+    }
+
+    private func hasRestrictions(_ input: AICoachInput) -> Bool {
+        let text = (input.limitations ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let noRestrictions = ["", "keine", "nein", "none", "no", "keine einschränkungen", "keine verletzungen", "no injuries", "no limitations"]
+        return !noRestrictions.contains(text)
+    }
+
+    private func isConservative(_ input: AICoachInput) -> Bool {
+        input.experience == .beginner
+            || (input.selectedDays.count <= 1 && input.experience != .advanced)
+            || hasRestrictions(input)
+    }
+
+    private func workSeconds(reps: String) -> Int {
+        let numbers = reps.components(separatedBy: CharacterSet.decimalDigits.inverted).compactMap(Int.init)
+        let maximum = numbers.max() ?? 12
+        if reps.lowercased().contains("min") { return maximum * 60 }
+        if reps.lowercased().contains("s") { return maximum }
+        return maximum * 4
+    }
+
+    private func exerciseSeconds(_ slot: ExerciseSlot) -> Int {
+        let unilateral = ["einarmig", "ausfallschritt", "step-up", "bulgarian"]
+            .contains { slot.exercise.name.lowercased().contains($0) }
+        let work = workSeconds(reps: slot.reps) * (unilateral ? 2 : 1)
+        return slot.sets * work + max(0, slot.sets - 1) * slot.restSeconds + 60
+    }
+
+    private func fittingSlots(_ slots: [ExerciseSlot], availableSeconds: Int) -> [ExerciseSlot] {
+        var remaining = max(0, availableSeconds)
+        return slots.filter {
+            let duration = exerciseSeconds($0)
+            guard duration <= remaining else { return false }
+            remaining -= duration
+            return true
+        }
+    }
+
+    private func allowsLocalExercise(_ exercise: Exercise, input: AICoachInput) -> Bool {
+        let name = exercise.nameEn.lowercased()
+        if isConservative(input) {
+            if exercise.isHeavy { return false }
+            let advancedSkills = ["dips", "bulgarian", "good mornings", "hanging", "ab wheel",
+                                  "hollow body", "burpees", "box jump", "turkish", "kettlebell swings",
+                                  "21s", "decline barbell", "close-grip bench", "reverse-grip barbell row", "upright barbell row"]
+            if advancedSkills.contains(where: name.contains) { return false }
+        }
+        if input.pushupLevel == .beginner && name.contains("push-ups") { return false }
+        if input.pullupLevel == .none && name.contains("pull-ups") { return false }
+        let limitations = (input.limitations ?? "").lowercased()
+        let combinedName = name + " " + exercise.name.lowercased()
+        func mentions(_ terms: [String], in text: String) -> Bool { terms.contains { text.contains($0) } }
+        if hasRestrictions(input) {
+            if mentions(["knie", "knee"], in: limitations),
+               mentions(["kniebeugen", "squat", "ausfallschritt", "step-up", "beinpresse", "box jump", "burpee", "swings", "mountain climbers"], in: combinedName) { return false }
+            if mentions(["rücken", "ruecken", "wirbelsäule", "wirbelsaeule", "bandscheib", "back", "spinal"], in: limitations),
+               mentions(["kreuzheben", "good mornings", "vorgebeugt", "t-bar", "hyperextensions", "swings", "russian twists", "sit-ups", "ab wheel", "burpee"], in: combinedName) { return false }
+            if mentions(["schulter", "shoulder"], in: limitations),
+               mentions(["drücken", "druecken", "press", "dips", "liegestütze", "liegestuetze", "frontheben", "aufrechtes rudern", "überzüge", "pull-over", "pullover"], in: combinedName) { return false }
+        }
+        if limitations.contains("keine sprünge") || limitations.contains("no jumping") {
+            if name.contains("jump") || name.contains("burpee") { return false }
+        }
+        return true
+    }
+
+    private func localReps(for exercise: Exercise, input: AICoachInput, defaultReps: String) -> String {
+        guard exercise.nameEn.lowercased().contains("plank") else { return defaultReps }
+        switch input.plankLevel {
+        case .under30s: return "10-20 s"
+        case .under60s: return "20-30 s"
+        case .under120s: return "30-45 s"
+        case .over2min: return "45-60 s"
+        }
     }
 
     // MARK: - Ernährungsplan-Generator

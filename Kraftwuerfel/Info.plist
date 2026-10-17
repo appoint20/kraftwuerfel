@@ -31,19 +31,18 @@
 	<!--
 	  AdMob — die echten Kennungen aus der AdMob-Konsole.
 
-	  Alle drei Blöcke sind echt. Fehlt einer, fällt die betroffene Stelle
-	  aus, statt Googles Testinventar auszuliefern — beim belohnten Block
-	  heißt das: Der KI-Coach verlangt dann keine Videos, weil eine Schranke
-	  ohne Anzeigenblock unpassierbar wäre.
+	  Alle drei Blöcke sind echt. Fehlt einer, fällt die betroffene Anzeige
+	  aus, statt Googles Testinventar auszuliefern. Fehlende oder abgebrochene
+	  belohnte Videos schalten keinen kostenlosen KI-Plan frei.
 	-->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-8043832549817924~7999225113</string>
+	<string>ca-app-pub-8043832549817924~5833210284</string>
 
 	<key>KWAdUnitBanner</key>
-	<string>ca-app-pub-8043832549817924/2858579078</string>
+	<string>ca-app-pub-8043832549817924/4597977635</string>
 
 	<key>KWAdUnitInterstitial</key>
-	<string>ca-app-pub-8043832549817924/4059980100</string>
+	<string>ca-app-pub-8043832549817924/7754449009</string>
 
 	<!--
 	  Rewarded INTERSTITIAL (nicht das klassische Rewarded-Format) — so ist
@@ -51,7 +50,7 @@
 	  entsprechend über GADRewardedInterstitialAd.
 	-->
 	<key>KWAdUnitRewarded</key>
-	<string>ca-app-pub-8043832549817924/7807653424</string>
+	<string>ca-app-pub-8043832549817924/7639818809</string>
 
 	<!--
 	  Ohne diesen Text zeigt iOS die Tracking-Abfrage gar nicht erst an, und

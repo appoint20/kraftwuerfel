@@ -41,8 +41,8 @@ final class NotificationAndProTests: XCTestCase {
         let deAds = I18n.shared.t("proScreen.benefit.ads")
         let deWatch = I18n.shared.t("proScreen.benefit.watch")
 
-        XCTAssertTrue(deMonthly.contains("9,99"))
-        XCTAssertTrue(deYearly.contains("99,90"))
+        XCTAssertTrue(deMonthly.contains("7,99"))
+        XCTAssertTrue(deYearly.contains("49,99"))
         XCTAssertTrue(deAds.contains("Werbefrei"))
         XCTAssertTrue(deWatch.contains("Apple Watch"))
     }
@@ -50,20 +50,19 @@ final class NotificationAndProTests: XCTestCase {
     /*
       Der Untertitel des Jahresabos ist eine Vorlage geworden.
 
-      Vorher standen „4,16 €" und „48%" fest darin, direkt neben Preisen, die
-      live aus StoreKit kommen — nach einer Preisänderung im App Store hätte die
-      App weiter mit der alten Ersparnis geworben. Jetzt werden beide Werte
-      eingesetzt; geprüft wird, dass keine Platzhalter stehen bleiben.
+      Monatlicher Vergleichspreis und Ersparnis werden aus StoreKit eingesetzt;
+      geprüft wird, dass die aktuellen Werte vollständig angezeigt werden und
+      keine Platzhalter stehen bleiben.
     */
     func testYearlySubtitleWirdVollstaendigGefuellt() {
         for lang in ["de", "en"] {
             let filled = Strings.t(
                 "proScreen.yearlySub",
                 lang: lang,
-                ["price": "8,33 €", "percent": "17"]
+                ["price": "4,17 €", "percent": "48"]
             )
-            XCTAssertTrue(filled.contains("8,33 €"), "[\(lang)] Preis fehlt: \(filled)")
-            XCTAssertTrue(filled.contains("17"), "[\(lang)] Prozentwert fehlt: \(filled)")
+            XCTAssertTrue(filled.contains("4,17 €"), "[\(lang)] Preis fehlt: \(filled)")
+            XCTAssertTrue(filled.contains("48"), "[\(lang)] Prozentwert fehlt: \(filled)")
             XCTAssertFalse(filled.contains("{"), "[\(lang)] Platzhalter blieb stehen: \(filled)")
         }
     }

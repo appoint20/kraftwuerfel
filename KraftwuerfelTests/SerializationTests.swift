@@ -201,4 +201,63 @@ final class PlanMapperTests: XCTestCase {
             from: raw(days: [["weekday": "Mo", "exercises": []]]), language: "de"
         ))
     }
+
+    func testValidatedBeginnerPlanIsNotPaddedWithHeavyCatalogExercises() throws {
+        var profile = UserProfile()
+        profile.sex = "female"
+        profile.experience = .beginner
+        profile.selectedDays = ["Sa"]
+        profile.equipment = [.machine]
+        let names = ["Butterfly", "Beinstrecker"]
+        let exercises: [[String: Any]] = names.map {
+            ["name": $0, "sets": 2, "reps": "8-12", "rest": 45]
+        }
+        let plan = try XCTUnwrap(PlanMapper.trainingPlan(
+            from: raw(days: [["weekday": "Sa", "exercises": exercises]]),
+            language: "de",
+            input: profile.coachInput
+        ))
+        let day = try XCTUnwrap(plan.days.first)
+        XCTAssertEqual(day.cycle1Slots.map(\.exercise.name), names)
+        XCTAssertEqual(day.cycle1Slots.map(\.sets), [2, 2])
+        XCTAssertEqual(day.cycle1Slots.map(\.reps), ["8-12", "8-12"])
+        XCTAssertEqual(day.cycle2Slots.map(\.exercise.name), names)
+        XCTAssertFalse(day.cycle1Slots.contains { $0.exercise.isHeavy })
+    }
+
+    func testCoachMapperHonorsRequestedWeekdaysAndAvailableEquipment() throws {
+        var profile = UserProfile()
+        profile.selectedDays = ["Sa"]
+        profile.trainingLocation = .homeBodyweight
+        profile.equipment = [.bodyweight]
+        let plan = try XCTUnwrap(PlanMapper.trainingPlan(
+            from: raw(days: [
+                ["weekday": "Mo", "exercises": [["name": "Crunches"]]],
+                ["weekday": "Sa", "exercises": [["name": "Crunches"], ["name": "Beinpresse"]]],
+            ]),
+            language: "de",
+            input: profile.coachInput
+        ))
+        XCTAssertEqual(plan.days.map(\.weekday), ["Sa"])
+        XCTAssertEqual(plan.days.first?.slots.map(\.exercise.name), ["Crunches"])
+    }
+
+    func testCatalogNamesMapExactlyWithoutSubstringGuessing() throws {
+        let englishGroups = Dictionary(grouping: ExerciseDatabase.bundled, by: \.nameEn)
+        for exercise in ExerciseDatabase.bundled {
+            let names = [exercise.name] + (englishGroups[exercise.nameEn]?.count == 1 ? [exercise.nameEn] : [])
+            for name in names {
+                let plan = try XCTUnwrap(PlanMapper.trainingPlan(
+                    from: raw(days: [["weekday": "Mo", "exercises": [["name": name]]]]),
+                    language: "de"
+                ))
+                XCTAssertEqual(plan.days.first?.slots.first?.exercise.id, exercise.id)
+            }
+        }
+        let plan = try XCTUnwrap(PlanMapper.trainingPlan(
+            from: raw(days: [["weekday": "Mo", "exercises": [["name": "Press"], ["name": "Dumbbell Shrugs"], ["name": "Crunches"]]]]),
+            language: "de"
+        ))
+        XCTAssertEqual(plan.days.first?.slots.map(\.exercise.name), ["Crunches"])
+    }
 }

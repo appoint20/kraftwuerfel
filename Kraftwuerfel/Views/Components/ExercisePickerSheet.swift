@@ -74,7 +74,8 @@ public struct ExercisePickerSheet: View {
         var list = ExerciseDatabase.all
 
         if let allowedEquipment, !allowedEquipment.isEmpty {
-            list = list.filter { allowedEquipment.contains($0.equipment) }
+            // Zu Hause auch keine „Körpergewicht"-Übungen, die Stange, Barren oder Bank brauchen.
+            list = list.filter { HomeTraining.allows($0, equipment: allowedEquipment) }
         }
         if let category {
             list = list.filter { $0.categories.contains(category) }

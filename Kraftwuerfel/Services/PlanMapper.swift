@@ -54,6 +54,17 @@ public enum PlanMapper {
             ExerciseDatabase.all.map { ($0.name.lowercased(), $0) },
             uniquingKeysWith: { first, _ in first }
         )
+        let byEnglishName = Dictionary(uniqueKeysWithValues:
+            Dictionary(grouping: ExerciseDatabase.all, by: { $0.nameEn.lowercased() })
+                .compactMap { name, exercises -> (String, Exercise)? in
+                    guard exercises.count == 1, let exercise = exercises.first else { return nil }
+                    return (name, exercise)
+                }
+        )
+        let allowedEquipment: Set<EquipmentType>? = input.map {
+            let allowed = UserProfile.allowedEquipment(for: $0.trainingLocation)
+            return $0.equipment.isEmpty ? allowed : $0.equipment.intersection(allowed)
+        }
 
         // 1. Tage extrahieren (entweder direkt aus raw["days"] oder aus raw["training"]["weeks"])
         var rawDays = raw["days"] as? [[String: Any]] ?? []
@@ -77,10 +88,14 @@ public enum PlanMapper {
                 if let rawList = dayObj[key] as? [[String: Any]], !rawList.isEmpty {
                     let slots: [ExerciseSlot] = rawList.compactMap { ex in
                         guard let name = ex["name"] as? String else { return nil }
-                        let exercise = byName[name.lowercased()] ?? ExerciseDatabase.all.first {
-                            $0.name.localizedCaseInsensitiveContains(name) || name.localizedCaseInsensitiveContains($0.name)
-                        }
+                        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                        let exercise = byName[normalizedName] ?? byEnglishName[normalizedName]
                         guard let exercise else { return nil }
+                        // Auch ältere, zwischengespeicherte Serverpläne: zu Hause
+                        // keine Übung, die Stange, Barren oder Bank braucht.
+                        if !HomeTraining.allows(exercise, equipment: allowedEquipment) {
+                            return nil
+                        }
                         /*
                           Die Satzpause wird gekappt, nicht übernommen.
 
@@ -101,7 +116,10 @@ public enum PlanMapper {
                         )
                     }
                     if !slots.isEmpty {
-                        return (input != nil) ? ensureExerciseCount(slots, in: exerciseRange) : slots
+                        // The backend validates the session's size and load.
+                        // Adding catalog exercises here discarded that work and
+                        // could turn a short beginner session into heavy training.
+                        return slots
                     }
                 }
             }
@@ -110,6 +128,7 @@ public enum PlanMapper {
 
         let days: [DayPlan] = rawDays.compactMap { (rawDay: [String: Any]) -> DayPlan? in
             guard let weekday = rawDay["weekday"] as? String else { return nil }
+            if let input, !input.selectedDays.contains(weekday) { return nil }
 
             let cycle1Slots = parseSlots(from: rawDay, keys: ["cycle1", "cycle1Exercises", "exercises"])
             guard !cycle1Slots.isEmpty else { return nil }

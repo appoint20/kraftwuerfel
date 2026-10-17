@@ -15,23 +15,38 @@ import SwiftUI
 public struct AdBannerView: View {
     @ObservedObject private var storeKit = StoreKitManager.shared
     @ObservedObject private var i18n = I18n.shared
+    @ObservedObject private var ads = GoogleAdsService.shared
     @State private var showPro = false
+    @State private var bannerLoaded = false
 
     public init() {}
 
+    /*
+      Feste Breite statt GeometryReader: Beim ersten Layout-Durchlauf kann
+      GeometryReader die Breite 0 melden — der Banner wurde dann mit einer
+      ungültigen Größe angefordert und blieb leer. 14+14 Rand, 10 Abstand,
+      rund 72 für den „WERBEFREI"-Knopf.
+    */
+    private var bannerWidth: CGFloat { UIScreen.main.bounds.width - 110 }
+
     public var body: some View {
-        if AdManager.adsEnabled && !storeKit.isProUnlocked, let unit = GoogleAdsService.bannerUnitId {
+        /*
+          Der Banner wird erst angelegt, wenn das SDK gestartet ist UND die
+          UMP-Zustimmung vorliegt. Vorher wurde er sofort beim Erscheinen
+          geladen — vor Zustimmung und SDK-Start — und danach nie wieder.
+          Ergebnis in der Live-App: ein leerer Streifen statt Werbung.
+
+          Platz bekommt er erst, wenn Google tatsächlich eine Anzeige
+          geliefert hat; bis dahin (oder ohne Fill) ist er 0 Punkte hoch.
+        */
+        if AdManager.adsEnabled && !storeKit.isProUnlocked,
+           ads.isReady, ads.hasConsent,
+           let unit = GoogleAdsService.bannerUnitId {
             HStack(spacing: 10) {
-                /*
-                  Die Breite kommt vom Layout, weil die empfohlene Höhe daran
-                  hängt. Ohne feste Höhe zieht der Banner die ganze Ansicht
-                  auf oder wird abgeschnitten.
-                */
-                GeometryReader { geo in
-                    AdMobBanner(unitId: unit, width: geo.size.width)
-                        .frame(width: geo.size.width, height: geo.size.height)
+                AdMobBanner(unitId: unit, width: bannerWidth) { loaded in
+                    withAnimation(.easeOut(duration: 0.2)) { bannerLoaded = loaded }
                 }
-                .frame(height: AdMobBanner.height(forWidth: UIScreen.main.bounds.width - 76))
+                .frame(width: bannerWidth, height: AdMobBanner.height(forWidth: bannerWidth))
 
                 Button(action: {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -50,8 +65,11 @@ public struct AdBannerView: View {
                 .fixedSize()
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 6)
-            .padding(.bottom, 2)
+            .padding(.vertical, bannerLoaded ? 6 : 0)
+            .padding(.bottom, bannerLoaded ? 2 : 0)
+            .frame(height: bannerLoaded ? nil : 0, alignment: .top)
+            .opacity(bannerLoaded ? 1 : 0)
+            .clipped()
             .sheet(isPresented: $showPro) {
                 ProSubscriptionView()
             }

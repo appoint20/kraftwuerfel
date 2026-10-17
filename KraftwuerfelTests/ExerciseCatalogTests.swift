@@ -10,8 +10,22 @@ import XCTest
 */
 final class ExerciseCatalogTests: XCTestCase {
 
-    func testKatalogEnthaelt137Uebungen() {
-        XCTAssertEqual(ExerciseDatabase.bundled.count, 137)
+    /// 137 aus dem Web-Katalog plus 15 echte Home-Übungen (wie im API-Katalog).
+    func testKatalogEnthaelt152Uebungen() {
+        XCTAssertEqual(ExerciseDatabase.bundled.count, 152)
+    }
+
+    /// Die Bundled-Liste muss mit dem Server übereinstimmen, sonst verwirft
+    /// `refreshFromAPI()` den Serverkatalog oder kennt Namen aus Plänen nicht.
+    func testHomeUebungenSindKoerpergewichtUndOhneGeraet() {
+        let home = ["Kniebeugen ohne Gewicht", "Ausfallschritte ohne Gewicht", "Hampelmann (Jumping Jacks)",
+                    "Knie-Liegestütze", "Seitstütz (Side Plank)", "Wandsitzen (Wall Sit)"]
+        for name in home {
+            let exercise = ExerciseDatabase.bundled.first { $0.name == name }
+            XCTAssertEqual(exercise?.equipment, .bodyweight, name)
+            XCTAssertEqual(exercise?.needsApparatus, false, name)
+        }
+        XCTAssertTrue(ExerciseDatabase.bundled.first { $0.name == "Klimmzüge" }?.needsApparatus == true)
     }
 
     func testUebungsnamenSindEindeutig() {
@@ -47,5 +61,28 @@ final class ExerciseCatalogTests: XCTestCase {
             XCTAssertFalse(split.categories?.isEmpty ?? true, "\(split.rawValue) leer")
         }
         XCTAssertNil(SplitType.custom.categories)
+    }
+
+    /*
+      Neu-Würfeln in einem Home-Plan: vorher zählte nur die Muskelgruppe, und
+      aus „Kniebeugen ohne Gewicht" wurde eine Beinpresse oder Hackenschmidt.
+    */
+    func testNeuWuerfelnImHomePlanBleibtOhneGeraet() throws {
+        let names = ["Liegestütze", "Kniebeugen ohne Gewicht", "Plank (Unterarmstütz)", "Hampelmann (Jumping Jacks)"]
+        let plan = try names.map { name in
+            ExerciseSlot(exercise: try XCTUnwrap(ExerciseDatabase.bundled.first { $0.name == name }, name))
+        }
+        for index in plan.indices {
+            for _ in 0..<40 {
+                guard let fresh = PlanGenerator.rerollSlot(plan: plan, at: index, method: .standard) else { continue }
+                XCTAssertEqual(fresh.exercise.equipment, .bodyweight, fresh.exercise.name)
+                XCTAssertFalse(fresh.exercise.needsApparatus, fresh.exercise.name)
+            }
+        }
+    }
+
+    func testStudioPlanWirdBeimNeuWuerfelnNichtEingeschraenkt() throws {
+        let bench = try XCTUnwrap(ExerciseDatabase.bundled.first { $0.name == "Bankdrücken" })
+        XCTAssertNil(HomeTraining.inferredEquipment(for: [bench]))
     }
 }

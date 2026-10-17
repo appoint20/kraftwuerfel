@@ -4,6 +4,25 @@ import GoogleMobileAds
 import SwiftUI
 import UserMessagingPlatform
 
+/// SDK reward and full-screen dismissal are separate events. Neither a tap,
+/// a failed presentation nor a dismissal alone completes a rewarded video.
+@MainActor
+final class RewardedAdCompletion {
+    private var completion: ((Bool) -> Void)?
+    private var earnedReward = false
+
+    init(completion: @escaping (Bool) -> Void) { self.completion = completion }
+    func didEarnReward() { if completion != nil { earnedReward = true } }
+    func didDismiss() { finish(earnedReward) }
+    func didFail() { finish(false) }
+
+    private func finish(_ completed: Bool) {
+        let callback = completion
+        completion = nil
+        callback?(completed)
+    }
+}
+
 /*
   Google AdMob — echte Werbung statt Platzhalter.
 
@@ -26,7 +45,7 @@ import UserMessagingPlatform
   Datenverarbeitung überhaupt zugestimmt hat.
 */
 @MainActor
-public final class GoogleAdsService: NSObject, ObservableObject {
+public final class GoogleAdsService: NSObject, ObservableObject, RewardedAdPresenting {
 
     public static let shared = GoogleAdsService()
 
@@ -51,8 +70,13 @@ public final class GoogleAdsService: NSObject, ObservableObject {
     }
 
     private static func configuredUnit(_ key: String) -> String? {
-        let value = (Bundle.main.object(forInfoDictionaryKey: key) as? String) ?? ""
-        return value.isEmpty ? nil : value
+        let value = ((Bundle.main.object(forInfoDictionaryKey: key) as? String) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return nil }
+        #if !DEBUG
+        guard !value.hasPrefix("ca-app-pub-3940256099942544") else { return nil }
+        #endif
+        return value
     }
 
     /*
@@ -63,35 +87,31 @@ public final class GoogleAdsService: NSObject, ObservableObject {
       Rewarded-Interstitial-Kennung ab, weil das Format nicht passt. Geladen
       wird deshalb über `GADRewardedInterstitialAd`.
 
-      Bleibt die Kennung leer, heißt `nil` für den Aufrufer „gibt es nicht" —
-      AdManager verlangt dann keine Videos, statt eine Schranke aufzustellen,
-      die sich nicht öffnen lässt.
+      Ohne echte Kennung liefert Release keine Anzeige. Das zählt nicht als
+      angesehenes Video. Debug verwendet ausschließlich Googles Testinventar.
     */
     public static var rewardedUnitId: String? {
-        if let configured = configuredUnit("KWAdUnitRewarded") { return configured }
         #if DEBUG
         return TestUnit.rewardedInterstitial
         #else
-        return nil
+        return configuredUnit("KWAdUnitRewarded")
         #endif
     }
 
     private static var interstitialUnitId: String? {
-        if let configured = configuredUnit("KWAdUnitInterstitial") { return configured }
         #if DEBUG
         return TestUnit.interstitial
         #else
-        return nil
+        return configuredUnit("KWAdUnitInterstitial")
         #endif
     }
 
     /// Der Banner unten am Bildschirm für Gratis-Nutzer.
     public static var bannerUnitId: String? {
-        if let configured = configuredUnit("KWAdUnitBanner") { return configured }
         #if DEBUG
         return TestUnit.banner
         #else
-        return nil
+        return configuredUnit("KWAdUnitBanner")
         #endif
     }
 
@@ -134,25 +154,34 @@ public final class GoogleAdsService: NSObject, ObservableObject {
     private var rewardedAd: GADRewardedInterstitialAd?
     private var interstitialAd: GADInterstitialAd?
     private var isStarting = false
+    private var isLoadingRewarded = false
+    private var presentedRewardedAd: GADRewardedInterstitialAd?
 
     /// Wird nach einem belohnten Video aufgerufen — aber nur, wenn der Nutzer
     /// es wirklich zu Ende gesehen hat.
-    private var pendingReward: (() -> Void)?
+    private var pendingReward: RewardedAdCompletion?
+    var isRewardedConfigured: Bool { Self.isConfigured && Self.hasRewardedUnit }
 
     private override init() { super.init() }
 
     // MARK: - Start
 
     public func startIfNeeded() async {
-        guard Self.isConfigured, !isReady, !isStarting else { return }
+        guard Self.isConfigured, !isStarting else { return }
+        if isReady && hasConsent { await preload(); return }
         isStarting = true
         defer { isStarting = false }
 
-        await requestConsent()
-        await requestTrackingAuthorization()
-
-        _ = await GADMobileAds.sharedInstance().start()
-        isReady = true
+        if !hasConsent { await requestConsent() }
+        guard hasConsent else {
+            NSLog("[Ads] Keine Werbung: UMP canRequestAds = false (Zustimmung fehlt oder keine Mitteilung in AdMob veröffentlicht)")
+            return
+        }
+        if !isReady {
+            await requestTrackingAuthorization()
+            _ = await GADMobileAds.sharedInstance().start()
+            isReady = true
+        }
 
         await preload()
     }
@@ -169,13 +198,21 @@ public final class GoogleAdsService: NSObject, ObservableObject {
         parameters.tagForUnderAgeOfConsent = false
 
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            UMPConsentInformation.sharedInstance.requestConsentInfoUpdate(with: parameters) { [weak self] _ in
+            UMPConsentInformation.sharedInstance.requestConsentInfoUpdate(with: parameters) { [weak self] error in
+                if let error {
+                    // Häufigste Ursache: In AdMob ist unter „Datenschutz & Mitteilungen"
+                    // keine DSGVO-Mitteilung veröffentlicht. Dann bleibt canRequestAds
+                    // in der EU false und es wird KEINE Anzeige geladen.
+                    NSLog("[Ads] UMP-Zustimmung konnte nicht abgefragt werden: %@", error.localizedDescription)
+                }
                 guard let self else { return continuation.resume() }
                 Task { @MainActor in
                     if let root = Self.topViewController() {
                         UMPConsentForm.loadAndPresentIfRequired(from: root) { _ in
-                            self.hasConsent = UMPConsentInformation.sharedInstance.canRequestAds
-                            continuation.resume()
+                            Task { @MainActor in
+                                self.hasConsent = UMPConsentInformation.sharedInstance.canRequestAds
+                                continuation.resume()
+                            }
                         }
                     } else {
                         self.hasConsent = UMPConsentInformation.sharedInstance.canRequestAds
@@ -204,12 +241,16 @@ public final class GoogleAdsService: NSObject, ObservableObject {
     }
 
     private func loadRewarded() async {
-        guard isReady, rewardedAd == nil, let unit = Self.rewardedUnitId else { return }
+        guard isReady, hasConsent, !isLoadingRewarded,
+              rewardedAd == nil, presentedRewardedAd == nil,
+              let unit = Self.rewardedUnitId else { return }
+        isLoadingRewarded = true
+        defer { isLoadingRewarded = false }
         rewardedAd = try? await GADRewardedInterstitialAd.load(withAdUnitID: unit, request: GADRequest())
     }
 
     private func loadInterstitial() async {
-        guard isReady, interstitialAd == nil, let unit = Self.interstitialUnitId else { return }
+        guard isReady, hasConsent, interstitialAd == nil, let unit = Self.interstitialUnitId else { return }
         interstitialAd = try? await GADInterstitialAd.load(withAdUnitID: unit, request: GADRequest())
     }
 
@@ -219,29 +260,43 @@ public final class GoogleAdsService: NSObject, ObservableObject {
     public var isInterstitialReady: Bool { interstitialAd != nil }
 
     /*
-      Belohntes Video. `onReward` läuft NUR, wenn Google die Belohnung
-      bestätigt — also wenn das Video zu Ende gesehen wurde. Wer wegtippt,
-      bekommt nichts; sonst wäre die Schranke keine.
+      `onCompletion(true)` requires Google's earned-reward event and the
+      subsequent dismissal. Closing early or presentation failure returns
+      false; merely requesting an unavailable ad earns nothing.
 
       Google verlangt für Rewarded Interstitials einen Hinweis VOR der
       Anzeige. Den liefert die Aufruferseite: Der KI-Coach zeigt eine Karte
       mit „Video ansehen" und dem Fortschritt, angetippt wird also bewusst.
     */
     @discardableResult
-    public func showRewarded(onReward: @escaping () -> Void) -> Bool {
-        guard let ad = rewardedAd, let root = Self.topViewController() else { return false }
-
-        pendingReward = onReward
-        ad.fullScreenContentDelegate = self
-        ad.present(fromRootViewController: root) { [weak self] in
-            guard let self else { return }
-            let reward = self.pendingReward
-            self.pendingReward = nil
-            reward?()
+    public func showRewarded(onCompletion: @escaping (Bool) -> Void) -> Bool {
+        guard isRewardedConfigured, hasConsent, presentedRewardedAd == nil,
+              let ad = rewardedAd, let root = Self.topViewController() else {
+            Task {
+                if !isReady || !hasConsent { await startIfNeeded() }
+                else { await loadRewarded() }
+            }
+            return false
         }
+
+        let completion = RewardedAdCompletion(completion: onCompletion)
+        pendingReward = completion
+        presentedRewardedAd = ad
         rewardedAd = nil
-        Task { await loadRewarded() }
+        ad.fullScreenContentDelegate = self
+        ad.present(fromRootViewController: root) { [weak completion] in
+            completion?.didEarnReward()
+        }
         return true
+    }
+
+    private func finishRewardedPresentation(_ ad: GADFullScreenPresentingAd, failed: Bool) {
+        guard let presentedRewardedAd, (ad as AnyObject) === presentedRewardedAd else { return }
+        let completion = pendingReward
+        pendingReward = nil
+        self.presentedRewardedAd = nil
+        if failed { completion?.didFail() }
+        else { completion?.didDismiss() }
     }
 
     @discardableResult
@@ -285,13 +340,16 @@ extension GoogleAdsService: GADFullScreenContentDelegate {
         didFailToPresentFullScreenContentWithError error: Error
     ) {
         Task { @MainActor in
-            pendingReward = nil
+            finishRewardedPresentation(ad, failed: true)
             await preload()
         }
     }
 
     public nonisolated func adDidDismissFullScreenContent(_ ad: GADFullScreenPresentingAd) {
-        Task { @MainActor in await preload() }
+        Task { @MainActor in
+            finishRewardedPresentation(ad, failed: false)
+            await preload()
+        }
     }
 }
 
@@ -312,16 +370,42 @@ extension GoogleAdsService: GADFullScreenContentDelegate {
 public struct AdMobBanner: UIViewRepresentable {
     private let unitId: String
     private let width: CGFloat
+    private let onLoadStateChange: (Bool) -> Void
 
-    public init(unitId: String, width: CGFloat) {
+    public init(unitId: String, width: CGFloat, onLoadStateChange: @escaping (Bool) -> Void = { _ in }) {
         self.unitId = unitId
         self.width = width
+        self.onLoadStateChange = onLoadStateChange
+    }
+
+    public func makeCoordinator() -> Coordinator { Coordinator(onLoadStateChange: onLoadStateChange) }
+
+    /*
+      Der Banner meldet, ob er wirklich eine Anzeige bekommen hat. Vorher
+      wurde der Platz immer reserviert — kam keine Anzeige (kein Fill, keine
+      Zustimmung, Konto noch nicht freigegeben), blieb ein leerer Streifen
+      stehen, der in der Live-App wie ein Platzhalter aussah.
+    */
+    public final class Coordinator: NSObject, GADBannerViewDelegate {
+        let onLoadStateChange: (Bool) -> Void
+        init(onLoadStateChange: @escaping (Bool) -> Void) { self.onLoadStateChange = onLoadStateChange }
+
+        public func bannerViewDidReceiveAd(_ bannerView: GADBannerView) {
+            onLoadStateChange(true)
+        }
+
+        public func bannerView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: Error) {
+            // Sichtbar in der Konsole (Xcode / Console.app), auch im Release-Build.
+            NSLog("[Ads] Banner %@ lieferte keine Anzeige: %@", bannerView.adUnitID ?? "-", error.localizedDescription)
+            onLoadStateChange(false)
+        }
     }
 
     public func makeUIView(context: Context) -> GADBannerView {
-        let size = GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(width)
+        let size = GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(max(width, 1))
         let banner = GADBannerView(adSize: size)
         banner.adUnitID = unitId
+        banner.delegate = context.coordinator
         banner.rootViewController = GoogleAdsService.topViewController()
         banner.load(GADRequest())
         return banner
@@ -336,6 +420,6 @@ public struct AdMobBanner: UIViewRepresentable {
 
     /// Die von Google empfohlene Höhe für diese Breite.
     public static func height(forWidth width: CGFloat) -> CGFloat {
-        GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(width).size.height
+        GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(max(width, 1)).size.height
     }
 }

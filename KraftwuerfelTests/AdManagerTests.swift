@@ -2,21 +2,9 @@ import XCTest
 @testable import Kraftwuerfel
 
 /*
-  Diese Tests haben zum zweiten Mal die Seiten gewechselt.
-
-  Zuerst hielten sie den Video-Ablauf fest. Dann — als klar wurde, dass
-  hinter den „Rewarded Videos" nie ein Werbenetz stand, sondern eine
-  selbstgebaute Ansicht mit der Aufschrift „SPONSOR AD" — hielten sie fest,
-  dass gar nichts angezeigt wird und keine Funktion hinter Platzhaltern
-  hängt (App-Store-Richtlinie 2.1).
-
-  Jetzt steckt das Google-Mobile-Ads-SDK dahinter. Damit gilt eine dritte
-  Zusage, und sie ist die wichtigste von allen:
-
-      Es gibt echte Werbung oder gar keine — nie wieder eine nachgebaute.
-
-  Und weil Werbung ausfallen kann (kein Netz, kein Inventar, Zustimmung
-  abgelehnt), darf kein Rückruf davon abhängen, dass sie erscheint.
+  Rewarded unlocks require a real SDK reward and completed presentation.
+  Missing inventory, failed presentation, early dismissal and UI taps grant
+  no credit. Optional interstitials can be skipped without blocking a workout.
 */
 @MainActor
 final class AdManagerTests: XCTestCase {
@@ -36,8 +24,7 @@ final class AdManagerTests: XCTestCase {
     }
 
     func testDieVideozahlPasstZumHauptschalter() {
-        let erwartet = AdManager.adsEnabled ? 2 : 0
-        XCTAssertEqual(AdManager.shared.requiredRewardedVideos, erwartet)
+        XCTAssertEqual(AdManager.shared.requiredRewardedVideos, 2)
     }
 
     /*
@@ -61,26 +48,15 @@ final class AdManagerTests: XCTestCase {
         XCTAssertFalse(adManager.isShowingAdModal)
     }
 
-    // MARK: - Keine Funktion hängt hinter Platzhaltern
-
-    /*
-      Ohne Werbenetz darf die Schranke nicht existieren — sie ließe sich
-      sonst auf dem beworbenen Weg gar nicht öffnen. Mit Werbenetz darf sie
-      existieren, aber nur mit einer erreichbaren Zahl.
-    */
-    func testDieKISchrankeIstImmerPassierbar() {
-        let adManager = AdManager.shared
-        adManager.consumeAIPlanReward()
-
-        if AdManager.adsEnabled {
-            XCTAssertGreaterThan(adManager.requiredRewardedVideos, 0)
-            XCTAssertLessThanOrEqual(adManager.requiredRewardedVideos, 3, "mehr als drei Videos sieht niemand")
-        } else {
-            XCTAssertTrue(
-                adManager.isAIPlanUnlockedForFree,
-                "Eine Schranke, die sich nur über nicht vorhandene Videos öffnen lässt, wäre unpassierbar."
-            )
-        }
+    // MARK: - Unavailable ads grant no credit
+    func testUnavailableVideoDoesNotUnlockTheCoach() {
+        let presenter = FakeRewardedAdPresenter()
+        let manager = AdManager(rewardedPresenter: presenter, proProvider: { false })
+        manager.watchRewardedVideoForAIPlan { XCTAssertFalse($0) }
+        manager.watchRewardedVideoForAIPlan { XCTAssertFalse($0) }
+        XCTAssertEqual(manager.rewardedVideosWatched, 0)
+        XCTAssertFalse(manager.isAIPlanUnlockedForFree)
+        XCTAssertFalse(manager.isShowingAdModal)
     }
 
     func testDasTrainingsarchivBleibtOhneWerbungOffen() {
@@ -92,31 +68,24 @@ final class AdManagerTests: XCTestCase {
         }
     }
 
-    /// Ob Werbung erscheint oder nicht: Der Aufrufer darf nie hängen bleiben.
-    func testRewardedVideoLaesstDenAufruferNieHaengen() {
-        let adManager = AdManager.shared
-        var kamAn = false
-
-        adManager.watchRewardedVideoForAIPlan { erfolg in
-            XCTAssertTrue(erfolg)
-            kamAn = true
-        }
-
-        XCTAssertTrue(kamAn, "Der Rückruf muss kommen, auch wenn keine Werbung vorliegt")
-        XCTAssertFalse(adManager.isShowingAdModal)
+    /// Unavailable inventory reports failure rather than a fabricated reward.
+    func testUnavailableVideoCompletesWithFailure() {
+        let presenter = FakeRewardedAdPresenter()
+        let manager = AdManager(rewardedPresenter: presenter, proProvider: { false })
+        var result: Bool?
+        manager.watchRewardedVideoForAIPlan { result = $0 }
+        XCTAssertEqual(result, false)
+        XCTAssertEqual(manager.rewardedVideosWatched, 0)
+        XCTAssertFalse(manager.isRewardedVideoInProgress)
     }
 
-    func testArchivFreischaltungLaesstDenAufruferNieHaengen() {
-        let adManager = AdManager.shared
-        var kamAn = false
-
-        adManager.watchRewardedVideoForHistoryArchive { erfolg in
-            XCTAssertTrue(erfolg)
-            kamAn = true
-        }
-
-        XCTAssertTrue(kamAn)
-        XCTAssertFalse(adManager.isShowingAdModal)
+    func testUnavailableArchiveVideoDoesNotEarnAnUnlock() {
+        let presenter = FakeRewardedAdPresenter()
+        let manager = AdManager(rewardedPresenter: presenter, proProvider: { false })
+        var result: Bool?
+        manager.watchRewardedVideoForHistoryArchive { result = $0 }
+        XCTAssertEqual(result, false)
+        XCTAssertNil(manager.historyUnlockedUntil)
     }
 
     func testMusikStartWirdNichtAufgehalten() {
@@ -187,88 +156,133 @@ final class AdManagerTests: XCTestCase {
   auch wieder schließt.
 */
 @MainActor
-final class AIPlanGateTests: XCTestCase {
+private final class FakeRewardedAdPresenter: RewardedAdPresenting {
+    var isRewardedConfigured = true
+    var shouldPresent = false
+    private(set) var presentationCount = 0
+    private(set) var sessions: [RewardedAdCompletion] = []
 
-    private let adManager = AdManager.shared
+    func showRewarded(onCompletion: @escaping (Bool) -> Void) -> Bool {
+        presentationCount += 1
+        guard shouldPresent else { return false }
+        sessions.append(RewardedAdCompletion(completion: onCompletion))
+        return true
+    }
+}
+
+@MainActor
+final class AIPlanGateTests: XCTestCase {
+    private var presenter: FakeRewardedAdPresenter!
+    private var manager: AdManager!
 
     override func setUp() {
         super.setUp()
-        adManager.consumeAIPlanReward()
-        #if DEBUG
-        StoreKitManager.shared.debugProOverride = false
-        #endif
+        presenter = FakeRewardedAdPresenter()
+        presenter.shouldPresent = true
+        manager = AdManager(rewardedPresenter: presenter, proProvider: { false })
     }
 
-    override func tearDown() {
-        adManager.consumeAIPlanReward()
-        super.tearDown()
+    private func completeVideo() {
+        manager.watchRewardedVideoForAIPlan { XCTAssertTrue($0) }
+        let session = presenter.sessions.last!
+        session.didEarnReward()
+        session.didDismiss()
     }
 
-    /// Ohne Werbenetz gibt es nichts anzusehen — dann muss die Schranke offen
-    /// sein, sonst wäre sie unpassierbar.
-    func testOhneWerbenetzIstDieSchrankeOffen() {
-        guard !AdManager.adsEnabled else { return }
-        XCTAssertEqual(adManager.requiredRewardedVideos, 0)
-        XCTAssertTrue(adManager.isAIPlanUnlockedForFree)
+    func testMissingConfigurationCannotMakeTheGateFree() {
+        presenter.isRewardedConfigured = false
+        var result: Bool?
+        manager.watchRewardedVideoForAIPlan { result = $0 }
+        XCTAssertEqual(result, false)
+        XCTAssertEqual(manager.requiredRewardedVideos, 2)
+        XCTAssertEqual(manager.rewardedVideosWatched, 0)
+        XCTAssertFalse(manager.isAIPlanUnlockedForFree)
+        XCTAssertEqual(presenter.presentationCount, 0)
     }
 
-    /// Mit Werbenetz ist sie zu, bevor irgendetwas gesehen wurde.
-    func testMitWerbenetzIstDieSchrankeAnfangsZu() {
-        guard AdManager.adsEnabled else { return }
-        XCTAssertGreaterThan(adManager.requiredRewardedVideos, 0)
-        XCTAssertFalse(
-            adManager.isAIPlanUnlockedForFree,
-            "ohne gesehenes Video darf kein KI-Plan entstehen"
-        )
+    func testEarnedRewardDoesNotCountUntilTheVideoIsDismissed() {
+        var result: Bool?
+        manager.watchRewardedVideoForAIPlan { result = $0 }
+        let session = presenter.sessions.last!
+        session.didEarnReward()
+        XCTAssertNil(result)
+        XCTAssertEqual(manager.rewardedVideosWatched, 0)
+        XCTAssertTrue(manager.isRewardedVideoInProgress)
+        session.didDismiss()
+        XCTAssertEqual(result, true)
+        XCTAssertEqual(manager.rewardedVideosWatched, 1)
+        XCTAssertFalse(manager.isRewardedVideoInProgress)
+        XCTAssertFalse(manager.isAIPlanUnlockedForFree)
     }
 
-    /// Erst die volle Zahl öffnet sie — eines von zwei reicht nicht.
-    func testEinVideoAlleinOeffnetSieNicht() {
-        guard AdManager.adsEnabled, adManager.requiredRewardedVideos > 1 else { return }
-
-        adManager.rewardedVideosWatched = 1
-        XCTAssertFalse(adManager.isAIPlanUnlockedForFree)
-
-        adManager.rewardedVideosWatched = adManager.requiredRewardedVideos
-        XCTAssertTrue(adManager.isAIPlanUnlockedForFree)
+    func testExactlyTwoCompletedSdkVideosUnlockOnePlan() {
+        completeVideo()
+        XCTAssertEqual(manager.rewardedVideosWatched, 1)
+        XCTAssertFalse(manager.isAIPlanUnlockedForFree)
+        completeVideo()
+        XCTAssertEqual(manager.rewardedVideosWatched, 2)
+        XCTAssertTrue(manager.isAIPlanUnlockedForFree)
+        manager.consumeAIPlanReward()
+        XCTAssertEqual(manager.rewardedVideosWatched, 0)
+        XCTAssertFalse(manager.isAIPlanUnlockedForFree)
     }
 
-    /*
-      Der Kern der Beschwerde: Nach einem Plan war der Coach offen und blieb
-      es. Jeder weitere Plan muss dieselbe Schranke wiederfinden.
-    */
-    func testNachEinemPlanIstDieSchrankeWiederZu() {
-        guard AdManager.adsEnabled else { return }
-
-        adManager.rewardedVideosWatched = adManager.requiredRewardedVideos
-        XCTAssertTrue(adManager.isAIPlanUnlockedForFree)
-
-        // Genau das ruft der Coach nach dem Erzeugen auf.
-        adManager.consumeAIPlanReward()
-
-        XCTAssertEqual(adManager.rewardedVideosWatched, 0)
-        XCTAssertFalse(
-            adManager.isAIPlanUnlockedForFree,
-            "der zweite Plan darf nicht gratis sein, wenn der erste es nicht war"
-        )
+    func testEarlyDismissalFailureAndSkipDoNotEarnCredit() {
+        var completions: [Bool] = []
+        manager.watchRewardedVideoForAIPlan { completions.append($0) }
+        manager.skipAd()
+        XCTAssertTrue(completions.isEmpty)
+        XCTAssertEqual(manager.rewardedVideosWatched, 0)
+        presenter.sessions.last!.didDismiss()
+        XCTAssertEqual(completions, [false])
+        manager.watchRewardedVideoForAIPlan { completions.append($0) }
+        presenter.sessions.last!.didFail()
+        XCTAssertEqual(completions, [false, false])
+        XCTAssertEqual(manager.rewardedVideosWatched, 0)
+        XCTAssertFalse(manager.isAIPlanUnlockedForFree)
     }
 
-    /// Für Pro gilt die Schranke nie — dafür ist das Abo da.
-    func testProUmgehtDieSchranke() {
-        #if DEBUG
-        StoreKitManager.shared.debugProOverride = true
-        defer { StoreKitManager.shared.debugProOverride = false }
-        XCTAssertTrue(StoreKitManager.shared.isProUnlocked || !AuthService.shared.isSignedIn)
-        #endif
+    func testRepeatedTapAndDuplicateOrLateCallbacksDoNotDoubleCount() {
+        var first: [Bool] = []
+        manager.watchRewardedVideoForAIPlan { first.append($0) }
+        manager.watchRewardedVideoForAIPlan { XCTAssertFalse($0) }
+        XCTAssertEqual(presenter.presentationCount, 1)
+        let firstSession = presenter.sessions.last!
+        firstSession.didEarnReward()
+        firstSession.didEarnReward()
+        firstSession.didDismiss()
+        firstSession.didDismiss()
+        firstSession.didFail()
+        XCTAssertEqual(first, [true])
+        XCTAssertEqual(manager.rewardedVideosWatched, 1)
+        manager.watchRewardedVideoForAIPlan { XCTAssertFalse($0) }
+        firstSession.didEarnReward()
+        XCTAssertEqual(manager.rewardedVideosWatched, 1)
+        presenter.sessions.last!.didDismiss()
+        XCTAssertEqual(manager.rewardedVideosWatched, 1)
+    }
+
+    func testFailedVideoPreservesAlreadyEarnedProgress() {
+        completeVideo()
+        presenter.shouldPresent = false
+        manager.watchRewardedVideoForAIPlan { XCTAssertFalse($0) }
+        manager.watchRewardedVideoForAIPlan { XCTAssertFalse($0) }
+        XCTAssertEqual(manager.rewardedVideosWatched, 1)
+        XCTAssertFalse(manager.isAIPlanUnlockedForFree)
+    }
+
+    func testProBypassesAdsWithoutFabricatingWatchedVideos() {
+        let proManager = AdManager(rewardedPresenter: presenter, proProvider: { true })
+        proManager.watchRewardedVideoForAIPlan { XCTAssertTrue($0) }
+        XCTAssertEqual(presenter.presentationCount, 0)
+        XCTAssertEqual(proManager.rewardedVideosWatched, 0)
+        XCTAssertTrue(proManager.isPro)
     }
 }
 
 /*
-  Anzeigenblöcke sind einzeln optional.
-
-  In der AdMob-Konsole sind Banner und Vollbild-Einblendung angelegt, ein
-  belohnter Block bisher nicht. Daraus darf weder eine verschlossene Funktion
-  noch eine ausgelieferte Test-Anzeige werden.
+  Production ad-unit configuration must stay separate from Debug test units.
+  An unavailable rewarded unit never removes the two-video requirement.
 */
 @MainActor
 final class AdUnitConfigurationTests: XCTestCase {
@@ -276,18 +290,18 @@ final class AdUnitConfigurationTests: XCTestCase {
     /// Der Banner trägt die echte Kennung aus der Info.plist.
     func testBannerBlockIstEingetragen() {
         let configured = Bundle.main.object(forInfoDictionaryKey: "KWAdUnitBanner") as? String
-        XCTAssertEqual(configured, "ca-app-pub-8043832549817924/2858579078")
+        XCTAssertEqual(configured, "ca-app-pub-8043832549817924/4597977635")
     }
 
     func testVollbildBlockIstEingetragen() {
         let configured = Bundle.main.object(forInfoDictionaryKey: "KWAdUnitInterstitial") as? String
-        XCTAssertEqual(configured, "ca-app-pub-8043832549817924/4059980100")
+        XCTAssertEqual(configured, "ca-app-pub-8043832549817924/7754449009")
     }
 
     /// Die App-ID ist die echte, nicht mehr Googles Test-ID.
     func testDieAppKennungIstDieEchte() {
         let appId = Bundle.main.object(forInfoDictionaryKey: "GADApplicationIdentifier") as? String
-        XCTAssertEqual(appId, "ca-app-pub-8043832549817924~7999225113")
+        XCTAssertEqual(appId, "ca-app-pub-8043832549817924~5833210284")
         XCTAssertFalse(
             (appId ?? "").hasPrefix("ca-app-pub-3940256099942544"),
             "Googles Test-ID gehört nicht in eine ausgelieferte App"
@@ -296,21 +310,14 @@ final class AdUnitConfigurationTests: XCTestCase {
 
     func testBelohnterBlockIstEingetragen() {
         let configured = Bundle.main.object(forInfoDictionaryKey: "KWAdUnitRewarded") as? String
-        XCTAssertEqual(configured, "ca-app-pub-8043832549817924/7807653424")
+        XCTAssertEqual(configured, "ca-app-pub-8043832549817924/7639818809")
     }
 
-    /*
-      Die Zusage, die zusammengehört: Gibt es keinen belohnten Block, verlangt
-      der KI-Coach auch keine Videos. Sonst stünde vor einer Pro-Funktion eine
-      Schranke, die sich nicht öffnen lässt.
-    */
-    func testDieSchrankeHaengtAmVorhandenenBlock() {
-        if GoogleAdsService.hasRewardedUnit && AdManager.adsEnabled {
-            XCTAssertGreaterThan(AdManager.shared.requiredRewardedVideos, 0)
-        } else {
-            XCTAssertEqual(AdManager.shared.requiredRewardedVideos, 0)
-            XCTAssertTrue(AdManager.shared.isAIPlanUnlockedForFree)
-        }
+    /// Missing configuration cannot silently unlock a free AI plan.
+    func testMissingAdUnitNeverReducesTheRequiredVideoCount() {
+        XCTAssertEqual(AdManager.shared.requiredRewardedVideos, 2)
+        AdManager.shared.consumeAIPlanReward()
+        XCTAssertFalse(AdManager.shared.isAIPlanUnlockedForFree)
     }
 
     /// Alle drei Blöcke gehören zur selben AdMob-App.

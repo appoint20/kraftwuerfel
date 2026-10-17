@@ -264,8 +264,8 @@ public struct ProSubscriptionView: View {
       Liegen die Produkte noch nicht vor (kein Netz, StoreKit lädt), greifen
       die Rückfallwerte unten — sie stehen an genau einer Stelle.
     */
-    static let fallbackSavingsPercent = 17
-    static let fallbackPerMonth = "8,33 €"
+    static let fallbackSavingsPercent = 48
+    static let fallbackPerMonth = "4,17 €"
 
     /*
       Die reine Rechnung, getrennt von der Ansicht — damit sie geprüft werden
@@ -332,7 +332,7 @@ public struct ProSubscriptionView: View {
 
             /*
               Der Steuerhinweis gehört unter die Preise, nicht ins Kleingedruckte
-              am Seitenende: Apple zeigt den Bruttopreis, und wer 9,99 € liest,
+              am Seitenende: Apple zeigt den Bruttopreis, und wer 7,99 € liest,
               soll hier sehen, dass nichts mehr dazukommt.
             */
             Text(i18n.t("proScreen.vatNote"))

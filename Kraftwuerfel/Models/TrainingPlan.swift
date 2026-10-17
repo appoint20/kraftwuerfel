@@ -287,13 +287,15 @@ public struct TrainingPlan: Identifiable, Codable, Hashable {
         dayID: UUID,
         cycle: Int,
         slotID: UUID,
-        method: TrainingMethod = .standard
+        method: TrainingMethod = .standard,
+        allowedEquipment: Set<EquipmentType>? = nil
     ) -> Bool {
         guard let dayIndex = days.firstIndex(where: { $0.id == dayID }) else { return false }
 
         let slots = days[dayIndex].slots(forCycle: cycle)
         guard let slotIndex = slots.firstIndex(where: { $0.id == slotID }),
-              let fresh = PlanGenerator.rerollSlot(plan: slots, at: slotIndex, method: method)
+              let fresh = PlanGenerator.rerollSlot(
+                plan: slots, at: slotIndex, method: method, allowedEquipment: allowedEquipment)
         else { return false }
 
         return replaceSlot(dayID: dayID, cycle: cycle, slotID: slotID, with: fresh.exercise)
@@ -982,6 +984,8 @@ public struct AICoachInput: Codable, Hashable {
     public var pullupLevel: PullupLevel
     public var plankLevel: PlankLevel
     public var trainingLocation: TrainingLocation
+    /// Optional to keep previously saved coach inputs decodable.
+    public var limitations: String?
     /*
       Die längste gewünschte Satzpause.
 
@@ -1012,7 +1016,8 @@ public struct AICoachInput: Codable, Hashable {
         pullupLevel: PullupLevel = .beginner,
         plankLevel: PlankLevel = .under60s,
         trainingLocation: TrainingLocation = .gym,
-        restSeconds: Int = 180
+        restSeconds: Int = 180,
+        limitations: String? = nil
     ) {
         self.goal = goal
         self.experience = experience
@@ -1030,7 +1035,7 @@ public struct AICoachInput: Codable, Hashable {
         self.plankLevel = plankLevel
         self.trainingLocation = trainingLocation
         self.restSeconds = restSeconds
+        self.limitations = limitations
     }
 }
-
 

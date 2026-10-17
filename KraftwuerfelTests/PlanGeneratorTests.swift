@@ -154,6 +154,9 @@ final class PlanGeneratorTests: XCTestCase {
     func testRerollTauschtDieUebungUndBehaeltDenSlot() throws {
         for _ in 0..<runs {
             let plan = PlanGenerator.buildPlan(categories: fullBody, count: 5, restTime: 90)
+            // Zufällig nur Hanteln und Körpergewicht: Das gilt als Home-Plan und
+            // darf beim Neu-Würfeln nichts aus dem Studio bekommen — eigener Test.
+            if HomeTraining.inferredEquipment(for: plan.map(\.exercise)) != nil { continue }
             let original = plan[2]
             let rerolled = try XCTUnwrap(
                 PlanGenerator.rerollSlot(plan: plan, at: 2, method: .standard)

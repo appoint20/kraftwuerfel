@@ -62,7 +62,7 @@ SWIFT_VERSION = "5.0"
 # wie die App, sonst nimmt App Store Connect das Archiv nicht an.
 #
 # MARKETING_VERSION muss zur Version in App Store Connect passen.
-MARKETING_VERSION = "1.0.16"
+MARKETING_VERSION = "1.0.18"
 # Der Build kommt in Xcode Cloud aus dessen eigenem Zähler.
 #
 # Zweimal dieselbe Nummer hochzuladen lehnt App Store Connect ab ("The bundle
@@ -74,7 +74,7 @@ MARKETING_VERSION = "1.0.16"
 # eindeutig und höher als der vorige. Das setzt ci_scripts/ci_post_clone.sh.
 # Der Wert hier ist nur die Rückfallebene für Archive vom eigenen Rechner —
 # beim Hochladen von Hand vorher erhöhen.
-CURRENT_PROJECT_VERSION = os.environ.get("KRAFT_BUILD") or "22"
+CURRENT_PROJECT_VERSION = os.environ.get("KRAFT_BUILD") or "24"
 
 APP_DIR = "Kraftwuerfel"
 WIDGET_DIR = "KraftwuerfelWidget"

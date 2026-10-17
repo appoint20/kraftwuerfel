@@ -56,10 +56,17 @@ final class MultiCycleAndMealGuideTests: XCTestCase {
                 let overlap = c1Names.intersection(c2Names)
                 XCTAssertLessThan(overlap.count, c1Names.count, "Cycle 1 and Cycle 2 on \(day.weekday) must have differentiated exercises")
 
-                // Rep ranges should differ (Cycle 1 strength/hypertrophy vs Cycle 2 volume/metabolic)
+                // Infrequent trainees keep the same manageable rep range;
+                // exercise variation does not require a heavier cycle.
                 let c1Reps = day.cycle1Slots.first?.reps
                 let c2Reps = day.cycle2Slots.first?.reps
-                XCTAssertNotEqual(c1Reps, c2Reps, "Cycle 1 and Cycle 2 must have differentiated rep ranges")
+                if n == 1 {
+                    XCTAssertEqual(c1Reps, "8-12")
+                    XCTAssertEqual(c2Reps, "8-12")
+                    XCTAssertTrue((day.cycle1Slots + day.cycle2Slots).allSatisfy { $0.sets == 2 && !$0.exercise.isHeavy })
+                } else {
+                    XCTAssertNotEqual(c1Reps, c2Reps, "Cycle 1 and Cycle 2 vary rep ranges for regular trainees")
+                }
             }
 
             XCTAssertEqual(totalUniqueSessions, 2 * n, "Strict formula: exactly 2 × \(n) = \(2 * n) unique sessions")

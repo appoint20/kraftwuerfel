@@ -2,6 +2,12 @@
 
 Native SwiftUI-Trainings-App für iPhone und Apple Watch, zweisprachig (Deutsch/Englisch).
 
+**Kostenloser Download mit Werbung, optionales Pro-Abo als In-App-Kauf.** In App Store
+Connect unter „Preisgestaltung und Verfügbarkeit“ muss der Preis der App selbst für
+alle angebotenen Länder auf „Kostenlos“ (0,00 €) stehen. Die Pro-Preise werden separat
+unter „Abonnements“ eingestellt. Für den Download und die kostenlosen Funktionen ist
+kein Kauf erforderlich.
+
 **Konto erforderlich.** Seit der Anmeldeschranke (`RootView`) führt kein Weg an Registrierung
 oder Anmeldung vorbei — Pläne, Fortschritt und das Pro-Abo hängen am Konto, nicht am Gerät.
 Der Fragebogen danach ist überspringbar; gefragt wird dann dort, wo die Antworten
@@ -27,6 +33,13 @@ zeigt dieselbe Liste, damit beide nicht auseinanderlaufen:
 Gesperrt wird das **Ansehen**, nicht das Aufzeichnen: Trainings und gespeicherte Pläne
 bleiben liegen, wenn ein Abo ausläuft. Ein abgelaufenes Abo ist kein Grund, die Arbeit des
 Nutzers wegzuwerfen — wer wieder abschließt, findet alles vor.
+
+**Pro-Preise (EUR):** 7,99 € pro Monat oder 49,99 € pro Jahr, jeweils inkl. MwSt.
+Das Jahresabo wird jährlich abgerechnet und entspricht gerundet 4,17 € pro Monat
+mit 48% Ersparnis gegenüber zwölf Monatsabos. Diese Preise müssen auch für
+`app.kraftwuerfel.pro.monthly` und `app.kraftwuerfel.pro.yearly` in App Store Connect
+eingestellt sein: Die Bezahlseite übernimmt die tatsächlichen, lokalisierten Preise
+aus StoreKit. Die Angaben im Code sind Rückfallwerte, keine Änderung am Apple-Preis.
 
 ## Aufbau
 

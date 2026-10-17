@@ -40,7 +40,12 @@ public struct LiveWorkoutView: View {
     @ObservedObject private var i18n = I18n.shared
     @Environment(\.scenePhase) private var scenePhase
 
-    public let slots: [ExerciseSlot]
+    /*
+      Veränderlich, weil eine Übung mitten im Training getauscht werden kann —
+      das Gerät ist besetzt, die Übung zwickt, zu Hause fehlt das Gerät.
+      Getauscht wird nur der Platz in dieser Sitzung, nicht der Plan.
+    */
+    @State private var slots: [ExerciseSlot]
     public let planTitle: String
     public var onNavigateToProgress: (() -> Void)?
     public var onFinish: (() -> Void)?
@@ -134,6 +139,7 @@ public struct LiveWorkoutView: View {
     @State private var showSensorSheet = false
     @State private var completedLog: WorkoutSessionLog?
     @State private var showEndSessionDialog = false
+    @State private var showSwapPicker = false
 
     /*
       Sperrbildschirm, Uhr und Apple Health hängen an derselben Sitzung. Beim
@@ -152,7 +158,7 @@ public struct LiveWorkoutView: View {
         onNavigateToProgress: (() -> Void)? = nil,
         onFinish: (() -> Void)? = nil
     ) {
-        self.slots = slots
+        _slots = State(initialValue: slots)
         self.planTitle = planTitle
         self.onNavigateToProgress = onNavigateToProgress
         self.onFinish = onFinish
@@ -255,6 +261,19 @@ public struct LiveWorkoutView: View {
         }
         .sheet(isPresented: $showMusic) { MusicPlayerSheet() }
         .sheet(isPresented: $showSensorSheet) { HeartRateSensorSheet() }
+        .sheet(isPresented: $showSwapPicker) {
+            if let slot {
+                ExercisePickerSheet(
+                    title: i18n.t("live.swapExercise"),
+                    highlightCategories: slot.exercise.categories,
+                    alreadyUsed: Set(slots.map(\.exercise.name)),
+                    // Eine Home-Session bekommt beim Tauschen keine Maschine.
+                    allowedEquipment: HomeTraining.inferredEquipment(for: slots.map(\.exercise))
+                ) { picked in
+                    swapCurrentExercise(with: picked)
+                }
+            }
+        }
         .confirmationDialog(
             i18n.lang == "en" ? "End Workout" : "Training beenden",
             isPresented: $showEndSessionDialog,
@@ -664,6 +683,7 @@ public struct LiveWorkoutView: View {
 
                 HStack(spacing: 9) {
                     quickAction(i18n.t("live.addRest")) { startRest(seconds: restDuration + 30) }
+                    quickAction(i18n.t("live.swapExercise")) { showSwapPicker = true }
                     if canSkipExercise {
                         quickAction(i18n.t("live.skipExercise")) { deferExercise() }
                     }
@@ -1371,6 +1391,47 @@ public struct LiveWorkoutView: View {
           nur beim Start einer Pause aktualisiert, und beim Überspringen gibt
           es bewusst keine.
         */
+        pushCurrentExerciseToLockScreen()
+    }
+
+    /*
+      Die aktuelle Übung gegen eine andere tauschen.
+
+      Noch kein Satz gemacht: Der Platz bekommt einfach die neue Übung, mit
+      denselben Sätzen, Wiederholungen und Pausen.
+
+      Schon Sätze gemacht: Die bleiben bei der alten Übung stehen — im
+      Protokoll soll nicht „3 × Liegestütze" stehen, wenn zwei davon
+      Bankdrücken waren. Die alte Übung endet mit den erledigten Sätzen, die
+      restlichen Sätze bekommt die neue, die an ihrer Stelle in der
+      Reihenfolge weiterläuft.
+    */
+    private func swapCurrentExercise(with exercise: Exercise) {
+        let idx = exerciseIdx
+        guard slots.indices.contains(idx), order.indices.contains(position) else { return }
+        let old = slots[idx]
+        guard exercise.name != old.exercise.name else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        let doneSets = setIdx
+        if doneSets <= 0 {
+            slots[idx] = ExerciseSlot(
+                exercise: exercise, sets: old.sets, reps: old.reps,
+                restSeconds: old.restSeconds, note: ""
+            )
+            logged[idx] = nil
+        } else {
+            slots[idx].sets = doneSets
+            logged[idx] = logged[idx]?.filter { $0.key < doneSets }
+            slots.append(ExerciseSlot(
+                exercise: exercise, sets: max(1, old.sets - doneSets), reps: old.reps,
+                restSeconds: old.restSeconds, note: ""
+            ))
+            order[position] = slots.count - 1
+        }
+        deferred.remove(idx)
+        setIdx = firstOpenSet(for: exerciseIdx)
+        syncWatch()
         pushCurrentExerciseToLockScreen()
     }
 

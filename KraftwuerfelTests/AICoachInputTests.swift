@@ -159,7 +159,7 @@ final class AICoachInputTests: XCTestCase {
     func testFokusMethodeZiehtDieFokusGruppeInDenPlan() {
         for _ in 0..<10 {
             let plan = AICoachService.shared.generatePlan(
-                input: input(method: .legsFocus, days: ["Mo"]), language: "de"
+                input: input(method: .legsFocus, days: ["Mo", "Mi", "Fr"]), language: "de"
             )
             let legs = plan.days[0].cycle1Slots
                 .filter { $0.exercise.categories.contains(.legs) }
@@ -245,5 +245,180 @@ final class AICoachInputTests: XCTestCase {
         XCTAssertEqual(decoded.pullupLevel, .advanced)
         XCTAssertEqual(decoded.plankLevel, .under120s)
         XCTAssertEqual(decoded.trainingLocation, .outdoorPark)
+    }
+
+    func testInterviewAnswersReachTheCoachRequest() throws {
+        var profile = UserProfile()
+        profile.sex = "female"
+        profile.experience = .beginner
+        profile.selectedDays = ["Sa"]
+        profile.durationMinutes = 30
+        profile.restSeconds = 45
+        profile.trainingLocation = .homeBodyweight
+        profile.equipment = [.bodyweight]
+        profile.pushupLevel = .beginner
+        profile.pullupLevel = .none
+        profile.plankLevel = .under30s
+        profile.limitations = "Empfindliche Knie, keine Sprünge"
+
+        let request = profile.coachPlanRequest(language: "de")
+        let data = try JSONEncoder().encode(request)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(json["limitations"] as? String, profile.limitations)
+        XCTAssertEqual(json["sex"] as? String, "female")
+        XCTAssertEqual(json["experience"] as? String, "beginner")
+        XCTAssertEqual(json["days"] as? [String], ["Sa"])
+        XCTAssertEqual(json["sessionMinutes"] as? Int, 30)
+        XCTAssertEqual(json["equipment"] as? [String], [EquipmentType.bodyweight.rawValue])
+        XCTAssertEqual(json["pushupLevel"] as? String, "0-5")
+        XCTAssertEqual(json["pullupLevel"] as? String, "0")
+        XCTAssertEqual(json["plankLevel"] as? String, "<30s")
+        XCTAssertEqual(profile.coachInput.limitations, profile.limitations)
+        XCTAssertEqual(profile.coachInput.selectedDays, request.days)
+    }
+
+    func testCoachRequestCannotSendGymEquipmentForThePark() {
+        var profile = UserProfile()
+        profile.trainingLocation = .outdoorPark
+        profile.equipment = [.machine]
+        XCTAssertEqual(profile.coachPlanRequest(language: "de").equipment, [EquipmentType.bodyweight.rawValue])
+        XCTAssertEqual(profile.coachInput.equipment, [.bodyweight])
+    }
+
+    func testOldSavedCoachInputsRemainReadableWithoutLimitations() throws {
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(input())) as? [String: Any])
+        json.removeValue(forKey: "limitations")
+        let data = try JSONSerialization.data(withJSONObject: json)
+        let restored = try JSONDecoder().decode(AICoachInput.self, from: data)
+        XCTAssertNil(restored.limitations)
+        XCTAssertEqual(restored.selectedDays, ["Mo", "Mi", "Fr"])
+    }
+
+    func testOneDayBeginnerLocalPlanHonorsCapacityWithoutUsingSexAsDifficulty() {
+        for sex in ["female", "male"] {
+            var profile = UserProfile()
+            profile.sex = sex
+            profile.experience = .beginner
+            profile.selectedDays = ["Sa"]
+            profile.durationMinutes = 30
+            profile.restSeconds = 45
+            profile.pushupLevel = .beginner
+            profile.pullupLevel = .none
+            profile.plankLevel = .under30s
+            profile.method = .fiveFourThree
+            for _ in 0..<20 {
+                let plan = AICoachService.shared.generatePlan(input: profile.coachInput)
+                XCTAssertEqual(plan.days.map(\.weekday), ["Sa"])
+                for day in plan.days {
+                    for slots in [day.cycle1Slots, day.cycle2Slots] {
+                        XCTAssertFalse(slots.isEmpty)
+                        XCTAssertLessThanOrEqual(slots.count, 5)
+                        XCTAssertTrue(slots.allSatisfy { !$0.exercise.isHeavy && $0.sets == 2 && $0.restSeconds <= 45 })
+                        XCTAssertFalse(slots.contains { ["Liegestütze", "Klimmzüge", "Dips (Brustfokus)", "Ab Wheel Rollout"].contains($0.exercise.name) })
+                    }
+                }
+            }
+        }
+    }
+
+    func testSparseLocalEquipmentNeverExpandsToUnavailableMachines() {
+        var profile = UserProfile()
+        profile.experience = .beginner
+        profile.selectedDays = ["Mo"]
+        profile.trainingLocation = .homeBodyweight
+        profile.equipment = [.weightPlate]
+        let plan = AICoachService.shared.generatePlan(input: profile.coachInput)
+        for day in plan.days {
+            XCTAssertTrue((day.cycle1Slots + day.cycle2Slots).allSatisfy { $0.exercise.equipment == .weightPlate })
+        }
+    }
+
+    func testCoachErrorMessagesDistinguishServerFailureFromOfflineAndHideDiagnostics() {
+        let failure = KraftAPI.APIError.upstream("HTTP 502: secret-key-123 <html>provider stack trace</html>").coachMessage(language: "de")
+        XCTAssertTrue(failure.contains("Server"))
+        XCTAssertFalse(failure.contains("Verbindung"))
+        XCTAssertFalse(failure.contains("secret-key-123"))
+        XCTAssertFalse(failure.contains("<html>"))
+        let configuration = KraftAPI.APIError.upstream("API-Schlüssel ist nicht konfiguriert.").coachMessage(language: "de")
+        XCTAssertTrue(configuration.contains("eingerichtet"))
+        let transport = KraftAPI.APIError.transport("network dropped").coachMessage(language: "de")
+        XCTAssertTrue(transport.contains("Verbindung"))
+        let providerQuota = KraftAPI.APIError.upstream("OpenRouter antwortete 429").coachMessage(language: "de")
+        XCTAssertTrue(providerQuota.contains("ausgelastet"))
+        XCTAssertFalse(providerQuota.contains("Planlimit"))
+    }
+
+    func testShortLocalSessionsFitIncludingWarmupWorkRestAndSetup() {
+        for minutes in [10, 15] {
+            var profile = UserProfile()
+            profile.experience = .beginner
+            profile.selectedDays = ["Mo"]
+            profile.durationMinutes = minutes
+            profile.restSeconds = 120
+            profile.trainingLocation = .homeBodyweight
+            profile.equipment = [.bodyweight]
+            for _ in 0..<20 {
+                let plan = AICoachService.shared.generatePlan(input: profile.coachInput)
+                for day in plan.days {
+                    XCTAssertEqual(day.warmup.map(\.duration), ["2 min"])
+                    XCTAssertFalse(day.warmup.contains { $0.name.contains("Laufband") || $0.name.contains("Rudergerät") || $0.name.contains("Band") })
+                    for slots in [day.cycle1Slots, day.cycle2Slots] {
+                        XCTAssertFalse(slots.isEmpty)
+                        // Every exercise allows at most 12 repetitions or 30s
+                        // of holding, so 48 seconds per set is an upper bound.
+                        let seconds = 120 + slots.reduce(0) {
+                            $0 + $1.sets * 48 + max(0, $1.sets - 1) * $1.restSeconds + 60
+                        }
+                        XCTAssertLessThanOrEqual(seconds, minutes * 60)
+                        XCTAssertTrue(slots.allSatisfy { $0.sets == 2 && $0.exercise.equipment == .bodyweight })
+                    }
+                }
+            }
+        }
+    }
+
+    func testOnceWeeklyIntermediateAlsoStartsConservatively() {
+        var profile = UserProfile()
+        profile.experience = .intermediate
+        profile.selectedDays = ["Sa"]
+        profile.durationMinutes = 30
+        profile.method = .fiveFourThree
+        for _ in 0..<20 {
+            let plan = AICoachService.shared.generatePlan(input: profile.coachInput)
+            XCTAssertEqual(plan.days.map(\.weekday), ["Sa"])
+            for day in plan.days {
+                XCTAssertEqual(day.warmup.map(\.duration), ["3 min"])
+                XCTAssertTrue((day.cycle1Slots + day.cycle2Slots).allSatisfy {
+                    !$0.exercise.isHeavy && $0.sets == 2 && ($0.reps == "8-12" || $0.exercise.name.contains("Plank"))
+                })
+            }
+        }
+    }
+
+    func testRecognizedRestrictionsReduceLocalSelectionAndLoad() {
+        let cases: [(String, [String])] = [
+            ("Knieprobleme", ["squat", "kniebeugen", "ausfallschritt", "step-up", "beinpresse", "mountain climbers"]),
+            ("Rückenbeschwerden", ["kreuzheben", "good mornings", "vorgebeugt", "t-bar", "hyperextensions", "russian twists", "sit-ups"]),
+            ("Shoulder pain", ["drücken", "press", "dips", "liegestütze", "frontheben", "pullover"]),
+            ("Bitte vorsichtig beginnen", []),
+        ]
+        for (limitation, excluded) in cases {
+            var profile = UserProfile()
+            profile.experience = .advanced
+            profile.selectedDays = ["Mo", "Mi", "Fr"]
+            profile.limitations = limitation
+            for _ in 0..<20 {
+                let plan = AICoachService.shared.generatePlan(input: profile.coachInput)
+                XCTAssertTrue(plan.notes.contains { $0.contains("keine Verletzung") })
+                for day in plan.days {
+                    for slot in day.cycle1Slots + day.cycle2Slots {
+                        XCTAssertFalse(slot.exercise.isHeavy)
+                        XCTAssertEqual(slot.sets, 2)
+                        let name = (slot.exercise.name + " " + slot.exercise.nameEn).lowercased()
+                        XCTAssertFalse(excluded.contains { name.contains($0) }, "\(limitation): \(slot.exercise.name)")
+                    }
+                }
+            }
+        }
     }
 }

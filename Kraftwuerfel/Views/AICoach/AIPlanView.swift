@@ -524,7 +524,11 @@ public struct AIPlanView: View {
                             dayID: day.id,
                             cycle: activeCycle,
                             slotID: slot.id,
-                            method: input?.method ?? .standard
+                            method: input?.method ?? .standard,
+                            allowedEquipment: input.map {
+                                let place = UserProfile.allowedEquipment(for: $0.trainingLocation)
+                                return $0.equipment.isEmpty ? place : $0.equipment.intersection(place)
+                            }
                         )
                     }
                     if day.slots(forCycle: activeCycle).count > 1 {
